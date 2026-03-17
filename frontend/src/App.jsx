@@ -16,6 +16,13 @@ function App() {
   const [timeLeft, setTimeLeft] = useState(180);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [scorePop, setScorePop] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMode, setAuthMode] = useState("login");
+  const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
   const previousScoreRef = useRef(0);
 
   useEffect(() => {
@@ -216,6 +223,85 @@ function App() {
     setGameStarted(false);
   };
 
+  const resetAuthForm = () => {
+    setAuthName("");
+    setAuthEmail("");
+    setAuthPassword("");
+    setAuthMessage("");
+  };
+
+  const handleRegister = async () => {
+    if (!authName.trim() || !authEmail.trim() || !authPassword.trim()) {
+      setAuthMessage("Lütfen tüm alanları doldurun.");
+      return;
+    }
+
+    try {
+      setAuthLoading(true);
+      setAuthMessage("");
+
+      const response = await fetch("http://localhost:8080/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: authName,
+          email: authEmail,
+          password: authPassword,
+        }),
+      });
+
+      const data = await response.text();
+      setAuthMessage(data);
+
+      if (response.ok) {
+        setAuthMode("login");
+        setAuthPassword("");
+      }
+    } catch (error) {
+      setAuthMessage("Kayıt sırasında bir hata oluştu.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthMessage("Email ve şifre alanlarını doldurun.");
+      return;
+    }
+
+    try {
+      setAuthLoading(true);
+      setAuthMessage("");
+
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: authEmail,
+          password: authPassword,
+        }),
+      });
+
+      const data = await response.text();
+      setAuthMessage(data);
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+        setAuthPassword("");
+        setAuthMessage("");
+      }
+    } catch (error) {
+      setAuthMessage("Giriş sırasında bir hata oluştu.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -318,6 +404,18 @@ function App() {
     boxShadow: "0 10px 22px rgba(127, 29, 29, 0.18)",
   };
 
+  const authInputStyle = {
+    padding: "14px 16px",
+    fontSize: "16px",
+    width: "100%",
+    borderRadius: "14px",
+    border: "1px solid rgba(96, 165, 250, 0.32)",
+    backgroundColor: "rgba(15, 23, 42, 0.78)",
+    color: "#f8fafc",
+    boxSizing: "border-box",
+    outline: "none",
+  };
+
   const durationButtonStyle = (duration) => ({
     padding: "16px 22px",
     minWidth: "120px",
@@ -359,6 +457,147 @@ function App() {
       <div style={pageStyle}>
         <div style={cardStyle}>
           <h2 style={{ textAlign: "center", margin: 0, color: "#f8fafc" }}>Yükleniyor...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div style={pageStyle}>
+        <div
+          style={{
+            ...cardStyle,
+            maxWidth: "560px",
+            textAlign: "center",
+          }}
+        >
+          <img
+            src="/passaquiz.png"
+            alt="PassaQuiz Logo"
+            style={{ width: "260px", marginBottom: "16px" }}
+          />
+
+          <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "10px" }}>
+            {authMode === "login" ? "Giriş Yap" : "Kayıt Ol"}
+          </h2>
+
+          <p style={{ color: "#cbd5e1", marginTop: 0, marginBottom: "24px", fontSize: "16px" }}>
+            Oyuna başlamadan önce hesabınla giriş yapman gerekiyor.
+          </p>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "12px",
+              marginBottom: "22px",
+            }}
+          >
+            <button
+              onClick={() => {
+                setAuthMode("login");
+                resetAuthForm();
+              }}
+              style={{
+                ...primaryButtonStyle,
+                marginTop: 0,
+                marginRight: 0,
+                minWidth: "140px",
+                opacity: authMode === "login" ? 1 : 0.7,
+              }}
+            >
+              Giriş Yap
+            </button>
+
+            <button
+              onClick={() => {
+                setAuthMode("register");
+                resetAuthForm();
+              }}
+              style={{
+                ...secondaryButtonStyle,
+                marginTop: 0,
+                marginRight: 0,
+                minWidth: "140px",
+                opacity: authMode === "register" ? 1 : 0.7,
+              }}
+            >
+              Kayıt Ol
+            </button>
+          </div>
+
+          <div style={{ display: "grid", gap: "14px", maxWidth: "380px", margin: "0 auto" }}>
+            {authMode === "register" && (
+              <input
+                type="text"
+                placeholder="Ad Soyad"
+                value={authName}
+                onChange={(e) => setAuthName(e.target.value)}
+                style={authInputStyle}
+              />
+            )}
+
+            <input
+              type="email"
+              placeholder="Email"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              style={authInputStyle}
+            />
+
+            <input
+              type="password"
+              placeholder="Şifre"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  authMode === "login" ? handleLogin() : handleRegister();
+                }
+              }}
+              style={authInputStyle}
+            />
+          </div>
+
+          <button
+            onClick={authMode === "login" ? handleLogin : handleRegister}
+            disabled={authLoading}
+            style={{
+              ...(authMode === "login" ? primaryButtonStyle : successButtonStyle),
+              marginTop: "22px",
+              marginRight: 0,
+              minWidth: "220px",
+              fontSize: "17px",
+              padding: "14px 24px",
+              opacity: authLoading ? 0.75 : 1,
+            }}
+          >
+            {authLoading
+              ? authMode === "login"
+                ? "Giriş Yapılıyor..."
+                : "Kayıt Oluşturuluyor..."
+              : authMode === "login"
+                ? "Giriş Yap"
+                : "Kayıt Ol"}
+          </button>
+
+          {authMessage && (
+            <p
+              style={{
+                marginTop: "18px",
+                marginBottom: 0,
+                color:
+                  authMessage.toLocaleLowerCase("tr-TR").includes("başarılı")
+                    ? "#4ade80"
+                    : "#fca5a5",
+                fontSize: "16px",
+                fontWeight: "600",
+              }}
+            >
+              {authMessage}
+            </p>
+          )}
         </div>
       </div>
     );
@@ -439,6 +678,21 @@ function App() {
               }}
             >
               Nasıl Oynanır?
+            </button>
+            <button
+              onClick={() => {
+                setIsAuthenticated(false);
+                resetAuthForm();
+              }}
+              style={{
+                ...exitButtonStyle,
+                marginTop: 0,
+                minWidth: "180px",
+                fontSize: "18px",
+                padding: "14px 24px",
+              }}
+            >
+              Çıkış Yap
             </button>
           </div>
           {showHowToPlay && (
