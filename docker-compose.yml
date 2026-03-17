@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: passaparola-postgres
+    environment:
+      POSTGRES_DB: passaparola_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+    ports:
+      - "5433:5432"
+    volumes:
+      - passaparola_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  passaparola_postgres_data:
