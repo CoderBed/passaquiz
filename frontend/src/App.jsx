@@ -23,11 +23,34 @@ function App() {
   const [authPassword, setAuthPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
   const previousScoreRef = useRef(0);
+  const resultSavedRef = useRef(false);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/game/questions")
-      .then((res) => res.json())
+    if (!isAuthenticated) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsAuthenticated(false);
+      return;
+    }
+
+    setQuestionsLoading(true);
+
+    fetch("http://localhost:8080/api/game/questions", {
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Sorular alınamadı");
+        }
+        return res.json();
+      })
       .then((data) => {
         const alphabet = [
           "A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L",
@@ -41,7 +64,22 @@ function App() {
         setQuestions(sorted);
         setQuestionStatuses(sorted.map(() => "pending"));
       })
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error(err);
+        localStorage.removeItem("token");
+        setIsAuthenticated(false);
+        setQuestions([]);
+        setQuestionStatuses([]);
+        setAuthMessage("Oturum geçersiz. Lütfen tekrar giriş yapın.");
+      })
+      .finally(() => {
+        setQuestionsLoading(false);
+      });
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
   }, []);
 
   useEffect(() => {
@@ -65,7 +103,7 @@ function App() {
     if (!gameStarted || gameFinished) return;
 
     if (timeLeft <= 0) {
-      setGameFinished(true);
+      finishGame();
       return;
     }
 
@@ -160,7 +198,7 @@ function App() {
         return;
       }
 
-      setGameFinished(true);
+      finishGame();
       return;
     }
 
@@ -177,10 +215,11 @@ function App() {
       return;
     }
 
-    setGameFinished(true);
+    finishGame();
   };
 
   const startGame = () => {
+    resultSavedRef.current = false;
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -192,10 +231,12 @@ function App() {
     setTimeLeft(selectedDuration);
     setQuestionStatuses(questions.map(() => "pending"));
     setShowHowToPlay(false);
+    setShowLeaderboard(false);
     setGameStarted(true);
   };
 
   const restartGame = () => {
+      resultSavedRef.current = false;
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -210,6 +251,7 @@ function App() {
   };
 
   const exitGame = () => {
+      resultSavedRef.current = false;
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -228,6 +270,7 @@ function App() {
     setAuthEmail("");
     setAuthPassword("");
     setAuthMessage("");
+    setShowLeaderboard(false);
   };
 
   const handleRegister = async () => {
@@ -290,15 +333,70 @@ function App() {
       const data = await response.text();
       setAuthMessage(data);
 
-      if (response.ok) {
-        setIsAuthenticated(true);
-        setAuthPassword("");
-        setAuthMessage("");
-      }
+            if (response.ok) {
+              localStorage.setItem("token", data);
+              setShowLeaderboard(false);
+              setIsAuthenticated(true);
+              setAuthPassword("");
+              setAuthMessage("");
+            }
     } catch (error) {
       setAuthMessage("Giriş sırasında bir hata oluştu.");
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const saveGameResult = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/game/result", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          score: score,
+          correctCount: correctCount,
+          wrongCount: wrongCount,
+          passedCount: passedCount,
+          durationSeconds: elapsedTime,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Oyun sonucu kaydedilemedi");
+      }
+    } catch (error) {
+      console.error("Oyun sonucu kaydedilemedi:", error);
+    }
+  };
+
+  const finishGame = () => {
+    if (resultSavedRef.current) return;
+    resultSavedRef.current = true;
+    setGameFinished(true);
+    saveGameResult();
+  };
+
+  const fetchLeaderboard = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/game/leaderboard", {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = await response.json();
+      setLeaderboard(data);
+    } catch (error) {
+      console.error("Leaderboard alınamadı:", error);
     }
   };
 
@@ -452,16 +550,6 @@ function App() {
   );
   const elapsedTime = selectedDuration - timeLeft;
 
-  if (questions.length === 0) {
-    return (
-      <div style={pageStyle}>
-        <div style={cardStyle}>
-          <h2 style={{ textAlign: "center", margin: 0, color: "#f8fafc" }}>Yükleniyor...</h2>
-        </div>
-      </div>
-    );
-  }
-
   if (!isAuthenticated) {
     return (
       <div style={pageStyle}>
@@ -603,6 +691,51 @@ function App() {
     );
   }
 
+  if (isAuthenticated && questionsLoading) {
+    return (
+      <div style={pageStyle}>
+        <div style={cardStyle}>
+          <h2 style={{ textAlign: "center", margin: 0, color: "#f8fafc" }}>Yükleniyor...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && !questionsLoading && questions.length === 0) {
+    return (
+      <div style={pageStyle}>
+        <div
+          style={{
+            ...cardStyle,
+            maxWidth: "620px",
+            textAlign: "center",
+          }}
+        >
+          <h2 style={{ color: "#f8fafc", marginTop: 0 }}>Soru bulunamadı</h2>
+          <p style={{ color: "#cbd5e1", marginBottom: "22px" }}>
+            Oyunu başlatmak için önce soru verilerinin yüklenmesi gerekiyor.
+          </p>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              setIsAuthenticated(false);
+              resetAuthForm();
+            }}
+            style={{
+              ...exitButtonStyle,
+              marginTop: 0,
+              minWidth: "200px",
+              fontSize: "16px",
+              padding: "14px 24px",
+            }}
+          >
+            Giriş Ekranına Dön
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!gameStarted) {
     return (
       <div style={pageStyle}>
@@ -681,6 +814,23 @@ function App() {
             </button>
             <button
               onClick={() => {
+                fetchLeaderboard();
+                setShowLeaderboard(true);
+              }}
+              style={{
+                ...secondaryButtonStyle,
+                marginTop: 0,
+                marginRight: 0,
+                minWidth: "180px",
+                fontSize: "18px",
+                padding: "14px 24px",
+              }}
+            >
+              Leaderboard
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
                 setIsAuthenticated(false);
                 resetAuthForm();
               }}
@@ -695,6 +845,60 @@ function App() {
               Çıkış Yap
             </button>
           </div>
+          {showLeaderboard && (
+            <div
+              style={{
+                marginTop: "28px",
+                background: "rgba(15, 23, 42, 0.72)",
+                border: "1px solid rgba(148, 163, 184, 0.16)",
+                borderRadius: "18px",
+                padding: "20px",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "14px",
+                }}
+              >
+                <h3 style={{ margin: 0, color: "#f8fafc" }}>Leaderboard</h3>
+                <button
+                  onClick={() => setShowLeaderboard(false)}
+                  style={{
+                    ...exitButtonStyle,
+                    marginTop: 0,
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                  }}
+                >
+                  Kapat
+                </button>
+              </div>
+
+              {leaderboard.length === 0 ? (
+                <p style={{ color: "#cbd5e1", margin: 0 }}>Henüz skor bulunmuyor.</p>
+              ) : (
+                leaderboard.map((item, index) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "10px 0",
+                      borderBottom: "1px solid rgba(148, 163, 184, 0.12)",
+                      color: "#e2e8f0",
+                    }}
+                  >
+                    <span>{index + 1}. {item.userName || item.userEmail}</span>
+                    <span style={{ color: "#60a5fa", fontWeight: "700" }}>{item.score}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
           {showHowToPlay && (
             <div
               style={{
