@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.bedirhan.passaparola.service.JwtService;
+import com.bedirhan.passaparola.dto.LoginResponse;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -57,6 +58,10 @@ public class AuthController {
         }
 
         String token = jwtService.generateToken(user.getEmail());
-        return ResponseEntity.ok(token);
+        return ResponseEntity.ok(new LoginResponse(
+                token,
+                user.getName(),
+                user.getEmail()
+        ));
     }
 }

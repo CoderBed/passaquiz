@@ -26,64 +26,100 @@ function App() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [authUserName, setAuthUserName] = useState("");
+  const [authUserEmail, setAuthUserEmail] = useState("");
+  const [authUserImage, setAuthUserImage] = useState("");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [answerHistory, setAnswerHistory] = useState([]);
+  const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const previousScoreRef = useRef(0);
   const resultSavedRef = useRef(false);
+  const profileFileInputRef = useRef(null);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
+  const loadQuestions = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setIsAuthenticated(false);
-      return;
+      return false;
     }
 
     setQuestionsLoading(true);
 
-    fetch("http://localhost:8080/api/game/questions", {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Sorular alınamadı");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        const alphabet = [
-          "A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L",
-          "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z",
-        ];
-
-        const sorted = [...data].sort(
-          (a, b) => alphabet.indexOf(a.letter) - alphabet.indexOf(b.letter)
-        );
-
-        setQuestions(sorted);
-        setQuestionStatuses(sorted.map(() => "pending"));
-      })
-      .catch((err) => {
-        console.error(err);
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
-        setQuestions([]);
-        setQuestionStatuses([]);
-        setAuthMessage("Oturum geçersiz. Lütfen tekrar giriş yapın.");
-      })
-      .finally(() => {
-        setQuestionsLoading(false);
+    try {
+      const response = await fetch("http://localhost:8080/api/game/questions", {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
       });
+
+      if (!response.ok) {
+        throw new Error("Sorular alınamadı");
+      }
+
+      const data = await response.json();
+      const alphabet = [
+        "A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L",
+        "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z",
+      ];
+
+      const normalized = data.map((item) => ({
+        ...item,
+        letter: (item.letter || "").toLocaleUpperCase("tr-TR"),
+      }));
+
+      const groupedByLetter = normalized.reduce((acc, item) => {
+        if (!acc[item.letter]) {
+          acc[item.letter] = [];
+        }
+        acc[item.letter].push(item);
+        return acc;
+      }, {});
+
+      const uniqueByLetter = Object.values(groupedByLetter).map((items) => {
+        return items[Math.floor(Math.random() * items.length)];
+      });
+
+      const sorted = [...uniqueByLetter].sort(
+        (a, b) => alphabet.indexOf(a.letter) - alphabet.indexOf(b.letter)
+      );
+
+      setQuestions(sorted);
+      setQuestionStatuses(sorted.map(() => "pending"));
+      return true;
+    } catch (err) {
+      console.error(err);
+      localStorage.removeItem("token");
+      setIsAuthenticated(false);
+      setAuthUserName("");
+      setAuthUserEmail("");
+      setAuthUserImage("");
+      setShowProfileMenu(false);
+      setQuestions([]);
+      setQuestionStatuses([]);
+      setAuthMessage("Oturum geçersiz. Lütfen tekrar giriş yapın.");
+      return false;
+    } finally {
+      setQuestionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    loadQuestions();
   }, [isAuthenticated]);
 
   useEffect(() => {
     localStorage.removeItem("token");
     setIsAuthenticated(false);
+    setAuthUserName("");
+    setAuthUserEmail("");
+    setAuthUserImage("");
+    setShowProfileMenu(false);
   }, []);
 
   useEffect(() => {
-    if (!answered || !gameStarted || gameFinished) return;
+    if (!answered || !gameStarted || gameFinished || isPaused) return;
 
     const shouldAutoAdvance =
       resultMessage === "Doğru cevap" ||
@@ -97,10 +133,10 @@ function App() {
     }, 900);
 
     return () => clearTimeout(timeoutId);
-  }, [answered, resultMessage, gameStarted, gameFinished]);
+  }, [answered, resultMessage, gameStarted, gameFinished, isPaused]);
 
   useEffect(() => {
-    if (!gameStarted || gameFinished) return;
+    if (!gameStarted || gameFinished || isPaused) return;
 
     if (timeLeft <= 0) {
       finishGame();
@@ -112,7 +148,7 @@ function App() {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [gameStarted, gameFinished, timeLeft]);
+  }, [gameStarted, gameFinished, timeLeft, isPaused]);
 
   useEffect(() => {
     if (!gameStarted) {
@@ -133,10 +169,11 @@ function App() {
   }, [score, gameStarted]);
 
   const checkAnswer = () => {
-    if (answered || !gameStarted || gameFinished) return;
+    if (answered || !gameStarted || gameFinished || isPaused) return;
 
     const currentQuestion = questions[currentIndex];
-    const normalizedUserAnswer = userAnswer.trim().toLocaleLowerCase("tr-TR");
+    const rawUserAnswer = userAnswer.trim();
+    const normalizedUserAnswer = rawUserAnswer.toLocaleLowerCase("tr-TR");
     const normalizedCorrectAnswer = currentQuestion.answer.trim().toLocaleLowerCase("tr-TR");
 
     if (!normalizedUserAnswer) {
@@ -144,7 +181,24 @@ function App() {
       return;
     }
 
-    if (normalizedUserAnswer === normalizedCorrectAnswer) {
+    const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+
+    setAnswerHistory((prev) => {
+      const filtered = prev.filter((item) => item.index !== currentIndex);
+      return [
+        ...filtered,
+        {
+          index: currentIndex,
+          letter: (currentQuestion.letter || "").toLocaleUpperCase("tr-TR"),
+          question: currentQuestion.questionText,
+          userAnswer: rawUserAnswer,
+          correctAnswer: currentQuestion.answer,
+          status: isCorrect ? "correct" : "wrong",
+        },
+      ].sort((a, b) => a.index - b.index);
+    });
+
+    if (isCorrect) {
       setResultMessage("Doğru cevap");
       setScore((prevScore) => prevScore + 10);
       setQuestionStatuses((prevStatuses) => {
@@ -168,7 +222,24 @@ function App() {
   };
 
   const passQuestion = () => {
-    if (answered || !gameStarted || gameFinished) return;
+    if (answered || !gameStarted || gameFinished || isPaused) return;
+
+    const currentQuestion = questions[currentIndex];
+
+    setAnswerHistory((prev) => {
+      const filtered = prev.filter((item) => item.index !== currentIndex);
+      return [
+        ...filtered,
+        {
+          index: currentIndex,
+          letter: (currentQuestion.letter || "").toLocaleUpperCase("tr-TR"),
+          question: currentQuestion.questionText,
+          userAnswer: "Pas",
+          correctAnswer: currentQuestion.answer,
+          status: "passed",
+        },
+      ].sort((a, b) => a.index - b.index);
+    });
 
     setResultMessage("Pas geçildi");
     setQuestionStatuses((prevStatuses) => {
@@ -218,8 +289,15 @@ function App() {
     finishGame();
   };
 
-  const startGame = () => {
+  const startGame = async () => {
     resultSavedRef.current = false;
+    setAnswerHistory([]);
+    setShowAnswerKey(false);
+    setQuestionsLoading(true);
+
+    const loaded = await loadQuestions();
+    if (!loaded) return;
+
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -228,15 +306,19 @@ function App() {
     setPassedQueue([]);
     setIsReviewingPassed(false);
     setGameFinished(false);
+    setIsPaused(false);
     setTimeLeft(selectedDuration);
-    setQuestionStatuses(questions.map(() => "pending"));
+    setQuestionStatuses((prevQuestions) => prevQuestions.length ? prevQuestions : questions.map(() => "pending"));
     setShowHowToPlay(false);
     setShowLeaderboard(false);
+    setShowProfileMenu(false);
     setGameStarted(true);
   };
 
   const restartGame = () => {
-      resultSavedRef.current = false;
+    resultSavedRef.current = false;
+    setAnswerHistory([]);
+    setShowAnswerKey(false);
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -245,13 +327,17 @@ function App() {
     setPassedQueue([]);
     setIsReviewingPassed(false);
     setGameFinished(false);
-    setQuestionStatuses(questions.map(() => "pending"));
+    setIsPaused(false);
+    setQuestionStatuses([]);
     setTimeLeft(selectedDuration);
+    setShowProfileMenu(false);
     setGameStarted(false);
   };
 
   const exitGame = () => {
-      resultSavedRef.current = false;
+    resultSavedRef.current = false;
+    setAnswerHistory([]);
+    setShowAnswerKey(false);
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -260,8 +346,10 @@ function App() {
     setPassedQueue([]);
     setIsReviewingPassed(false);
     setGameFinished(false);
+    setIsPaused(false);
     setQuestionStatuses(questions.map(() => "pending"));
     setTimeLeft(selectedDuration);
+    setShowProfileMenu(false);
     setGameStarted(false);
   };
 
@@ -271,6 +359,7 @@ function App() {
     setAuthPassword("");
     setAuthMessage("");
     setShowLeaderboard(false);
+    setShowProfileMenu(false);
   };
 
   const handleRegister = async () => {
@@ -330,21 +419,58 @@ function App() {
         }),
       });
 
-      const data = await response.text();
-      setAuthMessage(data);
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
-            if (response.ok) {
-              localStorage.setItem("token", data);
-              setShowLeaderboard(false);
-              setIsAuthenticated(true);
-              setAuthPassword("");
-              setAuthMessage("");
-            }
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        setShowLeaderboard(false);
+        setShowProfileMenu(false);
+        setAuthUserName(data.name || "");
+        setAuthUserEmail(data.email || authEmail);
+
+        const storedImage = localStorage.getItem(`profileImage_${data.email || authEmail}`);
+        setAuthUserImage(storedImage || "");
+
+        setIsAuthenticated(true);
+        setAuthPassword("");
+        setAuthMessage("");
+        return;
+      }
+
+      setAuthMessage(typeof data === "string" ? data : data.message || "Giriş başarısız.");
     } catch (error) {
       setAuthMessage("Giriş sırasında bir hata oluştu.");
     } finally {
       setAuthLoading(false);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
+    setAuthUserName("");
+    setAuthUserEmail("");
+    setAuthUserImage("");
+    setShowProfileMenu(false);
+    setShowLeaderboard(false);
+    setShowHowToPlay(false);
+    resetAuthForm();
+  };
+
+  const handleProfileImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !authUserEmail) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const imageData = typeof reader.result === "string" ? reader.result : "";
+      setAuthUserImage(imageData);
+      localStorage.setItem(`profileImage_${authUserEmail}`, imageData);
+    };
+    reader.readAsDataURL(file);
   };
 
   const saveGameResult = async () => {
@@ -380,6 +506,12 @@ function App() {
     resultSavedRef.current = true;
     setGameFinished(true);
     saveGameResult();
+  };
+
+  const togglePause = () => {
+    if (!gameStarted || gameFinished) return;
+    setShowProfileMenu(false);
+    setIsPaused((prev) => !prev);
   };
 
   const fetchLeaderboard = async () => {
@@ -442,7 +574,7 @@ function App() {
   };
 
   const scoreBoxStyle = {
-    minWidth: "140px",
+    minWidth: "120px",
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
@@ -492,8 +624,8 @@ function App() {
   };
 
   const exitButtonStyle = {
-    padding: "10px 16px",
-    fontSize: "14px",
+    padding: "8px 14px",
+    fontSize: "13px",
     border: "1px solid rgba(248, 113, 113, 0.28)",
     borderRadius: "12px",
     cursor: "pointer",
@@ -716,11 +848,7 @@ function App() {
             Oyunu başlatmak için önce soru verilerinin yüklenmesi gerekiyor.
           </p>
           <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              setIsAuthenticated(false);
-              resetAuthForm();
-            }}
+            onClick={handleLogout}
             style={{
               ...exitButtonStyle,
               marginTop: 0,
@@ -746,11 +874,241 @@ function App() {
             textAlign: "center",
           }}
         >
-          <img
-            src="/passaquiz.png"
-            alt="PassaQuiz Logo"
-            style={{ width: "280px", marginBottom: "18px" }}
-          />
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto 1fr auto",
+              alignItems: "center",
+              gap: "16px",
+              marginBottom: "10px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <button
+                onClick={() => setShowHowToPlay(true)}
+                style={{
+                  width: "46px",
+                  height: "46px",
+                  borderRadius: "14px",
+                  background: "rgba(15, 23, 42, 0.68)",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  boxShadow: "0 12px 26px rgba(2, 6, 23, 0.22)",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                aria-label="Nasıl Oynanır"
+                title="Nasıl Oynanır"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11 17h2v-6h-2v6zm0-8h2V7h-2v2zm1-7C6.48 2 2 6.48 2 12s4.48 10 10 10
+                  10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8
+                  8 3.59 8 8-3.59 8-8 8z"/>
+                </svg>
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <img
+                src="/passaquiz.png"
+                alt="PassaQuiz Logo"
+                style={{ width: "280px" }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                justifyContent: "flex-start",
+                gap: "10px",
+                position: "relative",
+              }}
+            >
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowProfileMenu((prev) => !prev)}
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    padding: "0",
+                    borderRadius: "50%",
+                    border: "2px solid rgba(191, 219, 254, 0.72)",
+                    background: "rgba(15, 23, 42, 0.68)",
+                    boxShadow: "0 12px 26px rgba(2, 6, 23, 0.22)",
+                    color: "#f8fafc",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                  aria-label="Profilim"
+                  title="Profilim"
+                >
+                  {authUserImage ? (
+                    <img
+                      src={authUserImage}
+                      alt="Profil"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        color: "#f8fafc",
+                        fontSize: "32px",
+                        fontWeight: "800",
+                      }}
+                    >
+                      {(authUserName || authUserEmail || "?").trim().charAt(0).toLocaleUpperCase("tr-TR")}
+                    </div>
+                  )}
+                </button>
+
+                {showProfileMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 10px)",
+                      right: 0,
+                      minWidth: "240px",
+                      background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                      border: "1px solid rgba(148, 163, 184, 0.18)",
+                      borderRadius: "18px",
+                      boxShadow: "0 20px 44px rgba(2, 6, 23, 0.34)",
+                      padding: "14px",
+                      zIndex: 50,
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowProfileMenu(false)}
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        border: "1px solid rgba(148, 163, 184, 0.25)",
+                        background: "rgba(15, 23, 42, 0.9)",
+                        color: "#cbd5e1",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      ×
+                    </button>
+                    <div style={{ padding: "20px 2px 12px", borderBottom: "1px solid rgba(148, 163, 184, 0.12)", marginBottom: "12px" }}>
+                      <div style={{ color: "#f8fafc", fontSize: "15px", fontWeight: "700", marginBottom: "4px" }}>
+                        {authUserName || "Kullanıcı"}
+                      </div>
+                      <div style={{ color: "#93c5fd", fontSize: "13px" }}>
+                        {authUserEmail}
+                      </div>
+                    </div>
+
+                    <input
+                      ref={profileFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageChange}
+                      style={{ display: "none" }}
+                    />
+
+                    <button
+                      onClick={() => profileFileInputRef.current?.click()}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      Profil Fotoğrafı Yükle
+                    </button>
+
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        ...exitButtonStyle,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                      }}
+                    >
+                      Çıkış Yap
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button
+                  onClick={() => {
+                    fetchLeaderboard();
+                    setShowLeaderboard(true);
+                  }}
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "14px",
+                    background: "rgba(15, 23, 42, 0.68)",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    boxShadow: "0 12px 26px rgba(2, 6, 23, 0.22)",
+                    color: "#cbd5e1",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  aria-label="Leaderboard"
+                  title="Leaderboard"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7 20V10h3v10H7zm7 0V4h3v16h-3zM2 20v-6h3v6H2z" />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    ...exitButtonStyle,
+                    marginTop: 0,
+                    padding: "10px 16px",
+                    fontSize: "14px",
+                  }}
+                >
+                  Çıkış Yap
+                </button>
+              </div>
+            </div>
+          </div>
 
           <h2 style={{ color: "#f8fafc", marginBottom: "10px" }}>Oyun Süresini Seç</h2>
           <p style={{ color: "#cbd5e1", marginTop: 0, marginBottom: "28px", fontSize: "18px" }}>
@@ -797,52 +1155,6 @@ function App() {
               }}
             >
               Oyunu Başlat
-            </button>
-
-            <button
-              onClick={() => setShowHowToPlay(true)}
-              style={{
-                ...primaryButtonStyle,
-                marginTop: 0,
-                marginRight: 0,
-                minWidth: "180px",
-                fontSize: "18px",
-                padding: "14px 24px",
-              }}
-            >
-              Nasıl Oynanır?
-            </button>
-            <button
-              onClick={() => {
-                fetchLeaderboard();
-                setShowLeaderboard(true);
-              }}
-              style={{
-                ...secondaryButtonStyle,
-                marginTop: 0,
-                marginRight: 0,
-                minWidth: "180px",
-                fontSize: "18px",
-                padding: "14px 24px",
-              }}
-            >
-              Leaderboard
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                setIsAuthenticated(false);
-                resetAuthForm();
-              }}
-              style={{
-                ...exitButtonStyle,
-                marginTop: 0,
-                minWidth: "180px",
-                fontSize: "18px",
-                padding: "14px 24px",
-              }}
-            >
-              Çıkış Yap
             </button>
           </div>
           {showLeaderboard && (
@@ -993,7 +1305,7 @@ function App() {
     const y = Math.sin(radian) * radius;
 
     return {
-      letter: q.letter.toLocaleUpperCase("tr-TR"),
+      letter: (q.letter || "").toLocaleUpperCase("tr-TR"),
       x,
       y,
       status:
@@ -1008,115 +1320,274 @@ function App() {
   return (
     <div style={pageStyle}>
       <div style={cardStyle}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "20px",
-            marginBottom: "28px",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={timeLeft <= 30 ? dangerTimerBoxStyle : timerBoxStyle}>
+        <div style={{ marginBottom: "28px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto 1fr",
+              alignItems: "center",
+              marginBottom: "18px",
+              gap: "16px",
+            }}
+          >
+            <div />
+
             <div
               style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
                 display: "flex",
-                alignItems: "center",
                 justifyContent: "center",
-                border: `2px solid ${timeLeft <= 30 ? "rgba(254, 202, 202, 0.9)" : "rgba(226, 232, 240, 0.72)"}`,
-                color: timeLeft <= 30 ? "#fee2e2" : "#e2e8f0",
-                boxSizing: "border-box",
-                position: "relative",
-                flexShrink: 0,
+                alignItems: "center",
               }}
             >
-              <div
-                style={{
-                  width: "2px",
-                  height: "11px",
-                  backgroundColor: timeLeft <= 30 ? "#fee2e2" : "#e2e8f0",
-                  position: "absolute",
-                  top: "7px",
-                  left: "18px",
-                  borderRadius: "2px",
-                }}
-              />
-              <div
-                style={{
-                  width: "9px",
-                  height: "2px",
-                  backgroundColor: timeLeft <= 30 ? "#fee2e2" : "#e2e8f0",
-                  position: "absolute",
-                  top: "19px",
-                  left: "18px",
-                  transform: "rotate(35deg)",
-                  transformOrigin: "left center",
-                  borderRadius: "2px",
-                }}
+              <img
+                src="/passaquiz.png"
+                alt="PassaQuiz Logo"
+                style={{ width: "230px", marginBottom: "4px" }}
               />
             </div>
 
             <div
               style={{
-                color: timeLeft <= 30 ? "#fee2e2" : "#f8fafc",
-                fontSize: timeLeft <= 30 ? "32px" : "30px",
-                fontWeight: "800",
-                letterSpacing: "0.6px",
-                textShadow: timeLeft <= 30 ? "0 0 18px rgba(248, 113, 113, 0.35)" : "none",
-                transition: "all 180ms ease",
-                lineHeight: 1,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: "10px",
+                position: "relative",
               }}
             >
-              {formatTime(timeLeft)}
-            </div>
-          </div>
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => setShowProfileMenu((prev) => !prev)}
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    padding: "0",
+                    borderRadius: "50%",
+                    border: "2px solid rgba(191, 219, 254, 0.72)",
+                    background: "rgba(15, 23, 42, 0.68)",
+                    boxShadow: "0 12px 26px rgba(2, 6, 23, 0.22)",
+                    color: "#f8fafc",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                  aria-label="Profilim"
+                  title="Profilim"
+                >
+                  {authUserImage ? (
+                    <img
+                      src={authUserImage}
+                      alt="Profil"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        color: "#f8fafc",
+                        fontSize: "32px",
+                        fontWeight: "800",
+                      }}
+                    >
+                      {(authUserName || authUserEmail || "?").trim().charAt(0).toLocaleUpperCase("tr-TR")}
+                    </div>
+                  )}
+                </button>
 
-          <div style={{ textAlign: "center", flex: 1 }}>
-            <img
-              src="/passaquiz.png"
-              alt="PassaQuiz Logo"
-              style={{ width: "230px", marginBottom: "4px" }}
-            />
+                {showProfileMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 10px)",
+                      right: 0,
+                      minWidth: "240px",
+                      background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                      border: "1px solid rgba(148, 163, 184, 0.18)",
+                      borderRadius: "18px",
+                      boxShadow: "0 20px 44px rgba(2, 6, 23, 0.34)",
+                      padding: "14px",
+                      zIndex: 50,
+                    }}
+                  >
+                    <button
+                      onClick={() => setShowProfileMenu(false)}
+                      style={{
+                        position: "absolute",
+                        top: "8px",
+                        right: "8px",
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "50%",
+                        border: "1px solid rgba(148, 163, 184, 0.25)",
+                        background: "rgba(15, 23, 42, 0.9)",
+                        color: "#cbd5e1",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                        fontWeight: "700",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      ×
+                    </button>
+                    <div style={{ padding: "20px 2px 12px", borderBottom: "1px solid rgba(148, 163, 184, 0.12)", marginBottom: "12px" }}>
+                      <div style={{ color: "#f8fafc", fontSize: "15px", fontWeight: "700", marginBottom: "4px" }}>
+                        {authUserName || "Kullanıcı"}
+                      </div>
+                      <div style={{ color: "#93c5fd", fontSize: "13px" }}>
+                        {authUserEmail}
+                      </div>
+                    </div>
+
+                    <input
+                      ref={profileFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageChange}
+                      style={{ display: "none" }}
+                    />
+
+                    <button
+                      onClick={() => profileFileInputRef.current?.click()}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      Profil Fotoğrafı Yükle
+                    </button>
+
+                    <button
+                      onClick={handleLogout}
+                      style={{
+                        ...exitButtonStyle,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                      }}
+                    >
+                      Çıkış Yap
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: "10px",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "16px",
+              flexWrap: "wrap",
             }}
           >
-            <div style={scoreBoxStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-end",
-                  lineHeight: 1,
-                }}
-              >
-                <div style={{ color: "#93c5fd", fontSize: "14px", marginBottom: "8px", letterSpacing: "0.4px" }}>
-                  Puan
-                </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+              <div style={timeLeft <= 30 ? dangerTimerBoxStyle : timerBoxStyle}>
                 <div
                   style={{
-                    color: "#60a5fa",
-                    fontSize: scorePop ? "36px" : "30px",
-                    fontWeight: "800",
-                    letterSpacing: "0.6px",
-                    transform: scorePop ? "scale(1.12)" : "scale(1)",
-                    textShadow: scorePop ? "0 0 20px rgba(96, 165, 250, 0.35)" : "none",
-                    transition: "all 180ms ease",
+                    width: "38px",
+                    height: "38px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: `2px solid ${timeLeft <= 30 ? "rgba(254, 202, 202, 0.9)" : "rgba(226, 232, 240, 0.72)"}`,
+                    color: timeLeft <= 30 ? "#fee2e2" : "#e2e8f0",
+                    boxSizing: "border-box",
+                    position: "relative",
+                    flexShrink: 0,
                   }}
                 >
-                  {score}
+                  <div
+                    style={{
+                      width: "2px",
+                      height: "11px",
+                      backgroundColor: timeLeft <= 30 ? "#fee2e2" : "#e2e8f0",
+                      position: "absolute",
+                      top: "7px",
+                      left: "18px",
+                      borderRadius: "2px",
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: "9px",
+                      height: "2px",
+                      backgroundColor: timeLeft <= 30 ? "#fee2e2" : "#e2e8f0",
+                      position: "absolute",
+                      top: "19px",
+                      left: "18px",
+                      transform: "rotate(35deg)",
+                      transformOrigin: "left center",
+                      borderRadius: "2px",
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    color: timeLeft <= 30 ? "#fee2e2" : "#f8fafc",
+                    fontSize: timeLeft <= 30 ? "32px" : "30px",
+                    fontWeight: "800",
+                    letterSpacing: "0.6px",
+                    textShadow: timeLeft <= 30 ? "0 0 18px rgba(248, 113, 113, 0.35)" : "none",
+                    transition: "all 180ms ease",
+                    lineHeight: 1,
+                  }}
+                >
+                  {formatTime(timeLeft)}
                 </div>
               </div>
+
+              <button
+                onClick={togglePause}
+                style={{
+                  padding: "8px 12px",
+                  minWidth: "44px",
+                  height: "40px",
+                  border: "1px solid rgba(147, 197, 253, 0.24)",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  color: "#dbeafe",
+                  background: "linear-gradient(135deg, rgba(30, 64, 175, 0.82), rgba(30, 41, 59, 0.92))",
+                  boxShadow: "0 10px 22px rgba(30, 64, 175, 0.18)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                aria-label={isPaused ? "Devam Et" : "Duraklat"}
+                title={isPaused ? "Devam Et" : "Duraklat"}
+              >
+                {isPaused ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             <button onClick={exitGame} style={exitButtonStyle}>
@@ -1156,7 +1627,7 @@ function App() {
             <div>
               <div style={{ fontSize: "18px", color: "#cbd5e1", marginBottom: "16px" }}>Aktif Harf</div>
               <div style={{ fontSize: "56px", fontWeight: "bold", color: "#f8fafc", textShadow: "0 6px 18px rgba(96, 165, 250, 0.35)" }}>
-                {question.letter}
+                {(question.letter || "").toLocaleUpperCase("tr-TR")}
               </div>
             </div>
           </div>
@@ -1302,19 +1773,117 @@ function App() {
                 </div>
               </div>
 
-              <button
-                onClick={restartGame}
-                style={{
-                  ...successButtonStyle,
-                  marginRight: "0",
-                  marginTop: 0,
-                  minWidth: "220px",
-                  fontSize: "17px",
-                  padding: "14px 24px",
-                }}
-              >
-                Yeniden Başla
-              </button>
+              {answerHistory.length > 0 && (
+                <div style={{ display: "flex", justifyContent: "center", gap: "14px", flexWrap: "wrap" }}>
+                  <button
+                    onClick={() => setShowAnswerKey((prev) => !prev)}
+                    style={{
+                      ...primaryButtonStyle,
+                      marginTop: 0,
+                      marginRight: 0,
+                      // marginBottom removed
+                      minWidth: "220px",
+                      fontSize: "16px",
+                      padding: "13px 22px",
+                    }}
+                  >
+                    {showAnswerKey ? "Cevap Anahtarını Gizle" : "Cevap Anahtarını Göster"}
+                  </button>
+                  <button
+                    onClick={restartGame}
+                    style={{
+                      ...successButtonStyle,
+                      marginRight: "0",
+                      marginTop: 0,
+                      minWidth: "220px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                    }}
+                  >
+                    Yeniden Başla
+                  </button>
+                </div>
+              )}
+              {answerHistory.length > 0 && showAnswerKey && (
+                <div
+                  style={{
+                    background: "rgba(15, 23, 42, 0.68)",
+                    border: "1px solid rgba(148, 163, 184, 0.12)",
+                    borderRadius: "18px",
+                    padding: "20px 18px",
+                    marginBottom: "22px",
+                    textAlign: "left",
+                    maxHeight: "320px",
+                    overflowY: "auto",
+                  }}
+                >
+                  <h3 style={{ marginTop: 0, marginBottom: "16px", color: "#f8fafc", textAlign: "center" }}>
+                    Cevap Anahtarı
+                  </h3>
+
+                  {answerHistory.map((item) => (
+                    <div
+                      key={item.index}
+                      style={{
+                        padding: "12px 0",
+                        borderBottom: "1px solid rgba(148, 163, 184, 0.12)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "12px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <span style={{ color: "#f8fafc", fontWeight: "700" }}>
+                          {item.letter} Harfi
+                        </span>
+
+                        <span
+                          style={{
+                            fontSize: "20px",
+                            fontWeight: "800",
+                            color:
+                              item.status === "correct"
+                                ? "#4ade80"
+                                : item.status === "wrong"
+                                  ? "#f87171"
+                                  : "#fbbf24",
+                          }}
+                        >
+                          {item.status === "correct" ? "✓" : item.status === "wrong" ? "✕" : "-"}
+                        </span>
+                      </div>
+
+                      <div style={{ color: "#cbd5e1", marginBottom: "6px", fontSize: "14px" }}>
+                        <strong>Soru:</strong> {item.question}
+                      </div>
+
+                      <div
+                        style={{
+                          color:
+                            item.status === "correct"
+                              ? "#4ade80"
+                              : item.status === "wrong"
+                                ? "#fca5a5"
+                                : "#fbbf24",
+                          marginBottom: "4px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        <strong>Senin Cevabın:</strong> {item.userAnswer}
+                      </div>
+
+                      <div style={{ color: "#93c5fd", fontSize: "14px" }}>
+                        <strong>Doğru Cevap:</strong> {item.correctAnswer}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1324,6 +1893,7 @@ function App() {
               borderRadius: "18px",
               padding: "24px",
               textAlign: "center",
+              position: "relative",
             }}
           >
             <h2 style={{ marginTop: 0, color: "#93c5fd" }}>Soru</h2>
@@ -1331,6 +1901,7 @@ function App() {
 
             <input
               type="text"
+              disabled={isPaused}
               placeholder="Cevabınızı yazın"
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
@@ -1355,11 +1926,11 @@ function App() {
               }}
             />
 
-            <button onClick={passQuestion} style={secondaryButtonStyle}>
+            <button onClick={passQuestion} style={secondaryButtonStyle} disabled={isPaused}>
               Pas
             </button>
 
-            <button onClick={checkAnswer} style={primaryButtonStyle}>
+            <button onClick={checkAnswer} style={primaryButtonStyle} disabled={isPaused}>
               Cevabı Kontrol Et
             </button>
 
