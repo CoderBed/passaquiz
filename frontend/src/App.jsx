@@ -32,16 +32,63 @@ function App() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [answerHistory, setAnswerHistory] = useState([]);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
+  const [resultTab, setResultTab] = useState("stats");
+  const [expandedAnswerIndex, setExpandedAnswerIndex] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const previousScoreRef = useRef(0);
   const resultSavedRef = useRef(false);
+
   const profileFileInputRef = useRef(null);
+
+  const getNormalizedLetter = (item) => (item?.letter || "").toLocaleUpperCase("tr-TR");
+
+  const getQuestionKey = (item) => {
+    const letter = getNormalizedLetter(item);
+    if (item?.id !== undefined && item?.id !== null) {
+      return `${letter}:${item.id}`;
+    }
+    return `${letter}:${item?.questionText || ""}`;
+  };
+
+  const getQuestionHistoryStorageKey = () => {
+    if (!authUserEmail) return "";
+    return `questionHistory_${authUserEmail}`;
+  };
+
+  const getRecentQuestionHistory = () => {
+    const storageKey = getQuestionHistoryStorageKey();
+    if (!storageKey) return [];
+
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const saveCurrentGameQuestionHistory = (selectedQuestions) => {
+    const storageKey = getQuestionHistoryStorageKey();
+    if (!storageKey || !Array.isArray(selectedQuestions) || selectedQuestions.length === 0) return;
+
+    const gameRecord = selectedQuestions.reduce((acc, item) => {
+      const letter = getNormalizedLetter(item);
+      acc[letter] = getQuestionKey(item);
+      return acc;
+    }, {});
+
+    const previousHistory = getRecentQuestionHistory();
+    const updatedHistory = [gameRecord, ...previousHistory].slice(0, 10);
+    localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
+  };
 
   const loadQuestions = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setIsAuthenticated(false);
-      return false;
+      return null;
     }
 
     setQuestionsLoading(true);
@@ -76,8 +123,24 @@ function App() {
         return acc;
       }, {});
 
-      const uniqueByLetter = Object.values(groupedByLetter).map((items) => {
-        return items[Math.floor(Math.random() * items.length)];
+      const recentHistory = getRecentQuestionHistory();
+      const recentKeysByLetter = recentHistory.reduce((acc, gameRecord) => {
+        Object.entries(gameRecord).forEach(([letter, key]) => {
+          if (!acc[letter]) {
+            acc[letter] = new Set();
+          }
+          acc[letter].add(key);
+        });
+        return acc;
+      }, {});
+
+      const uniqueByLetter = Object.entries(groupedByLetter).map(([letter, items]) => {
+        const filteredItems = items.filter(
+          (item) => !recentKeysByLetter[letter]?.has(getQuestionKey(item))
+        );
+
+        const pool = filteredItems.length > 0 ? filteredItems : items;
+        return pool[Math.floor(Math.random() * pool.length)];
       });
 
       const sorted = [...uniqueByLetter].sort(
@@ -86,7 +149,7 @@ function App() {
 
       setQuestions(sorted);
       setQuestionStatuses(sorted.map(() => "pending"));
-      return true;
+      return sorted;
     } catch (err) {
       console.error(err);
       localStorage.removeItem("token");
@@ -98,7 +161,7 @@ function App() {
       setQuestions([]);
       setQuestionStatuses([]);
       setAuthMessage("Oturum geçersiz. Lütfen tekrar giriş yapın.");
-      return false;
+      return null;
     } finally {
       setQuestionsLoading(false);
     }
@@ -293,10 +356,14 @@ function App() {
     resultSavedRef.current = false;
     setAnswerHistory([]);
     setShowAnswerKey(false);
+    setResultTab("stats");
+    setExpandedAnswerIndex(null);
     setQuestionsLoading(true);
 
-    const loaded = await loadQuestions();
-    if (!loaded) return;
+    const loadedQuestions = await loadQuestions();
+    if (!loadedQuestions) return;
+
+    saveCurrentGameQuestionHistory(loadedQuestions);
 
     setCurrentIndex(0);
     setUserAnswer("");
@@ -308,7 +375,7 @@ function App() {
     setGameFinished(false);
     setIsPaused(false);
     setTimeLeft(selectedDuration);
-    setQuestionStatuses((prevQuestions) => prevQuestions.length ? prevQuestions : questions.map(() => "pending"));
+    setQuestionStatuses(loadedQuestions.map(() => "pending"));
     setShowHowToPlay(false);
     setShowLeaderboard(false);
     setShowProfileMenu(false);
@@ -319,6 +386,8 @@ function App() {
     resultSavedRef.current = false;
     setAnswerHistory([]);
     setShowAnswerKey(false);
+    setResultTab("stats");
+    setExpandedAnswerIndex(null);
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -338,6 +407,8 @@ function App() {
     resultSavedRef.current = false;
     setAnswerHistory([]);
     setShowAnswerKey(false);
+    setResultTab("stats");
+    setExpandedAnswerIndex(null);
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -1324,13 +1395,36 @@ function App() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr auto 1fr",
+              gridTemplateColumns: "auto 1fr auto",
               alignItems: "center",
               marginBottom: "18px",
               gap: "16px",
             }}
           >
-            <div />
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <button
+                onClick={restartGame}
+                style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "12px",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  background: "rgba(15, 23, 42, 0.75)",
+                  color: "#cbd5e1",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 10px 22px rgba(2, 6, 23, 0.22)",
+                }}
+                aria-label="Geri"
+                title="Geri"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            </div>
 
             <div
               style={{
@@ -1350,7 +1444,7 @@ function App() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                alignItems: "center",
+                alignItems: "flex-end",
                 justifyContent: "flex-start",
                 gap: "10px",
                 position: "relative",
@@ -1501,7 +1595,7 @@ function App() {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", justifyContent: "flex-start" }}>
               <div style={timeLeft <= 30 ? dangerTimerBoxStyle : timerBoxStyle}>
                 <div
                   style={{
@@ -1590,9 +1684,6 @@ function App() {
               </button>
             </div>
 
-            <button onClick={exitGame} style={exitButtonStyle}>
-              Oyundan Çık
-            </button>
           </div>
         </div>
 
@@ -1691,199 +1782,241 @@ function App() {
           >
             <div
               style={{
+                position: "relative",
                 width: "100%",
-                maxWidth: "520px",
+                maxWidth: "980px",
                 background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.96))",
-                border: "1px solid rgba(96, 165, 250, 0.18)",
-                borderRadius: "24px",
-                padding: "30px 28px",
-                boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                border: "1px solid rgba(148, 163, 184, 0.18)",
+                borderRadius: "28px",
+                padding: "26px 28px 30px",
+                boxShadow: "0 24px 60px rgba(2, 6, 23, 0.22)",
                 textAlign: "center",
               }}
             >
-              <div
+              <h2
                 style={{
-                  width: "72px",
-                  height: "72px",
-                  margin: "0 auto 18px",
-                  borderRadius: "50%",
-                  background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.55), rgba(37, 99, 235, 0.18))",
-                  border: "1px solid rgba(147, 197, 253, 0.32)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#f8fafc",
-                  fontSize: "30px",
+                  color: "#e2e8f0",
+                  marginTop: 0,
+                  marginBottom: "28px",
+                  fontSize: "32px",
                   fontWeight: "800",
                 }}
               >
-                ✓
-              </div>
-
-              <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "10px", fontSize: "42px" }}>
-                Oyun Bitti
+                Bugünün istatistiği
               </h2>
-
-              <p
-                style={{
-                  marginTop: 0,
-                  marginBottom: "24px",
-                  color: "#93c5fd",
-                  fontSize: "16px",
-                  letterSpacing: "0.4px",
-                }}
-              >
-                Oyun istatistiklerin aşağıda hazır.
-              </p>
 
               <div
                 style={{
-                  background: "rgba(15, 23, 42, 0.68)",
-                  border: "1px solid rgba(148, 163, 184, 0.12)",
-                  borderRadius: "18px",
-                  padding: "20px 18px",
                   display: "grid",
-                  gap: "12px",
-                  marginBottom: "22px",
+                  gridTemplateColumns: "1fr 1fr",
+                  borderBottom: "1px solid #d4d4d8",
+                  marginBottom: "8px",
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center" }}>
-                  <span style={{ color: "#cbd5e1", fontSize: "18px" }}>Toplam Puan</span>
-                  <span style={{ color: "#60a5fa", fontSize: "28px", fontWeight: "800" }}>{score}</span>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center" }}>
-                  <span style={{ color: "#cbd5e1", fontSize: "18px" }}>Oyun Süresi</span>
-                  <span style={{ color: "#f8fafc", fontSize: "20px", fontWeight: "700" }}>{formatElapsedTime(elapsedTime)}</span>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center" }}>
-                  <span style={{ color: "#cbd5e1", fontSize: "18px" }}>Doğru Sayısı</span>
-                  <span style={{ color: "#4ade80", fontSize: "20px", fontWeight: "700" }}>{correctCount}</span>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center" }}>
-                  <span style={{ color: "#cbd5e1", fontSize: "18px" }}>Yanlış Sayısı</span>
-                  <span style={{ color: "#f87171", fontSize: "20px", fontWeight: "700" }}>{wrongCount}</span>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "center" }}>
-                  <span style={{ color: "#cbd5e1", fontSize: "18px" }}>Pas Sayısı</span>
-                  <span style={{ color: "#fbbf24", fontSize: "20px", fontWeight: "700" }}>{passedCount}</span>
-                </div>
-              </div>
-
-              {answerHistory.length > 0 && (
-                <div style={{ display: "flex", justifyContent: "center", gap: "14px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => setShowAnswerKey((prev) => !prev)}
-                    style={{
-                      ...primaryButtonStyle,
-                      marginTop: 0,
-                      marginRight: 0,
-                      // marginBottom removed
-                      minWidth: "220px",
-                      fontSize: "16px",
-                      padding: "13px 22px",
-                    }}
-                  >
-                    {showAnswerKey ? "Cevap Anahtarını Gizle" : "Cevap Anahtarını Göster"}
-                  </button>
-                  <button
-                    onClick={restartGame}
-                    style={{
-                      ...successButtonStyle,
-                      marginRight: "0",
-                      marginTop: 0,
-                      minWidth: "220px",
-                      fontSize: "17px",
-                      padding: "14px 24px",
-                    }}
-                  >
-                    Yeniden Başla
-                  </button>
-                </div>
-              )}
-              {answerHistory.length > 0 && showAnswerKey && (
-                <div
+                <button
+                  onClick={() => setResultTab("stats")}
                   style={{
-                    background: "rgba(15, 23, 42, 0.68)",
-                    border: "1px solid rgba(148, 163, 184, 0.12)",
-                    borderRadius: "18px",
-                    padding: "20px 18px",
-                    marginBottom: "22px",
-                    textAlign: "left",
-                    maxHeight: "320px",
-                    overflowY: "auto",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "10px 8px 18px",
+                    fontSize: "22px",
+                    fontWeight: "700",
+                    color: resultTab === "stats" ? "#f8fafc" : "#64748b",
+                    position: "relative",
                   }}
                 >
-                  <h3 style={{ marginTop: 0, marginBottom: "16px", color: "#f8fafc", textAlign: "center" }}>
-                    Cevap Anahtarı
-                  </h3>
-
-                  {answerHistory.map((item) => (
-                    <div
-                      key={item.index}
+                  Skor dağılımı
+                  {resultTab === "stats" && (
+                    <span
                       style={{
-                        padding: "12px 0",
-                        borderBottom: "1px solid rgba(148, 163, 184, 0.12)",
+                        position: "absolute",
+                        left: "50%",
+                        bottom: 0,
+                        transform: "translateX(-50%)",
+                        width: "82px",
+                        height: "6px",
+                        borderRadius: "999px",
+                        background: "#f87171",
+                      }}
+                    />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setResultTab("answers")}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "10px 8px 18px",
+                    fontSize: "22px",
+                    fontWeight: "700",
+                    color: resultTab === "answers" ? "#3f3f46" : "#8b8b8b",
+                    position: "relative",
+                  }}
+                >
+                  Cevap anahtarı
+                  {resultTab === "answers" && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        bottom: 0,
+                        transform: "translateX(-50%)",
+                        width: "82px",
+                        height: "6px",
+                        borderRadius: "999px",
+                        background: "#f87171",
+                      }}
+                    />
+                  )}
+                </button>
+              </div>
+
+              {resultTab === "stats" ? (
+                <div style={{ textAlign: "left", marginTop: "6px" }}>
+                  {[
+                    { label: "Toplam puan", value: score, color: "#2563eb" },
+                    { label: "Oyun süresi", value: formatElapsedTime(elapsedTime), color: "#52525b" },
+                    { label: "Doğru sayısı", value: correctCount, color: "#16a34a" },
+                    { label: "Yanlış sayısı", value: wrongCount, color: "#dc2626" },
+                    { label: "Pas sayısı", value: passedCount, color: "#d97706" },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "20px 0",
+                        borderBottom: "1px solid rgba(148, 163, 184, 0.12)"
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "12px",
-                          marginBottom: "8px",
-                        }}
-                      >
-                        <span style={{ color: "#f8fafc", fontWeight: "700" }}>
-                          {item.letter} Harfi
-                        </span>
-
-                        <span
-                          style={{
-                            fontSize: "20px",
-                            fontWeight: "800",
-                            color:
-                              item.status === "correct"
-                                ? "#4ade80"
-                                : item.status === "wrong"
-                                  ? "#f87171"
-                                  : "#fbbf24",
-                          }}
-                        >
-                          {item.status === "correct" ? "✓" : item.status === "wrong" ? "✕" : "-"}
-                        </span>
-                      </div>
-
-                      <div style={{ color: "#cbd5e1", marginBottom: "6px", fontSize: "14px" }}>
-                        <strong>Soru:</strong> {item.question}
-                      </div>
-
-                      <div
-                        style={{
-                          color:
-                            item.status === "correct"
-                              ? "#4ade80"
-                              : item.status === "wrong"
-                                ? "#fca5a5"
-                                : "#fbbf24",
-                          marginBottom: "4px",
-                          fontSize: "14px",
-                        }}
-                      >
-                        <strong>Senin Cevabın:</strong> {item.userAnswer}
-                      </div>
-
-                      <div style={{ color: "#93c5fd", fontSize: "14px" }}>
-                        <strong>Doğru Cevap:</strong> {item.correctAnswer}
-                      </div>
+                      <span style={{ color: "#cbd5e1", fontSize: "20px", fontWeight: "600" }}>
+                        {item.label}
+                      </span>
+                      <span style={{ color: item.color, fontSize: "24px", fontWeight: "800" }}>
+                        {item.value}
+                      </span>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div style={{ textAlign: "left", marginTop: "6px" }}>
+                  {answerHistory.length === 0 ? (
+                    <div style={{ padding: "24px 0", color: "#71717a", fontSize: "18px", textAlign: "center" }}>
+                      Henüz cevap kaydı bulunmuyor.
+                    </div>
+                  ) : (
+                    answerHistory.map((item, index) => {
+                      const isOpen = expandedAnswerIndex === index;
+                      const icon = item.status === "correct" ? "✓" : item.status === "wrong" ? "✕" : "➜";
+                      const iconColor = item.status === "correct" ? "#3f3f46" : item.status === "wrong" ? "#ca8a04" : "#ca8a04";
+
+                      return (
+                        <div
+                          key={item.index}
+                          style={{
+                            borderBottom: "1px solid #e4e4e7",
+                            padding: "0",
+                          }}
+                        >
+                          <button
+                            onClick={() => setExpandedAnswerIndex(isOpen ? null : index)}
+                            style={{
+                              width: "100%",
+                              background: "transparent",
+                              border: "none",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "16px",
+                              padding: "22px 0",
+                              textAlign: "left",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: 0 }}>
+                              <span
+                                style={{
+                                  width: "32px",
+                                  textAlign: "center",
+                                  color: iconColor,
+                                  fontSize: "24px",
+                                  fontWeight: "800",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {icon}
+                              </span>
+                              <span
+                                style={{
+                                  color: "#f8fafc",
+                                  fontSize: "20px",
+                                  fontWeight: "700",
+                                  wordBreak: "break-word",
+                                }}
+                              >
+                                {item.correctAnswer}
+                              </span>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
+                              <span style={{ color: "#94a3b8", fontSize: "18px", fontWeight: "700" }}>
+                                {item.letter}
+                              </span>
+                              <span
+                                style={{
+                                  color: "#94a3b8",
+                                  fontSize: "20px",
+                                  transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                                  transition: "transform 180ms ease",
+                                }}
+                              >
+                                ⌄
+                              </span>
+                            </div>
+                          </button>
+
+                          {isOpen && (
+                            <div
+                              style={{
+                                padding: "0 0 20px 48px",
+                                color: "#cbd5e1",
+                                fontSize: "16px",
+                                lineHeight: 1.7,
+                              }}
+                            >
+                              <div style={{ marginBottom: "8px" }}>
+                                <strong>Soru:</strong> {item.question}
+                              </div>
+                              <div style={{ marginBottom: "8px" }}>
+                                <strong>Senin cevabın:</strong> {item.userAnswer}
+                              </div>
+                              <div>
+                                <strong>Doğru cevap:</strong> {item.correctAnswer}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               )}
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "14px",
+                  flexWrap: "wrap",
+                  marginTop: "26px",
+                }}
+              >
+
+              </div>
             </div>
           </div>
         ) : (
