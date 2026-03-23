@@ -34,7 +34,9 @@ function App() {
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [resultTab, setResultTab] = useState("stats");
   const [expandedAnswerIndex, setExpandedAnswerIndex] = useState(null);
+  const [hoveredResultTab, setHoveredResultTab] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [activePulse, setActivePulse] = useState(false);
   const previousScoreRef = useRef(0);
   const resultSavedRef = useRef(false);
 
@@ -231,6 +233,18 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [score, gameStarted]);
 
+  // Pulse effect for active letter
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    setActivePulse(true);
+    const timeout = setTimeout(() => {
+      setActivePulse(false);
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [currentIndex]);
+
   const checkAnswer = () => {
     if (answered || !gameStarted || gameFinished || isPaused) return;
 
@@ -358,6 +372,7 @@ function App() {
     setShowAnswerKey(false);
     setResultTab("stats");
     setExpandedAnswerIndex(null);
+    setHoveredResultTab(null);
     setQuestionsLoading(true);
 
     const loadedQuestions = await loadQuestions();
@@ -388,6 +403,7 @@ function App() {
     setShowAnswerKey(false);
     setResultTab("stats");
     setExpandedAnswerIndex(null);
+    setHoveredResultTab(null);
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -409,6 +425,7 @@ function App() {
     setShowAnswerKey(false);
     setResultTab("stats");
     setExpandedAnswerIndex(null);
+    setHoveredResultTab(null);
     setCurrentIndex(0);
     setUserAnswer("");
     setResultMessage("");
@@ -1142,8 +1159,12 @@ function App() {
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <button
                   onClick={() => {
-                    fetchLeaderboard();
-                    setShowLeaderboard(true);
+                    if (showLeaderboard) {
+                      setShowLeaderboard(false);
+                    } else {
+                      fetchLeaderboard();
+                      setShowLeaderboard(true);
+                    }
                   }}
                   style={{
                     width: "46px",
@@ -1319,7 +1340,7 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Oyun Akışı</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Önce oyun süresini seçersin. Oyun başladığında her harf için bir soru gelir ve aktif harf ekranda gösterilir.
+                      Önce oyun süresini seçmelisin. Oyun başladığında her harf için bir soru gelir ve aktif harf ekranda gösterilir.
                     </div>
                   </div>
 
@@ -1333,14 +1354,14 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Pas ve Puanlama</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Doğru cevap <strong>+10 puan</strong>, yanlış cevap <strong>-5 puan</strong> kazandırır. <strong>Pas</strong> dediğinde soru sona bırakılır ve tüm normal sorular bittikten sonra tekrar karşına gelir.
+                      Doğru cevap <strong>+10 puan</strong>, yanlış cevap <strong>-5 puan</strong> kazandırır. <strong>Pas</strong> dediğinde soru sona bırakılır ve tüm sorular bittikten sonra tekrar karşına gelir.
                     </div>
                   </div>
 
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Oyun Sonu</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Süre bittiğinde ya da tüm sorular tamamlandığında oyun sona erer. İstattistik ekranında puanın, doğru, yanlış ve pas sayın gösterilir.
+                      Süre bittiğinde ya da tüm sorular tamamlandığında oyun sona erer. Oyun sonu istatistik ekranında puanın, doğru, yanlış, pas sayın ve sorulara dair cevap anahtarı gösterilir. Böylece yanlış yaptığın soruların doğru yanıtlarını göerebilirsin.
                     </div>
                   </div>
                 </div>
@@ -1755,7 +1776,9 @@ function App() {
                   : "1px solid rgba(255, 255, 255, 0.14)",
                 boxShadow:
                   l.status === "active"
-                    ? "0 0 0 3px rgba(96, 165, 250, 0.22), 0 18px 32px rgba(37, 99, 235, 0.34), inset 0 1px 1px rgba(255,255,255,0.35)"
+                    ? activePulse
+                      ? "0 0 0 5px rgba(96, 165, 250, 0.28), 0 22px 36px rgba(37, 99, 235, 0.40)"
+                      : "0 0 0 3px rgba(96, 165, 250, 0.22), 0 18px 32px rgba(37, 99, 235, 0.34), inset 0 1px 1px rgba(255,255,255,0.35)"
                     : l.status === "correct"
                       ? "0 14px 26px rgba(22, 163, 74, 0.24), inset 0 1px 1px rgba(255,255,255,0.28)"
                       : l.status === "wrong"
@@ -1763,7 +1786,12 @@ function App() {
                         : l.status === "passed"
                           ? "0 14px 26px rgba(234, 88, 12, 0.22), inset 0 1px 1px rgba(255,255,255,0.24)"
                           : "0 14px 26px rgba(2, 6, 23, 0.32), inset 0 1px 1px rgba(255,255,255,0.18)",
-                transform: l.status === "active" ? "scale(1.08)" : "scale(1)",
+                transform:
+                  l.status === "active"
+                    ? activePulse
+                      ? "scale(1.18)"
+                      : "scale(1.08)"
+                    : "scale(1)",
                 transition: "all 180ms ease",
               }}
             >
@@ -1802,7 +1830,7 @@ function App() {
                   fontWeight: "800",
                 }}
               >
-                Bugünün istatistiği
+                Oyun Sonu İstatistiği
               </h2>
 
               <div
@@ -1815,6 +1843,8 @@ function App() {
               >
                 <button
                   onClick={() => setResultTab("stats")}
+                  onMouseEnter={() => setHoveredResultTab("stats")}
+                  onMouseLeave={() => setHoveredResultTab(null)}
                   style={{
                     background: "transparent",
                     border: "none",
@@ -1822,12 +1852,16 @@ function App() {
                     padding: "10px 8px 18px",
                     fontSize: "22px",
                     fontWeight: "700",
-                    color: resultTab === "stats" ? "#f8fafc" : "#64748b",
+                    color:
+                      resultTab === "stats" || hoveredResultTab === "stats"
+                        ? "#f8fafc"
+                        : "#64748b",
                     position: "relative",
+                    transition: "color 160ms ease",
                   }}
                 >
-                  Skor dağılımı
-                  {resultTab === "stats" && (
+                  Skor Dağılımı
+                  {(resultTab === "stats" || hoveredResultTab === "stats") && (
                     <span
                       style={{
                         position: "absolute",
@@ -1845,6 +1879,8 @@ function App() {
 
                 <button
                   onClick={() => setResultTab("answers")}
+                  onMouseEnter={() => setHoveredResultTab("answers")}
+                  onMouseLeave={() => setHoveredResultTab(null)}
                   style={{
                     background: "transparent",
                     border: "none",
@@ -1852,12 +1888,16 @@ function App() {
                     padding: "10px 8px 18px",
                     fontSize: "22px",
                     fontWeight: "700",
-                    color: resultTab === "answers" ? "#3f3f46" : "#8b8b8b",
+                    color:
+                      resultTab === "answers" || hoveredResultTab === "answers"
+                        ? "#f8fafc"
+                        : "#64748b",
                     position: "relative",
+                    transition: "color 160ms ease",
                   }}
                 >
-                  Cevap anahtarı
-                  {resultTab === "answers" && (
+                  Cevap Anahtarı
+                  {(resultTab === "answers" || hoveredResultTab === "answers") && (
                     <span
                       style={{
                         position: "absolute",
