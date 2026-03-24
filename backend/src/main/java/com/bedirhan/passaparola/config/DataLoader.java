@@ -2,6 +2,7 @@ package com.bedirhan.passaparola.config;
 
 import com.bedirhan.passaparola.entity.Question;
 import com.bedirhan.passaparola.repository.QuestionRepository;
+import com.bedirhan.passaparola.repository.DailyQuestionSetRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,8 +15,10 @@ import java.io.InputStreamReader;
 public class DataLoader {
 
     @Bean
-    CommandLineRunner loadData(QuestionRepository questionRepository) {
+    CommandLineRunner loadData(QuestionRepository questionRepository,
+                               DailyQuestionSetRepository dailyQuestionSetRepository) {
         return args -> {
+            dailyQuestionSetRepository.deleteAll();
             questionRepository.deleteAll();
 
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("question.csv");

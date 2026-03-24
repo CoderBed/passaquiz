@@ -7,6 +7,7 @@ import com.bedirhan.passaparola.entity.GameResult;
 import com.bedirhan.passaparola.repository.GameResultRepository;
 import com.bedirhan.passaparola.entity.User;
 import com.bedirhan.passaparola.repository.UserRepository;
+import com.bedirhan.passaparola.service.DailyGameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -29,12 +30,17 @@ public class GameController {
     private final QuestionRepository questionRepository;
     private final GameResultRepository gameResultRepository;
     private final UserRepository userRepository;
+    private final DailyGameService dailyGameService;
     private final Random random = new Random();
 
-    public GameController(QuestionRepository questionRepository, GameResultRepository gameResultRepository, UserRepository userRepository) {
+    public GameController(QuestionRepository questionRepository,
+                          GameResultRepository gameResultRepository,
+                          UserRepository userRepository,
+                          DailyGameService dailyGameService) {
         this.questionRepository = questionRepository;
         this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
+        this.dailyGameService = dailyGameService;
     }
 
     @GetMapping("/api/game/questions")
@@ -61,6 +67,11 @@ public class GameController {
         }
 
         return selectedQuestions;
+    }
+
+    @GetMapping("/api/game/daily-questions")
+    public List<Question> getDailyQuestions() {
+        return dailyGameService.getTodayQuestions();
     }
 
     @PostMapping("/api/game/result")

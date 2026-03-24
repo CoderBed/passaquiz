@@ -60,6 +60,7 @@ public class AuthController {
         String token = jwtService.generateToken(user.getEmail());
         return ResponseEntity.ok(new LoginResponse(
                 token,
+                user.getId(),
                 user.getName(),
                 user.getEmail()
         ));
