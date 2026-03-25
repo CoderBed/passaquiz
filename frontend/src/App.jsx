@@ -472,6 +472,27 @@ function App() {
 
   const getNormalizedLetter = (item) => (item?.letter || "").toLocaleUpperCase("tr-TR");
 
+  const normalizeAnswer = (value) => {
+    return String(value || "")
+      .toLocaleLowerCase("tr-TR")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+  };
+
+  const splitAcceptedAnswers = (answerText) => {
+    return String(answerText || "")
+      .split("/")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+
+  const formatAcceptedAnswers = (answerText) => {
+    return splitAcceptedAnswers(answerText)
+      .map((item) => item.charAt(0).toLocaleUpperCase("tr-TR") + item.slice(1))
+      .join(", ");
+  };
+
   const getQuestionKey = (item) => {
     const letter = getNormalizedLetter(item);
     if (item?.id !== undefined && item?.id !== null) {
@@ -833,19 +854,21 @@ function App() {
   }, [currentIndex]);
 
   const checkAnswer = () => {
-    if (answered || !gameStarted || gameFinished || isPaused || duelWaitingForOpponent) return;
+    if (!gameStarted || gameFinished || isPaused || duelWaitingForOpponent) return;
 
     const currentQuestion = questions[currentIndex];
-    const rawUserAnswer = userAnswer.trim();
-    const normalizedUserAnswer = rawUserAnswer.toLocaleLowerCase("tr-TR");
-    const normalizedCorrectAnswer = currentQuestion.answer.trim().toLocaleLowerCase("tr-TR");
+    if (!currentQuestion) return;
+
+    const rawUserAnswer = String(userAnswer || "").trim();
+    const normalizedUserAnswer = normalizeAnswer(rawUserAnswer);
+    const acceptedAnswers = splitAcceptedAnswers(currentQuestion.answer).map((item) => normalizeAnswer(item));
 
     if (!normalizedUserAnswer) {
       setResultMessage("Lütfen bir cevap yazın");
       return;
     }
 
-    const isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+    const isCorrect = acceptedAnswers.includes(normalizedUserAnswer);
 
     setAnswerHistory((prev) => {
       const filtered = prev.filter((item) => item.index !== currentIndex);
@@ -856,33 +879,22 @@ function App() {
           letter: (currentQuestion.letter || "").toLocaleUpperCase("tr-TR"),
           question: currentQuestion.questionText,
           userAnswer: rawUserAnswer,
-          correctAnswer: currentQuestion.answer,
+          correctAnswer: formatAcceptedAnswers(currentQuestion.answer),
           status: isCorrect ? "correct" : "wrong",
         },
       ].sort((a, b) => a.index - b.index);
     });
 
-    if (isCorrect) {
-      setResultMessage("Doğru cevap");
-      setScore((prevScore) => prevScore + 10);
-      setQuestionStatuses((prevStatuses) => {
-        const updatedStatuses = [...prevStatuses];
-        updatedStatuses[currentIndex] = "correct";
-        return updatedStatuses;
-      });
-      setPassedQueue((prevQueue) => prevQueue.filter((index) => index !== currentIndex));
-      setAnswered(true);
-    } else {
-      setResultMessage("Yanlış cevap");
-      setScore((prevScore) => prevScore - 5);
-      setQuestionStatuses((prevStatuses) => {
-        const updatedStatuses = [...prevStatuses];
-        updatedStatuses[currentIndex] = "wrong";
-        return updatedStatuses;
-      });
-      setPassedQueue((prevQueue) => prevQueue.filter((index) => index !== currentIndex));
-      setAnswered(true);
-    }
+    setQuestionStatuses((prevStatuses) => {
+      const updatedStatuses = [...prevStatuses];
+      updatedStatuses[currentIndex] = isCorrect ? "correct" : "wrong";
+      return updatedStatuses;
+    });
+
+    setPassedQueue((prevQueue) => prevQueue.filter((index) => index !== currentIndex));
+    setResultMessage(isCorrect ? "Doğru cevap" : "Yanlış cevap");
+    setScore((prevScore) => prevScore + (isCorrect ? 10 : -5));
+    setAnswered(true);
   };
 
   const passQuestion = () => {
@@ -899,7 +911,7 @@ function App() {
           letter: (currentQuestion.letter || "").toLocaleUpperCase("tr-TR"),
           question: currentQuestion.questionText,
           userAnswer: "Pas",
-          correctAnswer: currentQuestion.answer,
+          correctAnswer: formatAcceptedAnswers(currentQuestion.answer),
           status: "passed",
         },
       ].sort((a, b) => a.index - b.index);
@@ -1023,22 +1035,22 @@ function App() {
     setShowProfileMenu(false);
 
     if (gameMode === "duel") {
-      setQuestions([]);
       setDuelWaitingForOpponent(false);
       setDuelRoomData(null);
       setDuelRoomCode("");
       setGameStarted(false);
+      setGameMode("classic");
       return;
     }
 
     setGameStarted(false);
 
-    if (gameMode === "daily" && !gameFinished) {
+    if (gameMode === "daily") {
       setGameMode("classic");
     }
   };
 
-  const exitGame = () => {
+  const exitGame = async () => {
     resultSavedRef.current = false;
     setAnswerHistory([]);
     setShowAnswerKey(false);
@@ -1057,6 +1069,9 @@ function App() {
     setQuestionStatuses(questions.map(() => "pending"));
     setTimeLeft(selectedDuration);
     setShowProfileMenu(false);
+    if (gameMode === "duel" && gameStarted && !gameFinished) {
+      await submitDuelProgress(true);
+    }
     setQuestions([]);
     setDuelRoomCode("");
     setDuelRoomData(null);
@@ -1226,40 +1241,12 @@ function App() {
     resultSavedRef.current = true;
 
     if (gameMode === "duel") {
-      const elapsed = selectedDuration - timeLeft;
+      const data = await submitDuelProgress(false);
 
-      try {
-        const response = await fetch(`http://localhost:8080/api/duel/rooms/${duelRoomCode}/finish`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            playerId: currentUser.id,
-            score,
-            elapsedTime: elapsed,
-            correctCount,
-            wrongCount,
-            passedCount,
-          }),
-        });
-
-        const raw = await response.text();
-        if (raw) {
-          const data = JSON.parse(raw);
-          setDuelRoomData(data);
-
-          if (data?.player1Finished && data?.player2Finished) {
-            setDuelWaitingForOpponent(false);
-            setGameFinished(true);
-          } else {
-            setDuelWaitingForOpponent(true);
-          }
-        } else {
-          setDuelWaitingForOpponent(true);
-        }
-      } catch (error) {
-        console.error("Düello sonucu gönderilemedi:", error);
+      if (data?.player1Finished && data?.player2Finished) {
+        setDuelWaitingForOpponent(false);
+        setGameFinished(true);
+      } else {
         setDuelWaitingForOpponent(true);
       }
 
@@ -1289,6 +1276,40 @@ function App() {
     setIsPaused((prev) => !prev);
   };
 
+  const submitDuelProgress = async (abandoned = false) => {
+    if (!duelRoomCode || !currentUser?.id) return null;
+
+    const elapsed = selectedDuration - timeLeft;
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/duel/rooms/${duelRoomCode}/finish`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playerId: currentUser.id,
+          score,
+          elapsedTime: elapsed,
+          correctCount,
+          wrongCount,
+          passedCount,
+          abandoned,
+        }),
+      });
+
+      const raw = await response.text();
+      if (!raw) return null;
+
+      const data = JSON.parse(raw);
+      setDuelRoomData(data);
+      return data;
+    } catch (error) {
+      console.error("Düello ilerlemesi gönderilemedi:", error);
+      return null;
+    }
+  };
+
   const fetchLeaderboard = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -1301,7 +1322,24 @@ function App() {
       });
 
       const data = await response.json();
-      setLeaderboard(data);
+
+      const sortedLeaderboard = Array.isArray(data)
+        ? [...data].sort((a, b) => {
+            const scoreA = Number(a?.score ?? 0);
+            const scoreB = Number(b?.score ?? 0);
+
+            if (scoreB !== scoreA) {
+              return scoreB - scoreA;
+            }
+
+            const timeA = Number(a?.durationSeconds ?? a?.elapsedTime ?? Number.MAX_SAFE_INTEGER);
+            const timeB = Number(b?.durationSeconds ?? b?.elapsedTime ?? Number.MAX_SAFE_INTEGER);
+
+            return timeA - timeB;
+          })
+        : [];
+
+      setLeaderboard(sortedLeaderboard);
     } catch (error) {
       console.error("Leaderboard alınamadı:", error);
     }
@@ -1457,28 +1495,43 @@ function App() {
   );
   const elapsedTime = selectedDuration - timeLeft;
 
+  useEffect(() => {
+    if (!gameStarted || gameFinished) return;
+    setAnswered(false);
+    setResultMessage("");
+    setUserAnswer("");
+  }, [currentIndex, gameStarted, gameFinished]);
+
   const completeAnswerKey = useMemo(() => {
+    const sourceHistory =
+      gameMode === "daily" && !gameStarted && Array.isArray(dailyResult?.answerHistory)
+        ? dailyResult.answerHistory
+        : answerHistory;
+
     return questions.map((questionItem, index) => {
-      const existingEntry = answerHistory.find((entry) => {
+      const existingEntry = sourceHistory.find((entry) => {
         const entryLetter = (entry.letter || "").toLocaleUpperCase("tr-TR");
         const questionLetter = (questionItem.letter || "").toLocaleUpperCase("tr-TR");
         return entryLetter === questionLetter;
       });
 
       if (existingEntry) {
-        return existingEntry;
+        return {
+          ...existingEntry,
+          status: existingEntry.status || questionStatuses[index] || "unanswered",
+        };
       }
 
       return {
         letter: questionItem.letter,
         question: questionItem.questionText,
         userAnswer: "-",
-        correctAnswer: questionItem.answer,
+        correctAnswer: formatAcceptedAnswers(questionItem.answer),
         isCorrect: false,
         status: questionStatuses[index] || "unanswered",
       };
     });
-  }, [questions, answerHistory, questionStatuses]);
+  }, [questions, answerHistory, questionStatuses, gameMode, gameStarted, dailyResult]);
 
   const currentUser = {
     id: authUserId,
@@ -1556,6 +1609,23 @@ function App() {
 
     return () => clearInterval(intervalId);
   }, [gameMode, duelRoomCode]);
+
+  useEffect(() => {
+    if (gameMode !== "duel" || !duelWaitingForOpponent || gameFinished) return;
+
+    if (timeLeft <= 0) {
+      setDuelWaitingForOpponent(false);
+      setGameFinished(true);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      setDuelWaitingForOpponent(false);
+      setGameFinished(true);
+    }, timeLeft * 1000);
+
+    return () => clearTimeout(timeoutId);
+  }, [gameMode, duelWaitingForOpponent, gameFinished, timeLeft]);
 
 
   if (!isAuthenticated) {
@@ -1783,58 +1853,7 @@ function App() {
                 </svg>
               </button>
 
-              <button
-                onClick={() => setShowHowToPlay(true)}
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
-                  background: "rgba(15, 23, 42, 0.75)",
-                  color: "#cbd5e1",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 10px 22px rgba(2, 6, 23, 0.22)",
-                }}
-                aria-label="Nasıl Oynanır"
-                title="Nasıl Oynanır"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 17h2v-6h-2v6zm0-8h2V7h-2v2zm1-7C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                </svg>
-              </button>
 
-              <button
-                onClick={() => {
-                  if (showLeaderboard) {
-                    setShowLeaderboard(false);
-                  } else {
-                    fetchLeaderboard();
-                    setShowLeaderboard(true);
-                  }
-                }}
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
-                  background: "rgba(15, 23, 42, 0.75)",
-                  color: "#cbd5e1",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 10px 22px rgba(2, 6, 23, 0.22)",
-                }}
-                aria-label="Leaderboard"
-                title="Leaderboard"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <path d="M7 20V10h3v10H7zm7 0V4h3v16h-3zM2 20v-6h3v6H2z" />
-                </svg>
-              </button>
             </div>
 
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -2156,13 +2175,14 @@ function App() {
                   </div>
                 ) : (
                   <div style={{ textAlign: "left", marginTop: "6px" }}>
-                    {!Array.isArray(dailyResult.answerHistory) || dailyResult.answerHistory.length === 0 ? (
+                    {completeAnswerKey.length === 0 ? (
                       <div style={{ padding: "24px 0", color: "#71717a", fontSize: "18px", textAlign: "center" }}>
                         Henüz cevap kaydı bulunmuyor.
                       </div>
                     ) : (
-                      dailyResult.answerHistory.map((item, index) => {
+                      completeAnswerKey.map((item, index) => {
                         const isOpen = expandedAnswerIndex === index;
+
                         const icon =
                           item.status === "correct"
                             ? "✓"
@@ -3344,7 +3364,7 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Günlük Oyun</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Ertesi gün yeni soru seti açılır ve süre sıfırlanır. Günlük oyunu bitirdiğinde istatistik ekranı ve cevap anahtarı görüntülenir.
+                      Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde istatistik ekranı ve cevap anahtarı görüntülenir.
                     </div>
                   </div>
                 </div>
@@ -3373,6 +3393,41 @@ function App() {
   }
 
   const question = questions[currentIndex];
+
+  const duelIsCurrentUserPlayer1 = duelRoomData?.player1?.id === currentUser?.id;
+  const duelOpponentFinished = duelIsCurrentUserPlayer1
+    ? duelRoomData?.player2Finished
+    : duelRoomData?.player1Finished;
+  const duelOpponentAbandoned = gameMode === "duel" && gameFinished && duelOpponentFinished === false;
+
+  const duelOpponentPlayer = duelIsCurrentUserPlayer1
+    ? duelRoomData?.player2
+    : duelRoomData?.player1;
+
+  const duelOpponentCorrectCountDisplay = duelOpponentAbandoned
+    ? (typeof duelOpponentPlayer?.correctCount === "number"
+        ? duelOpponentPlayer.correctCount
+        : (typeof duelOpponentCorrectCount === "number" ? duelOpponentCorrectCount : "-"))
+    : (typeof duelOpponentCorrectCount === "number"
+        ? duelOpponentCorrectCount
+        : (typeof duelOpponentPlayer?.correctCount === "number" ? duelOpponentPlayer.correctCount : "-"));
+
+  const duelOpponentWrongCountDisplay = duelOpponentAbandoned
+    ? (typeof duelOpponentPlayer?.wrongCount === "number"
+        ? duelOpponentPlayer.wrongCount
+        : (typeof duelOpponentWrongCount === "number" ? duelOpponentWrongCount : "-"))
+    : (typeof duelOpponentWrongCount === "number"
+        ? duelOpponentWrongCount
+        : (typeof duelOpponentPlayer?.wrongCount === "number" ? duelOpponentPlayer.wrongCount : "-"));
+
+  const duelOpponentPassedCountDisplay = duelOpponentAbandoned
+    ? (typeof duelOpponentPlayer?.passedCount === "number"
+        ? duelOpponentPlayer.passedCount
+        : (typeof duelOpponentPassedCount === "number" ? duelOpponentPassedCount : "-"))
+    : (typeof duelOpponentPassedCount === "number"
+        ? duelOpponentPassedCount
+        : (typeof duelOpponentPlayer?.passedCount === "number" ? duelOpponentPlayer.passedCount : "-"));
+
   const letters = questions.map((q, index) => {
     const angle = (360 / questions.length) * index - 90;
     const radian = (angle * Math.PI) / 180;
@@ -3764,10 +3819,26 @@ function App() {
               }}
             >
               <div>
-                <div style={{ fontSize: "18px", color: "#cbd5e1", marginBottom: "16px" }}>Aktif Harf</div>
-                <div style={{ fontSize: "56px", fontWeight: "bold", color: "#f8fafc", textShadow: "0 6px 18px rgba(96, 165, 250, 0.35)" }}>
-                  {(question.letter || "").toLocaleUpperCase("tr-TR")}
-                </div>
+                {gameFinished ? (
+                  <div
+                    style={{
+                      color: "#f8fafc",
+                      fontSize: "34px",
+                      fontWeight: "800",
+                      textAlign: "center",
+                      lineHeight: "1.2",
+                    }}
+                  >
+                      Oyun<br/>Bitti!
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: "18px", color: "#cbd5e1", marginBottom: "16px" }}>Aktif Harf</div>
+                    <div style={{ fontSize: "56px", fontWeight: "bold", color: "#f8fafc", textShadow: "0 6px 18px rgba(96, 165, 250, 0.35)" }}>
+                      {(question.letter || "").toLocaleUpperCase("tr-TR")}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -4010,27 +4081,29 @@ function App() {
                         <div style={{ display: "grid", gap: "10px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", color: "#e2e8f0" }}>
                             <span>Toplam puan</span>
-                            <strong style={{ color: "#2563eb" }}>{duelOpponentScore ?? "-"}</strong>
+                            <strong style={{ color: "#2563eb" }}>{duelOpponentAbandoned ? "-" : (duelOpponentScore ?? "-")}</strong>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", color: "#e2e8f0" }}>
                             <span>Oyun süresi</span>
                             <strong style={{ color: "#cbd5e1" }}>
-                              {typeof duelOpponentElapsedTime === "number" && duelOpponentElapsedTime > 0
-                                ? formatElapsedTime(duelOpponentElapsedTime)
-                                : "-"}
+                              {duelOpponentAbandoned
+                                ? "-"
+                                : (typeof duelOpponentElapsedTime === "number" && duelOpponentElapsedTime > 0
+                                    ? formatElapsedTime(duelOpponentElapsedTime)
+                                    : "-")}
                             </strong>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", color: "#e2e8f0" }}>
                             <span>Doğru sayısı</span>
-                            <strong style={{ color: "#16a34a" }}>{typeof duelOpponentCorrectCount === "number" ? duelOpponentCorrectCount : "-"}</strong>
+                            <strong style={{ color: "#16a34a" }}>{duelOpponentCorrectCountDisplay}</strong>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", color: "#e2e8f0" }}>
                             <span>Yanlış sayısı</span>
-                            <strong style={{ color: "#dc2626" }}>{typeof duelOpponentWrongCount === "number" ? duelOpponentWrongCount : "-"}</strong>
+                            <strong style={{ color: "#dc2626" }}>{duelOpponentWrongCountDisplay}</strong>
                           </div>
                           <div style={{ display: "flex", justifyContent: "space-between", color: "#e2e8f0" }}>
                             <span>Pas sayısı</span>
-                            <strong style={{ color: "#d97706" }}>{typeof duelOpponentPassedCount === "number" ? duelOpponentPassedCount : "-"}</strong>
+                            <strong style={{ color: "#d97706" }}>{duelOpponentPassedCountDisplay}</strong>
                           </div>
                         </div>
                       </div>
@@ -4226,7 +4299,7 @@ function App() {
               </div>
             </div>
           </div>
-        ) : (
+        ) : !duelWaitingForOpponent ? (
           <div
             style={{
               background: "linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.94))",
@@ -4239,40 +4312,60 @@ function App() {
             <h2 style={{ marginTop: 0, color: "#93c5fd" }}>Soru</h2>
             <p style={{ fontSize: "22px", marginBottom: "20px", color: "#e2e8f0", lineHeight: 1.45 }}>{question.questionText}</p>
 
-            <input
-              type="text"
-              disabled={isPaused}
-              placeholder="Cevabınızı yazın"
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  checkAnswer();
-                }
-              }}
-              style={{
-                padding: "14px 16px",
-                fontSize: "16px",
-                width: "100%",
-                maxWidth: "360px",
-                margin: "0 auto",
-                display: "block",
-                borderRadius: "14px",
-                border: "1px solid rgba(96, 165, 250, 0.4)",
-                backgroundColor: "rgba(15, 23, 42, 0.75)",
-                color: "#f8fafc",
-                boxSizing: "border-box",
-                outline: "none",
-              }}
-            />
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <input
+                type="text"
+                disabled={isPaused || duelWaitingForOpponent}
+                placeholder="Cevabınızı yazın"
+                value={userAnswer}
+                onChange={(e) => {
+                  setUserAnswer(e.target.value);
+                  if (resultMessage === "Lütfen bir cevap yazın") {
+                    setResultMessage("");
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    checkAnswer();
+                  }
+                }}
+                style={{
+                  padding: "14px 16px",
+                  fontSize: "16px",
+                  width: "100%",
+                  maxWidth: "360px",
+                  margin: "0 auto",
+                  display: "block",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(96, 165, 250, 0.4)",
+                  backgroundColor: "rgba(15, 23, 42, 0.75)",
+                  color: "#f8fafc",
+                  boxSizing: "border-box",
+                  outline: "none",
+                }}
+              />
 
-            <button onClick={passQuestion} style={secondaryButtonStyle} disabled={isPaused}>
-              Pas
-            </button>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+                <button
+                  onClick={() => passQuestion()}
+                  type="button"
+                  style={secondaryButtonStyle}
+                  disabled={isPaused || duelWaitingForOpponent}
+                >
+                  Pas
+                </button>
 
-            <button onClick={checkAnswer} style={primaryButtonStyle} disabled={isPaused}>
-              Cevabı Kontrol Et
-            </button>
+                <button
+                  onClick={() => checkAnswer()}
+                  type="button"
+                  style={primaryButtonStyle}
+                  disabled={isPaused || duelWaitingForOpponent}
+                >
+                  Cevabı Kontrol Et
+                </button>
+              </div>
+            </div>
 
             {resultMessage && (
               <p
@@ -4295,7 +4388,7 @@ function App() {
               </p>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
