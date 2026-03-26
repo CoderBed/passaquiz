@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function DuelLobby({ currentUser, onBack, onStartDuel }) {
@@ -6,6 +5,7 @@ function DuelLobby({ currentUser, onBack, onStartDuel }) {
   const [joinCode, setJoinCode] = useState("");
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
+  const [roomCodeCopied, setRoomCodeCopied] = useState(false);
   const [startCountdown, setStartCountdown] = useState(null);
   const countdownStartedRef = useRef(false);
 
@@ -224,6 +224,16 @@ function DuelLobby({ currentUser, onBack, onStartDuel }) {
     return () => clearInterval(intervalId);
   }, [room, onStartDuel]);
 
+  useEffect(() => {
+    if (!roomCodeCopied) return;
+
+    const timeoutId = setTimeout(() => {
+      setRoomCodeCopied(false);
+    }, 20000);
+
+    return () => clearTimeout(timeoutId);
+  }, [roomCodeCopied]);
+
   return (
     <div
       style={{
@@ -324,8 +334,68 @@ function DuelLobby({ currentUser, onBack, onStartDuel }) {
             textAlign: "left",
           }}
         >
-          <div style={{ marginBottom: "16px", color: "#f8fafc", fontSize: "20px", fontWeight: "700" }}>
-            Oda Kodu: <span style={{ color: "#93c5fd", letterSpacing: "1px" }}>{room.roomCode}</span>
+          <div
+            style={{
+              marginBottom: "16px",
+              color: "#f8fafc",
+              fontSize: "20px",
+              fontWeight: "700",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <span>
+              Oda Kodu: <span style={{ color: "#93c5fd", letterSpacing: "1px" }}>{room.roomCode}</span>
+            </span>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(room?.roomCode || "");
+                  setError("");
+                  setRoomCodeCopied(true);
+                } catch (err) {
+                  setError("Oda kodu kopyalanamadı.");
+                }
+              }}
+              style={{
+                padding: "8px 14px",
+                borderRadius: "14px",
+                border: "1px solid rgba(163, 163, 163, 0.28)",
+                cursor: "pointer",
+                fontSize: "13px",
+                fontWeight: "800",
+                color: "#737373",
+                background: "linear-gradient(135deg, rgba(245, 245, 245, 0.98), rgba(229, 229, 229, 0.98))",
+                boxShadow: "0 10px 20px rgba(163, 163, 163, 0.18)",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                whiteSpace: "nowrap",
+                transition: "all 0.2s ease",
+              }}
+              title="Oda kodunu kopyala"
+              aria-label="Oda kodunu kopyala"
+              type="button"
+            >
+              {roomCodeCopied ? (
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                  Kopyalandı
+                </>
+              ) : (
+                <>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v12h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                  </svg>
+                  Kodu Kopyala
+                </>
+              )}
+            </button>
           </div>
 
           <div style={{ marginBottom: "18px", color: "#cbd5e1", fontSize: "16px" }}>
@@ -467,6 +537,9 @@ function App() {
   const [activePulse, setActivePulse] = useState(false);
   const previousScoreRef = useRef(0);
   const resultSavedRef = useRef(false);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  const [profileStats, setProfileStats] = useState(null);
+  const [profileStatsLoading, setProfileStatsLoading] = useState(false);
 
   const profileFileInputRef = useRef(null);
 
@@ -1345,6 +1418,46 @@ function App() {
     }
   };
 
+  const fetchProfileStats = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setProfileStatsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:8080/api/profile/stats", {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      const data = response.ok
+        ? await response.json()
+        : {
+            totalGames: 0,
+            highestScore: 0,
+            averageScore: 0,
+            dailyWins: 0,
+            duelWins: 0,
+            duelLosses: 0,
+          };
+
+      setProfileStats(data);
+    } catch (error) {
+      console.error("Profil istatistikleri alınamadı:", error);
+      setProfileStats({
+        totalGames: 0,
+        highestScore: 0,
+        averageScore: 0,
+        dailyWins: 0,
+        duelWins: 0,
+        duelLosses: 0,
+      });
+    } finally {
+      setProfileStatsLoading(false);
+    }
+  };
+
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -1569,20 +1682,54 @@ function App() {
     ? duelRoomData?.player2PassedCount
     : duelRoomData?.player1PassedCount;
 
-  const duelWinnerName = (() => {
-    if (gameMode !== "duel" || !duelRoomData) return "";
-
-    const player1Score = duelRoomData?.player1Score ?? 0;
-    const player2Score = duelRoomData?.player2Score ?? 0;
-
-    if (player1Score === player2Score) {
-      return "Berabere";
+  const duelWinnerInfo = (() => {
+    if (gameMode !== "duel" || !duelRoomData) {
+      return {
+        winnerName: "",
+        message: "",
+      };
     }
 
-    return player1Score > player2Score
-      ? duelRoomData?.player1Name || "Oyuncu 1"
-      : duelRoomData?.player2Name || "Oyuncu 2";
+    const player1Score = Number(duelRoomData?.player1Score ?? 0);
+    const player2Score = Number(duelRoomData?.player2Score ?? 0);
+
+    const player1ElapsedTime = Number(
+      duelRoomData?.player1ElapsedTime ?? Number.MAX_SAFE_INTEGER
+    );
+    const player2ElapsedTime = Number(
+      duelRoomData?.player2ElapsedTime ?? Number.MAX_SAFE_INTEGER
+    );
+
+    const player1Name = duelRoomData?.player1Name || "Oyuncu 1";
+    const player2Name = duelRoomData?.player2Name || "Oyuncu 2";
+
+    if (player1Score === player2Score) {
+      if (player1ElapsedTime === player2ElapsedTime) {
+        return {
+          winnerName: "Berabere",
+          message: "Puan ve süreler eşit. Maç berabere bitti",
+        };
+      }
+
+      const winnerName =
+        player1ElapsedTime < player2ElapsedTime ? player1Name : player2Name;
+
+      return {
+        winnerName,
+        message: `Puanlar berabere, Süre farkıyla kazanan ${winnerName}`,
+      };
+    }
+
+    const winnerName = player1Score > player2Score ? player1Name : player2Name;
+
+    return {
+      winnerName,
+      message: winnerName,
+    };
   })();
+
+  const duelWinnerName = duelWinnerInfo.winnerName;
+  const duelWinnerMessage = duelWinnerInfo.message;
 
   useEffect(() => {
     if (gameMode !== "duel" || !duelRoomCode) return;
@@ -1981,6 +2128,27 @@ function App() {
                       }}
                     >
                       Profil Fotoğrafı Yükle
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowStatsModal(true);
+                        fetchProfileStats();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                      }}
+                    >
+                      İstatistikler
                     </button>
 
                     <button
@@ -2549,6 +2717,27 @@ function App() {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowStatsModal(true);
+                        fetchProfileStats();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                      }}
+                    >
+                      İstatistikler
+                    </button>
+
+                    <button
                       onClick={handleLogout}
                       style={{
                         ...exitButtonStyle,
@@ -2638,12 +2827,107 @@ function App() {
                   <button
                     onClick={() => setShowLeaderboard(false)}
                     style={{
-                      ...successButtonStyle,
                       marginTop: 0,
                       marginRight: 0,
                       minWidth: "180px",
                       fontSize: "17px",
                       padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                    }}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showStatsModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(2, 6, 23, 0.72)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "680px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: "24px",
+                  padding: "30px 28px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                  textAlign: "left",
+                }}
+              >
+                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                  Profil İstatistikleri
+                </h2>
+
+                {profileStatsLoading ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    İstatistikler yükleniyor...
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                    {[
+                      { label: "Toplam oynanan oyun", value: profileStats?.totalGames ?? 0, color: "#60a5fa" },
+                      { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
+                      { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
+                      { label: "Günlük oyun galibiyet sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
+                      { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "16px 18px",
+                          borderRadius: "16px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
+                        }}
+                      >
+                        <span style={{ color: "#e2e8f0", fontSize: "16px", fontWeight: "600" }}>
+                          {item.label}
+                        </span>
+                        <span style={{ color: item.color, fontSize: "20px", fontWeight: "800" }}>
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setShowStatsModal(false)}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "180px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
                     }}
                   >
                     Kapat
@@ -2653,11 +2937,13 @@ function App() {
             </div>
           )}
 
-          <DuelLobby
-            currentUser={currentUser}
-            onBack={() => setGameMode("classic")}
-            onStartDuel={startDuelGame}
-          />
+          <div style={{ display: "grid", gap: "12px" }}>
+            <DuelLobby
+              currentUser={currentUser}
+              onBack={() => setGameMode("classic")}
+              onStartDuel={startDuelGame}
+            />
+          </div>
           {showHowToPlay && (
             <div
               style={{
@@ -2740,12 +3026,17 @@ function App() {
                   <button
                     onClick={() => setShowHowToPlay(false)}
                     style={{
-                      ...successButtonStyle,
                       marginTop: 0,
                       marginRight: 0,
                       minWidth: "180px",
                       fontSize: "17px",
                       padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
                     }}
                   >
                     Kapat
@@ -2979,6 +3270,27 @@ function App() {
                       }}
                     >
                       Profil Fotoğrafı Yükle
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowStatsModal(true);
+                        fetchProfileStats();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                      }}
+                    >
+                      İstatistikler
                     </button>
 
                     <button
@@ -3278,12 +3590,107 @@ function App() {
                   <button
                     onClick={() => setShowLeaderboard(false)}
                     style={{
-                      ...successButtonStyle,
                       marginTop: 0,
                       marginRight: 0,
                       minWidth: "180px",
                       fontSize: "17px",
                       padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                    }}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showStatsModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(2, 6, 23, 0.72)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "680px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: "24px",
+                  padding: "30px 28px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                  textAlign: "left",
+                }}
+              >
+                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                  Profil İstatistikleri
+                </h2>
+
+                {profileStatsLoading ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    İstatistikler yükleniyor...
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                    {[
+                      { label: "Toplam oynanan oyun", value: profileStats?.totalGames ?? 0, color: "#60a5fa" },
+                      { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
+                      { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
+                      { label: "Günlük oyun galibiyet sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
+                      { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "16px 18px",
+                          borderRadius: "16px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
+                        }}
+                      >
+                        <span style={{ color: "#e2e8f0", fontSize: "16px", fontWeight: "600" }}>
+                          {item.label}
+                        </span>
+                        <span style={{ color: item.color, fontSize: "20px", fontWeight: "800" }}>
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setShowStatsModal(false)}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "180px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
                     }}
                   >
                     Kapat
@@ -3373,12 +3780,17 @@ function App() {
                   <button
                     onClick={() => setShowHowToPlay(false)}
                     style={{
-                      ...successButtonStyle,
                       marginTop: 0,
                       marginRight: 0,
                       minWidth: "180px",
                       fontSize: "17px",
                       padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
                     }}
                   >
                     Kapat
@@ -3629,6 +4041,27 @@ function App() {
                     </button>
 
                     <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowStatsModal(true);
+                        fetchProfileStats();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                      }}
+                    >
+                      İstatistikler
+                    </button>
+
+                    <button
                       onClick={handleLogout}
                       style={{
                         ...exitButtonStyle,
@@ -3769,24 +4202,29 @@ function App() {
           </div>
         </div>
 
-        {gameMode === "duel" && duelWaitingForOpponent && !gameFinished && (
+        {gameMode === "duel" && (
           <div
             style={{
               marginTop: "6px",
-              marginBottom: "22px",
-              padding: "18px 20px",
-              borderRadius: "18px",
-              background: "rgba(30, 41, 59, 0.82)",
-              border: "1px solid rgba(148, 163, 184, 0.16)",
+              marginBottom: duelWaitingForOpponent && !gameFinished ? "22px" : "10px",
+              padding: duelWaitingForOpponent && !gameFinished ? "18px 20px" : "0px",
+              borderRadius: duelWaitingForOpponent && !gameFinished ? "18px" : "0",
+              background: duelWaitingForOpponent && !gameFinished ? "rgba(30, 41, 59, 0.82)" : "none",
+              border: duelWaitingForOpponent && !gameFinished ? "1px solid rgba(148, 163, 184, 0.16)" : "none",
               textAlign: "center",
             }}
           >
-            <div style={{ color: "#4ade80", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>
-              Rakibin oyunu bitirmesi bekleniyor.
-            </div>
-            <div style={{ color: "#cbd5e1", fontSize: "16px", lineHeight: 1.6 }}>
-              Rakip de oyunu bitirdiğinde sonuç ekranı otomatik olarak açılacak.
-            </div>
+            {/* Waiting for opponent message */}
+            {duelWaitingForOpponent && !gameFinished && (
+              <>
+                <div style={{ color: "#4ade80", fontSize: "22px", fontWeight: "800", marginBottom: "8px" }}>
+                  Rakibin oyunu bitirmesi bekleniyor.
+                </div>
+                <div style={{ color: "#cbd5e1", fontSize: "16px", lineHeight: 1.6 }}>
+                  Rakip de oyunu bitirdiğinde sonuç ekranı otomatik olarak açılacak.
+                </div>
+              </>
+            )}
           </div>
         )}
         {!duelWaitingForOpponent && (
@@ -4151,7 +4589,7 @@ function App() {
                         KAZANAN
                       </div>
                       <div style={{ color: "#f8fafc", fontSize: "24px", fontWeight: "800" }}>
-                        {duelWinnerName === "Berabere" ? "Maç berabere bitti" : duelWinnerName}
+                        {duelWinnerMessage || "Maç berabere bitti"}
                       </div>
                     </div>
                   )}
@@ -4366,7 +4804,6 @@ function App() {
                 </button>
               </div>
             </div>
-
             {resultMessage && (
               <p
                 style={{
