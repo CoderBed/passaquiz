@@ -82,6 +82,38 @@ public class GameController {
         GameResult result = new GameResult();
         result.setUserEmail(user.getEmail());
         result.setUserName(user.getName());
+
+        System.out.println("saveResult endpointine girildi");
+        System.out.println("request.getGameMode() = " + request.getGameMode());
+        System.out.println("request.getWon() = " + request.getWon());
+        System.out.println("request.getScore() = " + request.getScore());
+
+        result.setGameMode(request.getGameMode() != null ? request.getGameMode() : "classic");
+        result.setWon(request.getWon());
+
+        result.setScore(request.getScore());
+        result.setCorrectCount(request.getCorrectCount());
+        result.setWrongCount(request.getWrongCount());
+        result.setPassedCount(request.getPassedCount());
+        result.setDurationSeconds(request.getDurationSeconds());
+
+        GameResult saved = gameResultRepository.save(result);
+        System.out.println("saved gameMode = " + saved.getGameMode());
+        System.out.println("saved won = " + saved.getWon());
+
+        return ResponseEntity.ok("Kaydedildi");
+    }
+
+    @PostMapping("/api/game/duel-result")
+    public ResponseEntity<?> saveDuelResult(@RequestBody GameResultRequest request) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
+
+        GameResult result = new GameResult();
+        result.setUserEmail(user.getEmail());
+        result.setUserName(user.getName());
+        result.setGameMode("duel");
+        result.setWon(request.getWon()); // frontend’den gelecek
         result.setScore(request.getScore());
         result.setCorrectCount(request.getCorrectCount());
         result.setWrongCount(request.getWrongCount());
@@ -90,11 +122,12 @@ public class GameController {
 
         gameResultRepository.save(result);
 
-        return ResponseEntity.ok("Kaydedildi");
+        return ResponseEntity.ok("Düello sonucu kaydedildi");
     }
 
     @GetMapping("/api/game/leaderboard")
     public List<GameResult> getLeaderboard() {
         return gameResultRepository.findTop10ByOrderByScoreDesc();
     }
+
 }

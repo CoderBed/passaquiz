@@ -537,6 +537,9 @@ function App() {
   const [activePulse, setActivePulse] = useState(false);
   const previousScoreRef = useRef(0);
   const resultSavedRef = useRef(false);
+  const duelResultSavedRef = useRef(false);
+  const lastSavedDuelRoomCodeRef = useRef("");
+  const activeGameModeRef = useRef("classic");
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [profileStats, setProfileStats] = useState(null);
   const [profileStatsLoading, setProfileStatsLoading] = useState(false);
@@ -650,7 +653,7 @@ function App() {
   };
 
   const loadQuestions = async (mode = "classic") => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       setIsAuthenticated(false);
       return null;
@@ -729,7 +732,7 @@ function App() {
       return sorted;
     } catch (err) {
       console.error(err);
-      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
       setIsAuthenticated(false);
       setAuthUserId(null);
       setAuthUserName("");
@@ -761,6 +764,9 @@ function App() {
       : [];
 
     resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
+    lastSavedDuelRoomCodeRef.current = "";
+    activeGameModeRef.current = "duel";
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -780,6 +786,7 @@ function App() {
 
 
     resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -855,7 +862,7 @@ function App() {
   }, [gameMode, gameStarted, dailyResult, authUserEmail]);
 
   useEffect(() => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setIsAuthenticated(false);
     setAuthUserId(null);
     setAuthUserName("");
@@ -1044,6 +1051,7 @@ function App() {
     if (modeOverride) {
       setGameMode(effectiveMode);
     }
+    activeGameModeRef.current = effectiveMode;
     if (effectiveMode === "duel") {
       if (duelRoomData?.status === "STARTED") {
         startDuelGame(duelRoomData);
@@ -1056,6 +1064,7 @@ function App() {
     }
 
     resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -1089,6 +1098,9 @@ function App() {
 
   const restartGame = () => {
     resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
+    lastSavedDuelRoomCodeRef.current = "";
+    activeGameModeRef.current = "classic";
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -1125,6 +1137,9 @@ function App() {
 
   const exitGame = async () => {
     resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
+    lastSavedDuelRoomCodeRef.current = "";
+    activeGameModeRef.current = "classic";
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -1224,7 +1239,7 @@ function App() {
         : await response.text();
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token);
         setShowLeaderboard(false);
         setShowProfileMenu(false);
         setGameMode("classic");
@@ -1250,7 +1265,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     setIsAuthenticated(false);
     setAuthUserId(null);
     setAuthUserName("");
@@ -1281,9 +1296,16 @@ function App() {
     reader.readAsDataURL(file);
   };
 
-  const saveGameResult = async () => {
-    const token = localStorage.getItem("token");
+  const saveGameResult = async ({ modeOverride = null, wonOverride = undefined } = {}) => {
+    const token = sessionStorage.getItem("token");
     if (!token) return;
+
+    const resolvedGameMode = modeOverride || activeGameModeRef.current || (gameMode === "daily" ? "daily" : "classic");
+    const resolvedWon = wonOverride !== undefined
+      ? wonOverride
+      : resolvedGameMode === "daily"
+        ? true
+        : null;
 
     try {
       const response = await fetch("http://localhost:8080/api/game/result", {
@@ -1298,6 +1320,8 @@ function App() {
           wrongCount: wrongCount,
           passedCount: passedCount,
           durationSeconds: elapsedTime,
+          gameMode: resolvedGameMode,
+          won: resolvedWon,
         }),
       });
 
@@ -1309,11 +1333,93 @@ function App() {
     }
   };
 
+  const saveDuelGameResult = async (roomDataOverride = null) => {
+    const token = sessionStorage.getItem("token");
+    const roomData = roomDataOverride || duelRoomData;
+    const currentRoomCode = roomData?.roomCode || duelRoomCode || "";
+
+    if (!token || !roomData || !authUserId || !currentRoomCode) return;
+    if (duelResultSavedRef.current) return;
+    if (lastSavedDuelRoomCodeRef.current === currentRoomCode) return;
+
+    const isPlayer1 = String(roomData?.player1Id) === String(authUserId);
+
+    const myScore = Number(
+      isPlayer1 ? roomData?.player1Score ?? score : roomData?.player2Score ?? score
+    );
+    const opponentScore = Number(
+      isPlayer1 ? roomData?.player2Score ?? 0 : roomData?.player1Score ?? 0
+    );
+
+    const myElapsedTime = Number(
+      isPlayer1
+        ? roomData?.player1ElapsedTime ?? elapsedTime
+        : roomData?.player2ElapsedTime ?? elapsedTime
+    );
+    const opponentElapsedTime = Number(
+      isPlayer1
+        ? roomData?.player2ElapsedTime ?? Number.MAX_SAFE_INTEGER
+        : roomData?.player1ElapsedTime ?? Number.MAX_SAFE_INTEGER
+    );
+
+    const myCorrectCount = Number(
+      isPlayer1
+        ? roomData?.player1CorrectCount ?? correctCount
+        : roomData?.player2CorrectCount ?? correctCount
+    );
+    const myWrongCount = Number(
+      isPlayer1
+        ? roomData?.player1WrongCount ?? wrongCount
+        : roomData?.player2WrongCount ?? wrongCount
+    );
+    const myPassedCount = Number(
+      isPlayer1
+        ? roomData?.player1PassedCount ?? passedCount
+        : roomData?.player2PassedCount ?? passedCount
+    );
+
+    const didWin =
+      myScore > opponentScore ||
+      (myScore === opponentScore && myElapsedTime < opponentElapsedTime);
+
+    duelResultSavedRef.current = true;
+    lastSavedDuelRoomCodeRef.current = currentRoomCode;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/game/duel-result", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({
+          score: myScore,
+          correctCount: myCorrectCount,
+          wrongCount: myWrongCount,
+          passedCount: myPassedCount,
+          durationSeconds: myElapsedTime,
+          gameMode: "duel",
+          won: didWin,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Düello sonucu kaydedilemedi");
+      }
+    } catch (error) {
+      duelResultSavedRef.current = false;
+      lastSavedDuelRoomCodeRef.current = "";
+      console.error("Düello sonucu kaydedilemedi:", error);
+    }
+  };
+
   const finishGame = async () => {
     if (resultSavedRef.current) return;
     resultSavedRef.current = true;
 
-    if (gameMode === "duel") {
+    const currentSessionMode = activeGameModeRef.current || gameMode;
+
+    if (currentSessionMode === "duel") {
       const data = await submitDuelProgress(false);
 
       if (data?.player1Finished && data?.player2Finished) {
@@ -1328,7 +1434,7 @@ function App() {
 
     setGameFinished(true);
 
-    if (gameMode === "daily") {
+    if (currentSessionMode === "daily") {
       saveDailyResultToStorage({
         score,
         correctCount,
@@ -1338,9 +1444,12 @@ function App() {
         answerHistory,
         completedAt: new Date().toISOString(),
       });
+
+      saveGameResult({ modeOverride: "daily", wonOverride: true });
+      return;
     }
 
-    saveGameResult();
+    saveGameResult({ modeOverride: "classic", wonOverride: null });
   };
 
   const togglePause = () => {
@@ -1384,7 +1493,7 @@ function App() {
   };
 
   const fetchLeaderboard = async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) return;
 
     try {
@@ -1419,7 +1528,7 @@ function App() {
   };
 
   const fetchProfileStats = async () => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) return;
 
     setProfileStatsLoading(true);
@@ -1748,6 +1857,7 @@ function App() {
         if (data?.player1Finished && data?.player2Finished) {
           setDuelWaitingForOpponent(false);
           setGameFinished(true);
+          saveDuelGameResult(data);
         }
       } catch (error) {
 
@@ -1756,6 +1866,7 @@ function App() {
 
     return () => clearInterval(intervalId);
   }, [gameMode, duelRoomCode]);
+
 
   useEffect(() => {
     if (gameMode !== "duel" || !duelWaitingForOpponent || gameFinished) return;

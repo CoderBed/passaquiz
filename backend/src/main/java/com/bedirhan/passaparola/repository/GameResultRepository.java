@@ -8,4 +8,9 @@ import java.util.List;
 public interface GameResultRepository extends JpaRepository<GameResult, Long> {
     List<GameResult> findByUserEmailOrderByIdDesc(String userEmail);
     List<GameResult> findTop10ByOrderByScoreDesc();
+    long countByUserEmailAndGameMode(String userEmail, String gameMode);
+
+    long countByUserEmailAndGameModeAndWonTrue(String userEmail, String gameMode);
+
+    long countByUserEmailAndGameModeAndWonFalse(String userEmail, String gameMode);
 }

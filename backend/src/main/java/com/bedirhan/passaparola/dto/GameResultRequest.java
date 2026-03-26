@@ -7,6 +7,8 @@ public class GameResultRequest {
     private int wrongCount;
     private int passedCount;
     private int durationSeconds;
+    private Boolean won;
+    private String gameMode;
 
     public GameResultRequest() {
     }
@@ -49,5 +51,21 @@ public class GameResultRequest {
 
     public void setDurationSeconds(int durationSeconds) {
         this.durationSeconds = durationSeconds;
+    }
+
+    public Boolean getWon() {
+        return won;
+    }
+
+    public void setWon(Boolean won) {
+        this.won = won;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
     }
 }

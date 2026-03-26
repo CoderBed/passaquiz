@@ -12,6 +12,10 @@ public class GameResult {
 
     private String userEmail;
 
+    private String gameMode;
+
+    private Boolean won;
+
     private String userName;
 
     private int score;
@@ -27,8 +31,10 @@ public class GameResult {
     public GameResult() {
     }
 
-    public GameResult(String userEmail, int score, int correctCount, int wrongCount, int passedCount, int durationSeconds) {
+    public GameResult(String userEmail, String gameMode, Boolean won, int score, int correctCount, int wrongCount, int passedCount, int durationSeconds) {
         this.userEmail = userEmail;
+        this.gameMode = gameMode;
+        this.won = won;
         this.score = score;
         this.correctCount = correctCount;
         this.wrongCount = wrongCount;
@@ -44,6 +50,14 @@ public class GameResult {
         return userEmail;
     }
 
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public Boolean getWon() {
+        return won;
+    }
+
     public String getUserName() {
         return userName;
     }
@@ -54,6 +68,14 @@ public class GameResult {
 
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public void setWon(Boolean won) {
+        this.won = won;
     }
 
     public int getScore() {

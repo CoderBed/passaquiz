@@ -32,9 +32,9 @@ public class ProfileStatsService {
                         .orElse(0)
         );
 
-        long dailyWins = 0;
-        long duelWins = 0;
-        long duelLosses = 0;
+        long dailyWins = gameResultRepository.countByUserEmailAndGameModeAndWonTrue(email, "daily");
+        long duelWins = gameResultRepository.countByUserEmailAndGameModeAndWonTrue(email, "duel");
+        long duelLosses = gameResultRepository.countByUserEmailAndGameModeAndWonFalse(email, "duel");
 
         return new ProfileStatsResponse(
                 totalGames,
