@@ -2255,8 +2255,8 @@ function App() {
                         fontSize: "14px",
                         padding: "12px 16px",
                         marginBottom: "10px",
-                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
-                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
                       İstatistikler
@@ -2841,8 +2841,8 @@ function App() {
                         fontSize: "14px",
                         padding: "12px 16px",
                         marginBottom: "10px",
-                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
-                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
                       İstatistikler
@@ -3397,8 +3397,8 @@ function App() {
                         fontSize: "14px",
                         padding: "12px 16px",
                         marginBottom: "10px",
-                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
-                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
                       İstatistikler
@@ -4165,8 +4165,8 @@ function App() {
                         fontSize: "14px",
                         padding: "12px 16px",
                         marginBottom: "10px",
-                        background: "linear-gradient(135deg, #22c55e, #16a34a)",
-                        boxShadow: "0 10px 24px rgba(34, 197, 94, 0.30)",
+                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
                       İstatistikler
