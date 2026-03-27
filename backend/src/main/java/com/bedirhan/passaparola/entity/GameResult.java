@@ -1,6 +1,7 @@
 package com.bedirhan.passaparola.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "game_results")
@@ -27,6 +28,18 @@ public class GameResult {
     private int passedCount;
 
     private int durationSeconds;
+
+    private String opponentName;
+
+    private Integer opponentScore;
+
+    private Integer durationDifferenceSeconds;
+
+    private String winnerName;
+
+    private String duelRoomCode;
+
+    private LocalDateTime playedAt;
 
     public GameResult() {
     }
@@ -76,6 +89,54 @@ public class GameResult {
 
     public void setWon(Boolean won) {
         this.won = won;
+    }
+
+    public String getOpponentName() {
+        return opponentName;
+    }
+
+    public void setOpponentName(String opponentName) {
+        this.opponentName = opponentName;
+    }
+
+    public Integer getOpponentScore() {
+        return opponentScore;
+    }
+
+    public void setOpponentScore(Integer opponentScore) {
+        this.opponentScore = opponentScore;
+    }
+
+    public Integer getDurationDifferenceSeconds() {
+        return durationDifferenceSeconds;
+    }
+
+    public void setDurationDifferenceSeconds(Integer durationDifferenceSeconds) {
+        this.durationDifferenceSeconds = durationDifferenceSeconds;
+    }
+
+    public String getWinnerName() {
+        return winnerName;
+    }
+
+    public void setWinnerName(String winnerName) {
+        this.winnerName = winnerName;
+    }
+
+    public String getDuelRoomCode() {
+        return duelRoomCode;
+    }
+
+    public void setDuelRoomCode(String duelRoomCode) {
+        this.duelRoomCode = duelRoomCode;
+    }
+
+    public LocalDateTime getPlayedAt() {
+        return playedAt;
+    }
+
+    public void setPlayedAt(LocalDateTime playedAt) {
+        this.playedAt = playedAt;
     }
 
     public int getScore() {

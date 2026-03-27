@@ -543,6 +543,9 @@ function App() {
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [profileStats, setProfileStats] = useState(null);
   const [profileStatsLoading, setProfileStatsLoading] = useState(false);
+  const [showDuelHistoryModal, setShowDuelHistoryModal] = useState(false);
+  const [duelHistory, setDuelHistory] = useState([]);
+  const [duelHistoryLoading, setDuelHistoryLoading] = useState(false);
 
   const profileFileInputRef = useRef(null);
 
@@ -1266,20 +1269,58 @@ function App() {
 
   const handleLogout = () => {
     sessionStorage.removeItem("token");
+
     setIsAuthenticated(false);
     setAuthUserId(null);
     setAuthUserName("");
     setAuthUserEmail("");
     setAuthUserImage("");
     setShowProfileMenu(false);
-    setShowLeaderboard(false);
-    setShowHowToPlay(false);
+
+    setGameStarted(false);
+    setGameFinished(false);
     setGameMode("classic");
+    activeGameModeRef.current = "classic";
+
+    setSelectedDuration(180);
     setQuestions([]);
+    setQuestionStatuses([]);
+    setCurrentIndex(0);
+    setUserAnswer("");
+    setResultMessage("");
+    setScore(0);
+    setAnswered(false);
+    setPassedQueue([]);
+    setIsReviewingPassed(false);
+    setCorrectCount(0);
+    setWrongCount(0);
+    setPassedCount(0);
+    setElapsedTime(0);
+    setTimeLeft(180);
+    setAnswerHistory([]);
+    setExpandedAnswerIndex(null);
+    setResultTab("stats");
+    setHoveredResultTab(null);
+    setShowAnswerKey(false);
+    setIsPaused(false);
+    setQuestionsLoading(false);
+    setShowLeaderboard(false);
+    setShowStatsModal(false);
+    setShowDuelHistoryModal(false);
+    setShowHowToPlay(false);
+    setDailyResult(null);
+    setDailyCountdownSeconds(0);
     setDuelRoomCode("");
+    setJoinedRoomCode("");
+    setCreatedRoom(null);
     setDuelRoomData(null);
     setDuelWaitingForOpponent(false);
-    setDailyResult(null);
+    setStartCountdown(null);
+    resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
+    lastSavedDuelRoomCodeRef.current = "";
+    previousScoreRef.current = 0;
+
     resetAuthForm();
   };
 
@@ -1399,6 +1440,17 @@ function App() {
           passedCount: myPassedCount,
           durationSeconds: myElapsedTime,
           gameMode: "duel",
+          opponentName: isPlayer1
+            ? (roomData?.player2Name || roomData?.player2?.name || "Rakip")
+            : (roomData?.player1Name || roomData?.player1?.name || "Rakip"),
+          opponentScore: opponentScore,
+          durationDifferenceSeconds: Math.abs(myElapsedTime - opponentElapsedTime),
+          winnerName: didWin
+            ? (authUserName || authUserEmail || "Sen")
+            : (isPlayer1
+                ? (roomData?.player2Name || roomData?.player2?.name || "Rakip")
+                : (roomData?.player1Name || roomData?.player1?.name || "Rakip")),
+          duelRoomCode: currentRoomCode,
           won: didWin,
         }),
       });
@@ -1423,8 +1475,10 @@ function App() {
       const data = await submitDuelProgress(false);
 
       if (data?.player1Finished && data?.player2Finished) {
+        setDuelRoomData(data);
         setDuelWaitingForOpponent(false);
         setGameFinished(true);
+        saveDuelGameResult(data);
       } else {
         setDuelWaitingForOpponent(true);
       }
@@ -1564,6 +1618,41 @@ function App() {
       });
     } finally {
       setProfileStatsLoading(false);
+    }
+  };
+
+  const fetchDuelHistory = async () => {
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    setDuelHistoryLoading(true);
+    try {
+      const response = await fetch("http://localhost:8080/api/game/duel-history", {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Düello geçmişi alınamadı");
+      }
+
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const sorted = [...data].sort((a, b) => {
+          const dateA = new Date(a.playedAt || 0).getTime();
+          const dateB = new Date(b.playedAt || 0).getTime();
+          return dateB - dateA; // newest first
+        });
+        setDuelHistory(sorted);
+      } else {
+        setDuelHistory([]);
+      }
+    } catch (error) {
+      console.error("Düello geçmişi alınamadı:", error);
+      setDuelHistory([]);
+    } finally {
+      setDuelHistoryLoading(false);
     }
   };
 
@@ -1866,6 +1955,14 @@ function App() {
 
     return () => clearInterval(intervalId);
   }, [gameMode, duelRoomCode]);
+
+  useEffect(() => {
+    if (gameMode !== "duel") return;
+    if (!gameFinished) return;
+    if (!duelRoomData?.player1Finished || !duelRoomData?.player2Finished) return;
+
+    saveDuelGameResult(duelRoomData);
+  }, [gameMode, gameFinished, duelRoomData]);
 
 
   useEffect(() => {
@@ -2259,9 +2356,28 @@ function App() {
                         boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
-                      İstatistikler
+                      Profil İstatistikleri
                     </button>
-
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowDuelHistoryModal(true);
+                        fetchDuelHistory();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #334155, #1e293b)",
+                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                      }}
+                    >
+                      Maç Geçmişi
+                    </button>
                     <button
                       onClick={handleLogout}
                       style={{
@@ -2845,9 +2961,28 @@ function App() {
                         boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
-                      İstatistikler
+                      Profil İstatistikleri
                     </button>
-
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowDuelHistoryModal(true);
+                        fetchDuelHistory();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #334155, #1e293b)",
+                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                      }}
+                    >
+                      Maç Geçmişi
+                    </button>
                     <button
                       onClick={handleLogout}
                       style={{
@@ -3047,6 +3182,253 @@ function App() {
               </div>
             </div>
           )}
+          {showDuelHistoryModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(2, 6, 23, 0.72)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "760px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: "24px",
+                  padding: "30px 28px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                  textAlign: "left",
+                }}
+              >
+                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                  Düello Maç Geçmişi
+                </h2>
+
+                {duelHistoryLoading ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Maç geçmişi yükleniyor...
+                  </p>
+                ) : duelHistory.length === 0 ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Henüz düello geçmişi bulunmuyor.
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                    {duelHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: "18px 20px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                          </div>
+                          <div
+                            style={{
+                              color: item.won ? "#22c55e" : "#f87171",
+                              fontSize: "15px",
+                              fontWeight: "800",
+                            }}
+                          >
+                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Kazanan:</strong> {item.winnerName || "-"}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setShowDuelHistoryModal(false)}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "180px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                    }}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showDuelHistoryModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(2, 6, 23, 0.72)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "760px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: "24px",
+                  padding: "30px 28px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                  textAlign: "left",
+                }}
+              >
+                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                  Düello Maç Geçmişi
+                </h2>
+
+                {duelHistoryLoading ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Maç geçmişi yükleniyor...
+                  </p>
+                ) : duelHistory.length === 0 ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Henüz düello geçmişi bulunmuyor.
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                    {duelHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: "18px 20px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                          </div>
+                          <div
+                            style={{
+                              color: item.won ? "#22c55e" : "#f87171",
+                              fontSize: "15px",
+                              fontWeight: "800",
+                            }}
+                          >
+                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Kazanan:</strong> {item.winnerName || "-"}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setShowDuelHistoryModal(false)}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "180px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                    }}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           <div style={{ display: "grid", gap: "12px" }}>
             <DuelLobby
@@ -3055,6 +3437,129 @@ function App() {
               onStartDuel={startDuelGame}
             />
           </div>
+          {showDuelHistoryModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(2, 6, 23, 0.72)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "760px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: "24px",
+                  padding: "30px 28px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                  textAlign: "left",
+                }}
+              >
+                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                  Düello Maç Geçmişi
+                </h2>
+
+                {duelHistoryLoading ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Maç geçmişi yükleniyor...
+                  </p>
+                ) : duelHistory.length === 0 ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Henüz düello geçmişi bulunmuyor.
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                    {duelHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: "18px 20px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                          </div>
+                          <div
+                            style={{
+                              color: item.won ? "#22c55e" : "#f87171",
+                              fontSize: "15px",
+                              fontWeight: "800",
+                            }}
+                          >
+                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Kazanan:</strong> {item.winnerName || "-"}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setShowDuelHistoryModal(false)}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "180px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                    }}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {showHowToPlay && (
             <div
               style={{
@@ -3101,7 +3606,7 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Cevaplama Kuralları</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Cevabını kutuya yazıp "Enter" tuşuna basabilir veya <strong>Cevabı Kontrol Et</strong> butonunu kullanabilirsin. Boş cevap gönderemezsin.
+                      Cevabını kutuya yazıp <strong>Enter</strong> tuşuna basabilir veya <strong>Cevabı Kontrol Et</strong> butonunu kullanabilirsin. Boş cevap gönderemezsin.
                     </div>
                   </div>
 
@@ -3128,7 +3633,7 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Günlük Oyun</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde istatistik ekranı ve cevap anahtarı görüntülenir.
+                      Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde oyun sistatistik ekranı ve cevap anahtarı görüntülenir.
                     </div>
                   </div>
                 </div>
@@ -3401,9 +3906,28 @@ function App() {
                         boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
-                      İstatistikler
+                      Profil İstatistikleri
                     </button>
-
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowDuelHistoryModal(true);
+                        fetchDuelHistory();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #334155, #1e293b)",
+                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                      }}
+                    >
+                      Maç Geçmişi
+                    </button>
                     <button
                       onClick={handleLogout}
                       style={{
@@ -3810,6 +4334,129 @@ function App() {
               </div>
             </div>
           )}
+          {showDuelHistoryModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(2, 6, 23, 0.72)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "24px",
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: "760px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(96, 165, 250, 0.18)",
+                  borderRadius: "24px",
+                  padding: "30px 28px",
+                  maxHeight: "80vh",
+                  overflowY: "auto",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                  textAlign: "left",
+                }}
+              >
+                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                  Düello Maç Geçmişi
+                </h2>
+
+                {duelHistoryLoading ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Maç geçmişi yükleniyor...
+                  </p>
+                ) : duelHistory.length === 0 ? (
+                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    Henüz düello geçmişi bulunmuyor.
+                  </p>
+                ) : (
+                  <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                    {duelHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: "18px 20px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                          </div>
+                          <div
+                            style={{
+                              color: item.won ? "#22c55e" : "#f87171",
+                              fontSize: "15px",
+                              fontWeight: "800",
+                            }}
+                          >
+                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Kazanan:</strong> {item.winnerName || "-"}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => setShowDuelHistoryModal(false)}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "180px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                      border: "none",
+                      borderRadius: "16px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #f87171, #ef4444)",
+                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                    }}
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {showHowToPlay && (
             <div
               style={{
@@ -3856,7 +4503,7 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Cevaplama Kuralları</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Cevabını kutuya yazıp "Enter" tuşuna basabilir veya <strong>Cevabı Kontrol Et</strong> butonunu kullanabilirsin. Boş cevap gönderemezsin.
+                      Cevabını kutuya yazıp <strong>Enter</strong> tuşuna basabilir veya <strong>Cevabı Kontrol Et</strong> butonunu kullanabilirsin. Boş cevap gönderemezsin.
                     </div>
                   </div>
 
@@ -3882,7 +4529,7 @@ function App() {
                   <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Günlük Oyun</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
-                      Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde istatistik ekranı ve cevap anahtarı görüntülenir.
+                      Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde oyun sonu istatistik ekranı ve cevap anahtarı görüntülenir.
                     </div>
                   </div>
                 </div>
@@ -4169,9 +4816,28 @@ function App() {
                         boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
                       }}
                     >
-                      İstatistikler
+                      Profil İstatistikleri
                     </button>
-
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowDuelHistoryModal(true);
+                        fetchDuelHistory();
+                      }}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: 0,
+                        marginRight: 0,
+                        width: "100%",
+                        fontSize: "14px",
+                        padding: "12px 16px",
+                        marginBottom: "10px",
+                        background: "linear-gradient(135deg, #334155, #1e293b)",
+                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                      }}
+                    >
+                      Maç Geçmişi
+                    </button>
                     <button
                       onClick={handleLogout}
                       style={{
@@ -4312,6 +4978,221 @@ function App() {
             </div>
           </div>
         </div>
+
+        {showStatsModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(2, 6, 23, 0.72)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "24px",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "680px",
+                background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                border: "1px solid rgba(96, 165, 250, 0.18)",
+                borderRadius: "24px",
+                padding: "30px 28px",
+                maxHeight: "80vh",
+                overflowY: "auto",
+                boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                textAlign: "left",
+              }}
+            >
+              <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                Profil İstatistikleri
+              </h2>
+
+              {profileStatsLoading ? (
+                <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                  İstatistikler yükleniyor...
+                </p>
+              ) : (
+                <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                  {[
+                    { label: "Toplam oynanan oyun", value: profileStats?.totalGames ?? 0, color: "#60a5fa" },
+                    { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
+                    { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
+                    { label: "Günlük oyun galibiyet sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
+                    { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "16px 18px",
+                        borderRadius: "16px",
+                        background: "rgba(15, 23, 42, 0.68)",
+                        border: "1px solid rgba(148, 163, 184, 0.12)",
+                      }}
+                    >
+                      <span style={{ color: "#e2e8f0", fontSize: "16px", fontWeight: "600" }}>
+                        {item.label}
+                      </span>
+                      <span style={{ color: item.color, fontSize: "20px", fontWeight: "800" }}>
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <button
+                  onClick={() => setShowStatsModal(false)}
+                  style={{
+                    marginTop: 0,
+                    marginRight: 0,
+                    minWidth: "180px",
+                    fontSize: "17px",
+                    padding: "14px 24px",
+                    border: "none",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    color: "white",
+                    background: "linear-gradient(135deg, #f87171, #ef4444)",
+                    boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                  }}
+                >
+                  Kapat
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showDuelHistoryModal && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(2, 6, 23, 0.72)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "24px",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "760px",
+                background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                border: "1px solid rgba(96, 165, 250, 0.18)",
+                borderRadius: "24px",
+                padding: "30px 28px",
+                maxHeight: "80vh",
+                overflowY: "auto",
+                boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
+                textAlign: "left",
+              }}
+            >
+              <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
+                Düello Maç Geçmişi
+              </h2>
+
+              {duelHistoryLoading ? (
+                <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                  Maç geçmişi yükleniyor...
+                </p>
+              ) : duelHistory.length === 0 ? (
+                <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                  Henüz düello geçmişi bulunmuyor.
+                </p>
+              ) : (
+                <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
+                  {duelHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: "18px 20px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.68)",
+                        border: "1px solid rgba(148, 163, 184, 0.12)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                          Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                        </div>
+                        <div
+                          style={{
+                            color: item.won ? "#22c55e" : "#f87171",
+                            fontSize: "15px",
+                            fontWeight: "800",
+                          }}
+                        >
+                          {item.won ? "Galibiyet" : "Mağlubiyet"}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                          gap: "10px",
+                        }}
+                      >
+                        <div style={{ color: "#e2e8f0" }}>
+                          <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                        </div>
+                        <div style={{ color: "#e2e8f0" }}>
+                          <strong>Kazanan:</strong> {item.winnerName || "-"}
+                        </div>
+                        <div style={{ color: "#e2e8f0" }}>
+                          <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
+                        </div>
+                        <div style={{ color: "#e2e8f0" }}>
+                          <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <button
+                  onClick={() => setShowDuelHistoryModal(false)}
+                  style={{
+                    marginTop: 0,
+                    marginRight: 0,
+                    minWidth: "180px",
+                    fontSize: "17px",
+                    padding: "14px 24px",
+                    border: "none",
+                    borderRadius: "16px",
+                    cursor: "pointer",
+                    color: "white",
+                    background: "linear-gradient(135deg, #f87171, #ef4444)",
+                    boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
+                  }}
+                >
+                  Kapat
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {gameMode === "duel" && (
           <div

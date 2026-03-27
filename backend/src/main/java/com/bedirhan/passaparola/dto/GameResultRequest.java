@@ -9,6 +9,11 @@ public class GameResultRequest {
     private int durationSeconds;
     private Boolean won;
     private String gameMode;
+    private String opponentName;
+    private Integer opponentScore;
+    private Integer durationDifferenceSeconds;
+    private String winnerName;
+    private String duelRoomCode;
 
     public GameResultRequest() {
     }
@@ -67,5 +72,45 @@ public class GameResultRequest {
 
     public void setGameMode(String gameMode) {
         this.gameMode = gameMode;
+    }
+
+    public String getOpponentName() {
+        return opponentName;
+    }
+
+    public void setOpponentName(String opponentName) {
+        this.opponentName = opponentName;
+    }
+
+    public Integer getOpponentScore() {
+        return opponentScore;
+    }
+
+    public void setOpponentScore(Integer opponentScore) {
+        this.opponentScore = opponentScore;
+    }
+
+    public Integer getDurationDifferenceSeconds() {
+        return durationDifferenceSeconds;
+    }
+
+    public void setDurationDifferenceSeconds(Integer durationDifferenceSeconds) {
+        this.durationDifferenceSeconds = durationDifferenceSeconds;
+    }
+
+    public String getWinnerName() {
+        return winnerName;
+    }
+
+    public void setWinnerName(String winnerName) {
+        this.winnerName = winnerName;
+    }
+
+    public String getDuelRoomCode() {
+        return duelRoomCode;
+    }
+
+    public void setDuelRoomCode(String duelRoomCode) {
+        this.duelRoomCode = duelRoomCode;
     }
 }

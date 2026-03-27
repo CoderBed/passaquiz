@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -90,6 +91,7 @@ public class GameController {
 
         result.setGameMode(request.getGameMode() != null ? request.getGameMode() : "classic");
         result.setWon(request.getWon());
+        result.setPlayedAt(LocalDateTime.now());
 
         result.setScore(request.getScore());
         result.setCorrectCount(request.getCorrectCount());
@@ -114,11 +116,18 @@ public class GameController {
         result.setUserName(user.getName());
         result.setGameMode("duel");
         result.setWon(request.getWon()); // frontend’den gelecek
+        result.setPlayedAt(LocalDateTime.now());
         result.setScore(request.getScore());
         result.setCorrectCount(request.getCorrectCount());
         result.setWrongCount(request.getWrongCount());
         result.setPassedCount(request.getPassedCount());
         result.setDurationSeconds(request.getDurationSeconds());
+        result.setOpponentName(request.getOpponentName());
+        result.setOpponentScore(request.getOpponentScore());
+        result.setDurationDifferenceSeconds(request.getDurationDifferenceSeconds());
+        result.setWinnerName(request.getWinnerName());
+        result.setDuelRoomCode(request.getDuelRoomCode());
+        result.setPlayedAt(LocalDateTime.now());
 
         gameResultRepository.save(result);
 
@@ -128,6 +137,13 @@ public class GameController {
     @GetMapping("/api/game/leaderboard")
     public List<GameResult> getLeaderboard() {
         return gameResultRepository.findTop10ByOrderByScoreDesc();
+    }
+
+    @GetMapping("/api/game/duel-history")
+    public ResponseEntity<?> getDuelHistory() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<GameResult> history = gameResultRepository.findByUserEmailAndGameModeOrderByPlayedAtDesc(email, "duel");
+        return ResponseEntity.ok(history);
     }
 
 }
