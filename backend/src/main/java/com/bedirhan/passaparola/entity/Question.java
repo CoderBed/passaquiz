@@ -11,8 +11,10 @@ public class Question {
 
     private String letter;
 
+    @Column(columnDefinition = "TEXT")
     private String questionText;
 
+    @Column(columnDefinition = "TEXT")
     private String answer;
 
     public Question() {

@@ -3218,7 +3218,7 @@ function App() {
                     Maç geçmişi yükleniyor...
                   </p>
                 ) : duelHistory.length === 0 ? (
-                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                  <p style={{ color: "#cbd5e1", margin: "0 0 24px 0", textAlign: "center", fontSize: "17px" }}>
                     Henüz düello geçmişi bulunmuyor.
                   </p>
                 ) : (
@@ -4370,7 +4370,7 @@ function App() {
                     Maç geçmişi yükleniyor...
                   </p>
                 ) : duelHistory.length === 0 ? (
-                  <p style={{ color: "#cbd5e1", margin: 0, textAlign: "center", fontSize: "17px" }}>
+                    <p style={{ color: "#cbd5e1", margin: "0 0 18px 0", textAlign: "center", fontSize: "17px" }}>
                     Henüz düello geçmişi bulunmuyor.
                   </p>
                 ) : (
