@@ -89,7 +89,7 @@ public class DuelRoomService {
             room.setGameStartAt(LocalDateTime.now().plusSeconds(10));
 
             List<String> alphabetOrder = Arrays.asList(
-                    "A", "B", "C", "Ç", "D", "E", "F", "G", "H", "I", "İ", "K", "L", "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z"
+                    "A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L", "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z"
             );
 
             List<Question> questions = questionRepository.findAll();

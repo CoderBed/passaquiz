@@ -2376,7 +2376,7 @@ function App() {
                         boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
                       }}
                     >
-                      Maç Geçmişi
+                      Düello Maç Geçmişi
                     </button>
                     <button
                       onClick={handleLogout}
@@ -2981,7 +2981,7 @@ function App() {
                         boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
                       }}
                     >
-                      Maç Geçmişi
+                      Düello Maç Geçmişi
                     </button>
                     <button
                       onClick={handleLogout}
@@ -3926,7 +3926,7 @@ function App() {
                         boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
                       }}
                     >
-                      Maç Geçmişi
+                      Düello Maç Geçmişi
                     </button>
                     <button
                       onClick={handleLogout}
@@ -4836,7 +4836,7 @@ function App() {
                         boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
                       }}
                     >
-                      Maç Geçmişi
+                      Düello Maç Geçmişi
                     </button>
                     <button
                       onClick={handleLogout}
