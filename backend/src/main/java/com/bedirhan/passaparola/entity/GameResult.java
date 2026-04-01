@@ -45,6 +45,8 @@ public class GameResult {
 
     private boolean perfectGame;
 
+    private boolean noPassGame;
+
     public GameResult() {
     }
 
@@ -157,6 +159,14 @@ public class GameResult {
 
     public void setPerfectGame(boolean perfectGame) {
         this.perfectGame = perfectGame;
+    }
+
+    public boolean isNoPassGame() {
+        return noPassGame;
+    }
+
+    public void setNoPassGame(boolean noPassGame) {
+        this.noPassGame = noPassGame;
     }
 
     public int getScore() {

@@ -11,6 +11,7 @@ public class ProfileStatsResponse {
     private int dailyGameCount;
     private int duelMatchCount;
     private int bestCorrectStreak;
+    private int dailyStreak;
 
     private boolean weeklyDailyBadgeEarned;
     private boolean streak5BadgeEarned;
@@ -19,6 +20,12 @@ public class ProfileStatsResponse {
     private boolean duel10BadgeEarned;
     private int perfectGameCount;
     private boolean perfectGameBadgeEarned;
+    private int noPassGameCount;
+    private boolean noPassBadgeEarned;
+    private boolean monthlyDailyBadgeEarned;
+    private int totalCorrectAnswers;
+    private int fastGameCount;
+    private int duelWinStreak;
 
     public ProfileStatsResponse() {
     }
@@ -105,6 +112,14 @@ public class ProfileStatsResponse {
         this.bestCorrectStreak = bestCorrectStreak;
     }
 
+    public int getDailyStreak() {
+        return dailyStreak;
+    }
+
+    public void setDailyStreak(int dailyStreak) {
+        this.dailyStreak = dailyStreak;
+    }
+
     public boolean isWeeklyDailyBadgeEarned() {
         return weeklyDailyBadgeEarned;
     }
@@ -159,5 +174,52 @@ public class ProfileStatsResponse {
 
     public void setPerfectGameBadgeEarned(boolean perfectGameBadgeEarned) {
         this.perfectGameBadgeEarned = perfectGameBadgeEarned;
+    }
+
+    public int getNoPassGameCount() {
+        return noPassGameCount;
+    }
+
+    public void setNoPassGameCount(int noPassGameCount) {
+        this.noPassGameCount = noPassGameCount;
+    }
+
+    public boolean isNoPassBadgeEarned() {
+        return noPassBadgeEarned;
+    }
+
+    public void setNoPassBadgeEarned(boolean noPassBadgeEarned) {
+        this.noPassBadgeEarned = noPassBadgeEarned;
+    }
+
+    public boolean isMonthlyDailyBadgeEarned() {
+        return monthlyDailyBadgeEarned;
+    }
+
+    public void setMonthlyDailyBadgeEarned(boolean monthlyDailyBadgeEarned) {
+        this.monthlyDailyBadgeEarned = monthlyDailyBadgeEarned;
+    }
+
+    public int getTotalCorrectAnswers() {
+        return totalCorrectAnswers;
+    }
+
+    public void setTotalCorrectAnswers(int totalCorrectAnswers) {
+        this.totalCorrectAnswers = totalCorrectAnswers;
+    }
+    public int getFastGameCount() {
+        return fastGameCount;
+    }
+
+    public void setFastGameCount(int fastGameCount) {
+        this.fastGameCount = fastGameCount;
+    }
+
+    public int getDuelWinStreak() {
+        return duelWinStreak;
+    }
+
+    public void setDuelWinStreak(int duelWinStreak) {
+        this.duelWinStreak = duelWinStreak;
     }
 }

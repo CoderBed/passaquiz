@@ -93,6 +93,7 @@ public class GameController {
         result.setWon(request.getWon());
         result.setMaxCorrectStreak(request.getMaxCorrectStreak());
         result.setPerfectGame(request.isPerfectGame());
+        result.setNoPassGame(request.getPassedCount() == 0);
         result.setPlayedAt(LocalDateTime.now());
 
         result.setScore(request.getScore());
@@ -120,6 +121,7 @@ public class GameController {
         result.setWon(request.getWon()); // frontend’den gelecek
         result.setMaxCorrectStreak(request.getMaxCorrectStreak());
         result.setPerfectGame(request.isPerfectGame());
+        result.setNoPassGame(request.getPassedCount() == 0);
         result.setPlayedAt(LocalDateTime.now());
         result.setScore(request.getScore());
         result.setCorrectCount(request.getCorrectCount());
@@ -131,7 +133,6 @@ public class GameController {
         result.setDurationDifferenceSeconds(request.getDurationDifferenceSeconds());
         result.setWinnerName(request.getWinnerName());
         result.setDuelRoomCode(request.getDuelRoomCode());
-        result.setPlayedAt(LocalDateTime.now());
 
         gameResultRepository.save(result);
 

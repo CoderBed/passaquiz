@@ -16,6 +16,7 @@ public class GameResultRequest {
     private String duelRoomCode;
     private Integer maxCorrectStreak;
     private boolean perfectGame;
+    private boolean noPassGame;
 
     public GameResultRequest() {
     }
@@ -130,5 +131,13 @@ public class GameResultRequest {
 
     public void setPerfectGame(boolean perfectGame) {
         this.perfectGame = perfectGame;
+    }
+
+    public boolean isNoPassGame() {
+        return noPassGame;
+    }
+
+    public void setNoPassGame(boolean noPassGame) {
+        this.noPassGame = noPassGame;
     }
 }

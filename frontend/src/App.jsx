@@ -3427,6 +3427,26 @@ function App() {
                 <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
                   {[
                     {
+                      title: "10 oyun oyna",
+                      earned: Boolean((profileStats?.totalGames ?? 0) >= 10),
+                      progress: `${Math.min(profileStats?.totalGames ?? 0, 10)}/10`,
+                    },
+                    {
+                      title: "50 oyun oyna",
+                      earned: Boolean((profileStats?.totalGames ?? 0) >= 50),
+                      progress: `${Math.min(profileStats?.totalGames ?? 0, 50)}/50`,
+                    },
+                    {
+                      title: "100 oyun oyna",
+                      earned: Boolean((profileStats?.totalGames ?? 0) >= 100),
+                      progress: `${Math.min(profileStats?.totalGames ?? 0, 100)}/100`,
+                    },
+                    {
+                      title: "Bir oyunu 60 saniyeden kısa bir sürede tamamla",
+                      earned: Boolean((profileStats?.fastGameCount ?? 0) >= 1),
+                      progress: `${Math.min(profileStats?.fastGameCount ?? 0, 1)}/1`,
+                    },
+                    {
                       title: "1 hafta boyunca günlük oyun oyna",
                       earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
                       progress: `${Math.min(profileStats?.dailyStreak ?? 0, 7)}/7`,
@@ -3447,10 +3467,30 @@ function App() {
                       progress: `${Math.min(profileStats?.bestCorrectStreak ?? 0, 10)}/10`,
                     },
                     {
-                                        title: "Tüm soruları doğru cevapla",
-                                        earned: Boolean(profileStats?.perfectGameBadgeEarned || (profileStats?.perfectGameCount ?? 0) >= 1),
-                                        progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
-                                      },
+                      title: "Tüm soruları doğru cevapla",
+                      earned: Boolean(profileStats?.perfectGameBadgeEarned || (profileStats?.perfectGameCount ?? 0) >= 1),
+                      progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
+                    },
+                    {
+                      title: "Pas kullanmadan oyunu bitir",
+                      earned: Boolean((profileStats?.noPassGameCount ?? 0) >= 1),
+                      progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
+                    },
+                    {
+                      title: "Toplam 100 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 100),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 100)}/100`,
+                    },
+                    {
+                      title: "Toplam 500 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 500)}/500`,
+                    },
+                    {
+                      title: "Toplam 1000 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 1000),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 1000)}/1000`,
+                    },
                     {
                       title: "Arkadaşlarınla 5 düello maçı oyna",
                       earned: profileStats?.duel5BadgeEarned,
@@ -3461,6 +3501,16 @@ function App() {
                       earned: profileStats?.duel10BadgeEarned,
                       progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 10)}/10`,
                     },
+                    {
+                      title: "Arkadaşlarınla 25 düello maçı oyna",
+                      earned: Boolean((profileStats?.duelMatchCount ?? 0) >= 25),
+                      progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
+                    },
+                    {
+                                        title: "Üst üste 5 düello kazan",
+                                        earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
+                                        progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
+                                      },
                   ].map((badge) => (
                     <div
                       key={badge.title}
@@ -3502,7 +3552,7 @@ function App() {
                             : "rgba(51, 65, 85, 0.9)",
                         }}
                       >
-                        {badge.earned ? "Kazanıldı" : "Devam Ediyor"}
+                        {badge.earned ? "Kazandın" : "Devam Ediyor"}
                       </div>
                     </div>
                   ))}
@@ -4075,7 +4125,7 @@ function App() {
           <p style={{ color: "#cbd5e1", marginTop: 0, marginBottom: gameMode === "daily" && dailyResult ? "18px" : "28px", fontSize: "18px" }}>
             {gameMode === "daily"
               ? "Günlük oyunda herkes günün aynı sorularıyla oynar. Soru seti her gün yenilenir."
-              : "Oyunu başlatmadan önce süre seç. Süre dolunca oyun otomatik olarak bitecek."}
+              : "Oyunu başlatmadan önce süre seç. Süre dolunca oyun otomatik olarak sona erecek."}
           </p>
 
           {gameMode === "daily" && dailyResult && (
@@ -4237,7 +4287,7 @@ function App() {
                   minWidth: "220px",
                 }}
               >
-                Klasik Oyun Başlat
+                Klasik Oyun
               </button>
 
               <button
@@ -4612,6 +4662,26 @@ function App() {
 
                 <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
                   {[
+                      {
+                                            title: "10 oyun oyna",
+                                            earned: Boolean((profileStats?.totalGames ?? 0) >= 10),
+                                            progress: `${Math.min(profileStats?.totalGames ?? 0, 10)}/10`,
+                                          },
+                                          {
+                                            title: "50 oyun oyna",
+                                            earned: Boolean((profileStats?.totalGames ?? 0) >= 50),
+                                            progress: `${Math.min(profileStats?.totalGames ?? 0, 50)}/50`,
+                                          },
+                                          {
+                                            title: "100 oyun oyna",
+                                            earned: Boolean((profileStats?.totalGames ?? 0) >= 100),
+                                            progress: `${Math.min(profileStats?.totalGames ?? 0, 100)}/100`,
+                                          },
+                                      {
+                                                            title: "Bir oyunu 60 saniyeden kısa bir sürede tamamla",
+                                                            earned: Boolean((profileStats?.fastGameCount ?? 0) >= 1),
+                                                            progress: `${Math.min(profileStats?.fastGameCount ?? 0, 1)}/1`,
+                                                          },
                     {
                       title: "1 hafta boyunca günlük oyun oyna",
                       earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
@@ -4633,10 +4703,30 @@ function App() {
                       progress: `${Math.min(profileStats?.bestCorrectStreak ?? 0, 10)}/10`,
                     },
                     {
-                                        title: "Tüm soruları doğru cevapla",
-                                        earned: Boolean(profileStats?.perfectGameBadgeEarned || (profileStats?.perfectGameCount ?? 0) >= 1),
-                                        progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
-                                      },
+                      title: "Tüm soruları doğru cevapla",
+                      earned: Boolean(profileStats?.perfectGameBadgeEarned || (profileStats?.perfectGameCount ?? 0) >= 1),
+                      progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
+                    },
+                    {
+                                          title: "Pas kullanmadan oyunu bitir",
+                                          earned: Boolean((profileStats?.noPassGameCount ?? 0) >= 1),
+                                          progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
+                                        },
+                    {
+                      title: "Toplam 100 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 100),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 100)}/100`,
+                    },
+                    {
+                      title: "Toplam 500 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 500)}/500`,
+                    },
+                    {
+                      title: "Toplam 1000 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 1000),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 1000)}/1000`,
+                    },
                     {
                       title: "Arkadaşlarınla 5 düello maçı oyna",
                       earned: profileStats?.duel5BadgeEarned,
@@ -4647,6 +4737,17 @@ function App() {
                       earned: profileStats?.duel10BadgeEarned,
                       progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 10)}/10`,
                     },
+                    {
+                      title: "Arkadaşlarınla 25 düello maçı oyna",
+                      earned: Boolean((profileStats?.duelMatchCount ?? 0) >= 25),
+                      progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
+                    },
+                    {
+                                        title: "Üst üste 5 düello kazan",
+                                        earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
+                                        progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
+                                      },
+
                   ].map((badge) => (
                     <div
                       key={badge.title}
@@ -4688,7 +4789,7 @@ function App() {
                             : "rgba(51, 65, 85, 0.9)",
                         }}
                       >
-                        {badge.earned ? "Kazanıldı" : "Devam Ediyor"}
+                        {badge.earned ? "Kazandın" : "Devam Ediyor"}
                       </div>
                     </div>
                   ))}
@@ -5554,11 +5655,36 @@ function App() {
 
               <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
                 {[
+                    {
+                                          title: "10 oyun oyna",
+                                          earned: Boolean((profileStats?.totalGames ?? 0) >= 10),
+                                          progress: `${Math.min(profileStats?.totalGames ?? 0, 10)}/10`,
+                                        },
+                                        {
+                                          title: "50 oyun oyna",
+                                          earned: Boolean((profileStats?.totalGames ?? 0) >= 50),
+                                          progress: `${Math.min(profileStats?.totalGames ?? 0, 50)}/50`,
+                                        },
+                                        {
+                                          title: "100 oyun oyna",
+                                          earned: Boolean((profileStats?.totalGames ?? 0) >= 100),
+                                          progress: `${Math.min(profileStats?.totalGames ?? 0, 100)}/100`,
+                                        },
+                                    {
+                                                          title: "Bir oyunu 60 saniyeden kısa bir sürede tamamla",
+                                                          earned: Boolean((profileStats?.fastGameCount ?? 0) >= 1),
+                                                          progress: `${Math.min(profileStats?.fastGameCount ?? 0, 1)}/1`,
+                                                        },
                   {
                     title: "1 hafta boyunca günlük oyun oyna",
                     earned: profileStats?.weeklyDailyBadgeEarned,
                     progress: `${profileStats?.dailyGameCount ?? 0}/7`,
                   },
+                  {
+                                        title: "1 ay boyunca günlük oyun oyna",
+                                        earned: Boolean((profileStats?.dailyStreak ?? 0) >= 30),
+                                        progress: `${Math.min(profileStats?.dailyStreak ?? 0, 30)}/30`,
+                                      },
                   {
                     title: "Üst üste 5 soruyu doğru cevapla",
                     earned: Boolean((profileStats?.bestCorrectStreak ?? 0) >= 5),
@@ -5575,6 +5701,26 @@ function App() {
                     progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
                   },
                   {
+                                        title: "Pas kullanmadan oyunu bitir",
+                                        earned: Boolean((profileStats?.noPassGameCount ?? 0) >= 1),
+                                        progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
+                                      },
+                                  {
+                                                        title: "Toplam 100 doğru cevap ver",
+                                                        earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 100),
+                                                        progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 100)}/100`,
+                                                      },
+                                                      {
+                                                        title: "Toplam 500 doğru cevap ver",
+                                                        earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
+                                                        progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 500)}/500`,
+                                                      },
+                                                      {
+                                                        title: "Toplam 1000 doğru cevap ver",
+                                                        earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 1000),
+                                                        progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 1000)}/1000`,
+                                                      },
+                  {
                     title: "Arkadaşlarınla 5 düello maçı oyna",
                     earned: profileStats?.duel5BadgeEarned,
                     progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 5)}/5`,
@@ -5583,6 +5729,16 @@ function App() {
                     title: "Arkadaşlarınla 10 düello maçı oyna",
                     earned: profileStats?.duel10BadgeEarned,
                     progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 10)}/10`,
+                  },
+                  {
+                    title: "Arkadaşlarınla 25 düello maçı oyna",
+                    earned: Boolean((profileStats?.duelMatchCount ?? 0) >= 25),
+                    progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
+                  },
+                  {
+                    title: "Üst üste 5 düello kazan",
+                    earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
+                    progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
                   },
                 ].map((badge) => (
                   <div
@@ -5625,7 +5781,7 @@ function App() {
                           : "rgba(51, 65, 85, 0.9)",
                       }}
                     >
-                      {badge.earned ? "Kazanıldı" : "Devam Ediyor"}
+                      {badge.earned ? "Kazandın" : "Devam Ediyor"}
                     </div>
                   </div>
                 ))}
