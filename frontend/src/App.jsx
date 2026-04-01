@@ -3392,7 +3392,6 @@ function App() {
               </div>
             </div>
           )}
-
           {showBadgesModal && (
             <div
               style={{
@@ -3400,10 +3399,11 @@ function App() {
                 inset: 0,
                 background: "rgba(2, 6, 23, 0.72)",
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 justifyContent: "center",
                 padding: "24px",
-                zIndex: 1000,
+                paddingTop: "80px",
+                zIndex: 9999,
               }}
             >
               <div
@@ -3428,141 +3428,13 @@ function App() {
                   {[
                     {
                       title: "1 hafta boyunca günlük oyun oyna",
-                      earned: profileStats?.weeklyDailyBadgeEarned,
-                      progress: `${profileStats?.dailyGameCount ?? 0}/7`,
+                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
+                      progress: `${Math.min(profileStats?.dailyStreak ?? 0, 7)}/7`,
                     },
                     {
-                      title: "Üst üste 5 soruyu doğru cevapla",
-                      earned: Boolean((profileStats?.bestCorrectStreak ?? 0) >= 5),
-                      progress: `${Math.min(profileStats?.bestCorrectStreak ?? 0, 5)}/5`,
-                    },
-                    {
-                      title: "Üst üste 10 soruyu doğru cevapla",
-                      earned: Boolean((profileStats?.bestCorrectStreak ?? 0) >= 10),
-                      progress: `${Math.min(profileStats?.bestCorrectStreak ?? 0, 10)}/10`,
-                    },
-                    {
-                                        title: "Tüm soruları doğru cevapla",
-                                        earned: Boolean(profileStats?.perfectGameBadgeEarned || (profileStats?.perfectGameCount ?? 0) >= 1),
-                                        progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
-                    },
-                    {
-                      title: "Arkadaşlarınla 5 düello maçı oyna",
-                      earned: profileStats?.duel5BadgeEarned,
-                      progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 5)}/5`,
-                    },
-                    {
-                      title: "Arkadaşlarınla 10 düello maçı oyna",
-                      earned: profileStats?.duel10BadgeEarned,
-                      progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 10)}/10`,
-                    },
-                  ].map((badge) => (
-                    <div
-                      key={badge.title}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px 18px",
-                        borderRadius: "16px",
-                        background: badge.earned
-                          ? "rgba(76, 29, 149, 0.42)"
-                          : "rgba(15, 23, 42, 0.68)",
-                        border: badge.earned
-                          ? "1px solid rgba(196, 181, 253, 0.35)"
-                          : "1px solid rgba(148, 163, 184, 0.12)",
-                      }}
-                    >
-                      <div>
-                        <div style={{ color: "#f8fafc", fontSize: "17px", fontWeight: "700", marginBottom: "6px" }}>
-                          {badge.title}
-                        </div>
-                        <div style={{ color: "#cbd5e1", fontSize: "14px" }}>
-                          İlerleme: {badge.progress}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          minWidth: "108px",
-                          textAlign: "center",
-                          padding: "8px 12px",
-                          borderRadius: "999px",
-                          fontSize: "14px",
-                          fontWeight: "800",
-                          color: badge.earned ? "#ede9fe" : "#cbd5e1",
-                          background: badge.earned
-                            ? "linear-gradient(135deg, #8b5cf6, #6d28d9)"
-                            : "rgba(51, 65, 85, 0.9)",
-                        }}
-                      >
-                        {badge.earned ? "Kazanıldı" : "Devam Ediyor"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <button
-                    onClick={() => setShowBadgesModal(false)}
-                    style={{
-                      marginTop: 0,
-                      marginRight: 0,
-                      minWidth: "180px",
-                      fontSize: "17px",
-                      padding: "14px 24px",
-                      border: "none",
-                      borderRadius: "16px",
-                      cursor: "pointer",
-                      color: "white",
-                      background: "linear-gradient(135deg, #f87171, #ef4444)",
-                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
-                    }}
-                  >
-                    Kapat
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          {showBadgesModal && (
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(2, 6, 23, 0.72)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "24px",
-                zIndex: 1000,
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: "760px",
-                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
-                  border: "1px solid rgba(96, 165, 250, 0.18)",
-                  borderRadius: "24px",
-                  padding: "30px 28px",
-                  maxHeight: "80vh",
-                  overflowY: "auto",
-                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
-                  textAlign: "left",
-                }}
-              >
-                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
-                  Rozetlerim
-                </h2>
-
-                <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
-                  {[
-                    {
-                      title: "1 hafta boyunca günlük oyun oyna",
-                      earned: profileStats?.weeklyDailyBadgeEarned,
-                      progress: `${profileStats?.dailyGameCount ?? 0}/7`,
+                      title: "1 ay boyunca günlük oyun oyna",
+                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 30),
+                      progress: `${Math.min(profileStats?.dailyStreak ?? 0, 30)}/30`,
                     },
                     {
                       title: "Üst üste 5 soruyu doğru cevapla",
@@ -3771,139 +3643,6 @@ function App() {
                 <div style={{ display: "flex", justifyContent: "center" }}>
                   <button
                     onClick={() => setShowDuelHistoryModal(false)}
-                    style={{
-                      marginTop: 0,
-                      marginRight: 0,
-                      minWidth: "180px",
-                      fontSize: "17px",
-                      padding: "14px 24px",
-                      border: "none",
-                      borderRadius: "16px",
-                      cursor: "pointer",
-                      color: "white",
-                      background: "linear-gradient(135deg, #f87171, #ef4444)",
-                      boxShadow: "0 10px 24px rgba(239, 68, 68, 0.35)",
-                    }}
-                  >
-                    Kapat
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          {showBadgesModal && (
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(2, 6, 23, 0.72)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "24px",
-                zIndex: 1000,
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: "760px",
-                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
-                  border: "1px solid rgba(96, 165, 250, 0.18)",
-                  borderRadius: "24px",
-                  padding: "30px 28px",
-                  maxHeight: "80vh",
-                  overflowY: "auto",
-                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.42)",
-                  textAlign: "left",
-                }}
-              >
-                <h2 style={{ color: "#f8fafc", marginTop: 0, marginBottom: "18px", textAlign: "center" }}>
-                  Rozetlerim
-                </h2>
-
-                <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
-                  {[
-                    {
-                      title: "1 hafta boyunca günlük oyun oyna",
-                      earned: profileStats?.weeklyDailyBadgeEarned,
-                      progress: `${profileStats?.dailyGameCount ?? 0}/7`,
-                    },
-                    {
-                      title: "Üst üste 5 soruyu doğru cevapla",
-                      earned: Boolean((profileStats?.bestCorrectStreak ?? 0) >= 5),
-                      progress: `${Math.min(profileStats?.bestCorrectStreak ?? 0, 5)}/5`,
-                    },
-                    {
-                      title: "Üst üste 10 soruyu doğru cevapla",
-                      earned: Boolean((profileStats?.bestCorrectStreak ?? 0) >= 10),
-                      progress: `${Math.min(profileStats?.bestCorrectStreak ?? 0, 10)}/10`,
-                    },
-                    {
-                                        title: "Tüm soruları doğru cevapla",
-                                        earned: Boolean(profileStats?.perfectGameBadgeEarned || (profileStats?.perfectGameCount ?? 0) >= 1),
-                                        progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
-                                      },
-                    {
-                      title: "Arkadaşlarınla 5 düello maçı oyna",
-                      earned: profileStats?.duel5BadgeEarned,
-                      progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 5)}/5`,
-                    },
-                    {
-                      title: "Arkadaşlarınla 10 düello maçı oyna",
-                      earned: profileStats?.duel10BadgeEarned,
-                      progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 10)}/10`,
-                    },
-                  ].map((badge) => (
-                    <div
-                      key={badge.title}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "14px",
-                        padding: "16px 18px",
-                        borderRadius: "16px",
-                        background: badge.earned
-                          ? "rgba(76, 29, 149, 0.42)"
-                          : "rgba(15, 23, 42, 0.68)",
-                        border: badge.earned
-                          ? "1px solid rgba(196, 181, 253, 0.35)"
-                          : "1px solid rgba(148, 163, 184, 0.12)",
-                      }}
-                    >
-                      <div>
-                        <div style={{ color: "#f8fafc", fontSize: "17px", fontWeight: "700", marginBottom: "6px" }}>
-                          {badge.title}
-                        </div>
-                        <div style={{ color: "#cbd5e1", fontSize: "14px" }}>
-                          İlerleme: {badge.progress}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          minWidth: "108px",
-                          textAlign: "center",
-                          padding: "8px 12px",
-                          borderRadius: "999px",
-                          fontSize: "14px",
-                          fontWeight: "800",
-                          color: badge.earned ? "#ede9fe" : "#cbd5e1",
-                          background: badge.earned
-                            ? "linear-gradient(135deg, #8b5cf6, #6d28d9)"
-                            : "rgba(51, 65, 85, 0.9)",
-                        }}
-                      >
-                        {badge.earned ? "Kazanıldı" : "Devam Ediyor"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <button
-                    onClick={() => setShowBadgesModal(false)}
                     style={{
                       marginTop: 0,
                       marginRight: 0,
@@ -4875,8 +4614,13 @@ function App() {
                   {[
                     {
                       title: "1 hafta boyunca günlük oyun oyna",
-                      earned: profileStats?.weeklyDailyBadgeEarned,
-                      progress: `${profileStats?.dailyGameCount ?? 0}/7`,
+                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
+                      progress: `${Math.min(profileStats?.dailyStreak ?? 0, 7)}/7`,
+                    },
+                    {
+                      title: "1 ay boyunca günlük oyun oyna",
+                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 30),
+                      progress: `${Math.min(profileStats?.dailyStreak ?? 0, 30)}/30`,
                     },
                     {
                       title: "Üst üste 5 soruyu doğru cevapla",

@@ -28,7 +28,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest().body("Bu email zaten kayıtlı.");
+            return ResponseEntity.badRequest().body("Bu e-mail zaten kayıtlı.");
         }
 
         User user = new User(
@@ -39,7 +39,7 @@ public class AuthController {
 
         userRepository.save(user);
 
-        return ResponseEntity.ok("Kayıt başarılı.");
+        return ResponseEntity.ok("Kayıt olma işlemi başarılı.");
     }
 
     @PostMapping("/login")
@@ -54,7 +54,7 @@ public class AuthController {
         User user = userOptional.get();
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return ResponseEntity.badRequest().body("Şifre yanlış.");
+            return ResponseEntity.badRequest().body("Şifreyi hatalı girdiniz.");
         }
 
         String token = jwtService.generateToken(user.getEmail());
