@@ -14,6 +14,8 @@ public class GameResultRequest {
     private Integer durationDifferenceSeconds;
     private String winnerName;
     private String duelRoomCode;
+    private Integer maxCorrectStreak;
+    private boolean perfectGame;
 
     public GameResultRequest() {
     }
@@ -112,5 +114,21 @@ public class GameResultRequest {
 
     public void setDuelRoomCode(String duelRoomCode) {
         this.duelRoomCode = duelRoomCode;
+    }
+
+    public Integer getMaxCorrectStreak() {
+        return maxCorrectStreak;
+    }
+
+    public void setMaxCorrectStreak(Integer maxCorrectStreak) {
+        this.maxCorrectStreak = maxCorrectStreak;
+    }
+
+    public boolean isPerfectGame() {
+        return perfectGame;
+    }
+
+    public void setPerfectGame(boolean perfectGame) {
+        this.perfectGame = perfectGame;
     }
 }

@@ -91,6 +91,8 @@ public class GameController {
 
         result.setGameMode(request.getGameMode() != null ? request.getGameMode() : "classic");
         result.setWon(request.getWon());
+        result.setMaxCorrectStreak(request.getMaxCorrectStreak());
+        result.setPerfectGame(request.isPerfectGame());
         result.setPlayedAt(LocalDateTime.now());
 
         result.setScore(request.getScore());
@@ -116,6 +118,8 @@ public class GameController {
         result.setUserName(user.getName());
         result.setGameMode("duel");
         result.setWon(request.getWon()); // frontend’den gelecek
+        result.setMaxCorrectStreak(request.getMaxCorrectStreak());
+        result.setPerfectGame(request.isPerfectGame());
         result.setPlayedAt(LocalDateTime.now());
         result.setScore(request.getScore());
         result.setCorrectCount(request.getCorrectCount());

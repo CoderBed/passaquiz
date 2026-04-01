@@ -18,8 +18,10 @@ public class DataLoader {
     CommandLineRunner loadData(QuestionRepository questionRepository,
                                DailyQuestionSetRepository dailyQuestionSetRepository) {
         return args -> {
-            dailyQuestionSetRepository.deleteAll();
-            questionRepository.deleteAll();
+            if (questionRepository.count() > 0) {
+                System.out.println("Sorular zaten yüklü, tekrar yükleme yapılmadı.");
+                return;
+            }
 
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("question.csv");
 
@@ -39,7 +41,7 @@ public class DataLoader {
                     String questionText = line.substring(firstComma + 1, lastComma).trim();
                     String answer = line.substring(lastComma + 1).trim();
 
-                    questionRepository.save(new Question(letter, questionText, answer));
+                    saveIfNotExists(questionRepository, letter, questionText, answer);
                 }
             });
         };

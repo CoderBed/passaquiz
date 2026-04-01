@@ -41,6 +41,10 @@ public class GameResult {
 
     private LocalDateTime playedAt;
 
+    private Integer maxCorrectStreak;
+
+    private boolean perfectGame;
+
     public GameResult() {
     }
 
@@ -137,6 +141,22 @@ public class GameResult {
 
     public void setPlayedAt(LocalDateTime playedAt) {
         this.playedAt = playedAt;
+    }
+
+    public Integer getMaxCorrectStreak() {
+        return maxCorrectStreak;
+    }
+
+    public void setMaxCorrectStreak(Integer maxCorrectStreak) {
+        this.maxCorrectStreak = maxCorrectStreak;
+    }
+
+    public boolean isPerfectGame() {
+        return perfectGame;
+    }
+
+    public void setPerfectGame(boolean perfectGame) {
+        this.perfectGame = perfectGame;
     }
 
     public int getScore() {
