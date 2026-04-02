@@ -19,6 +19,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class DuelRoomService {
@@ -46,7 +48,7 @@ public class DuelRoomService {
         DuelRoom room = rooms.get(request.getRoomCode());
 
         if (room == null) {
-            throw new RuntimeException("Oda bulunamadı.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
         }
 
         if (room.isFull()) {
@@ -69,7 +71,7 @@ public class DuelRoomService {
         DuelRoom room = rooms.get(roomCode);
 
         if (room == null) {
-            throw new RuntimeException("Oda bulunamadı.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
         }
 
         if (room.getPlayer1Id() != null && room.getPlayer1Id().equals(request.getPlayerId())) {
@@ -131,7 +133,7 @@ public class DuelRoomService {
         DuelRoom room = rooms.get(roomCode);
 
         if (room == null) {
-            throw new RuntimeException("Oda bulunamadı.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
         }
 
         if (room.getStatus() != DuelStatus.STARTED) {
@@ -161,7 +163,7 @@ public class DuelRoomService {
         DuelRoom room = rooms.get(roomCode);
 
         if (room == null) {
-            throw new RuntimeException("Oda bulunamadı.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
         }
 
         if (room.getPlayer1Id() != null && room.getPlayer1Id().equals(request.getPlayerId())) {
@@ -193,7 +195,7 @@ public class DuelRoomService {
         DuelRoom room = rooms.get(roomCode);
 
         if (room == null) {
-            throw new RuntimeException("Oda bulunamadı.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
         }
 
         return room;

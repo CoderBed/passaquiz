@@ -19,6 +19,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private java.time.LocalDate lastLoginDate;
+
+    private Integer loginStreak = 0;
+
     public User() {
     }
 
@@ -54,5 +58,21 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public java.time.LocalDate getLastLoginDate() {
+        return lastLoginDate;
+    }
+
+    public void setLastLoginDate(java.time.LocalDate lastLoginDate) {
+        this.lastLoginDate = lastLoginDate;
+    }
+
+    public Integer getLoginStreak() {
+        return loginStreak;
+    }
+
+    public void setLoginStreak(Integer loginStreak) {
+        this.loginStreak = loginStreak;
     }
 }

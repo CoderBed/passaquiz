@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.bedirhan.passaparola.service.JwtService;
 import com.bedirhan.passaparola.dto.LoginResponse;
+import java.time.LocalDate;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -56,6 +57,23 @@ public class AuthController {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return ResponseEntity.badRequest().body("Şifreyi hatalı girdiniz.");
         }
+
+        LocalDate today = LocalDate.now();
+
+        if (user.getLastLoginDate() == null) {
+            user.setLoginStreak(1);
+        } else {
+            LocalDate lastLogin = user.getLastLoginDate();
+
+            if (lastLogin.plusDays(1).isEqual(today)) {
+                user.setLoginStreak((user.getLoginStreak() == null ? 0 : user.getLoginStreak()) + 1);
+            } else if (!lastLogin.isEqual(today)) {
+                user.setLoginStreak(1);
+            }
+        }
+
+        user.setLastLoginDate(today);
+        userRepository.save(user);
 
         String token = jwtService.generateToken(user.getEmail());
         return ResponseEntity.ok(new LoginResponse(

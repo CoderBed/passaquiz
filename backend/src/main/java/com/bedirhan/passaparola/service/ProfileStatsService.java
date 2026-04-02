@@ -1,20 +1,26 @@
 package com.bedirhan.passaparola.service;
 
 import com.bedirhan.passaparola.dto.ProfileStatsResponse;
-import com.bedirhan.passaparola.repository.GameResultRepository;
 import com.bedirhan.passaparola.entity.GameResult;
+import com.bedirhan.passaparola.repository.GameResultRepository;
+import com.bedirhan.passaparola.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ProfileStatsService {
 
     private final GameResultRepository gameResultRepository;
+    private final UserRepository userRepository;
 
-    public ProfileStatsService(GameResultRepository gameResultRepository) {
+    public ProfileStatsService(GameResultRepository gameResultRepository, UserRepository userRepository) {
         this.gameResultRepository = gameResultRepository;
+        this.userRepository = userRepository;
     }
 
     public ProfileStatsResponse getStatsByEmail(String email) {
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
+
         var myGames = gameResultRepository.findByUserEmailOrderByIdDesc(email);
 
         long totalGames = myGames.size();
@@ -46,7 +52,6 @@ public class ProfileStatsService {
                 .count();
 
         int duelWinStreak = 0;
-        int currentDuelWinStreak = 0;
 
         for (GameResult game : myGames) {
             if (!"duel".equalsIgnoreCase(game.getGameMode()) || game.getWon() == null) {
@@ -54,14 +59,30 @@ public class ProfileStatsService {
             }
 
             if (Boolean.TRUE.equals(game.getWon())) {
-                currentDuelWinStreak++;
-                if (currentDuelWinStreak > duelWinStreak) {
-                    duelWinStreak = currentDuelWinStreak;
-                }
+                duelWinStreak++;
             } else {
-                currentDuelWinStreak = 0;
+                break;
             }
         }
+
+        java.util.Map<String, Integer> opponentWinCounts = new java.util.HashMap<>();
+
+        for (GameResult game : myGames) {
+            if (!"duel".equalsIgnoreCase(game.getGameMode()) || !Boolean.TRUE.equals(game.getWon())) {
+                continue;
+            }
+
+            String opponentName = game.getOpponentName();
+            if (opponentName == null || opponentName.isBlank()) {
+                continue;
+            }
+
+            opponentWinCounts.put(opponentName, opponentWinCounts.getOrDefault(opponentName, 0) + 1);
+        }
+
+        int sameOpponentWinCount = opponentWinCounts.values().stream()
+                .max(Integer::compareTo)
+                .orElse(0);
 
         int dailyStreak = 0;
 
@@ -114,6 +135,23 @@ public class ProfileStatsService {
                 .filter(game -> game.getDurationSeconds() < 60)
                 .count();
 
+        int best200ScoreStreak = 0;
+        int current200ScoreStreak = 0;
+
+        java.util.List<GameResult> chronologicalGames = new java.util.ArrayList<>(myGames);
+        java.util.Collections.reverse(chronologicalGames);
+
+        for (GameResult game : chronologicalGames) {
+            if (game.getScore() >= 200) {
+                current200ScoreStreak++;
+                if (current200ScoreStreak > best200ScoreStreak) {
+                    best200ScoreStreak = current200ScoreStreak;
+                }
+            } else {
+                current200ScoreStreak = 0;
+            }
+        }
+
 
         ProfileStatsResponse response = new ProfileStatsResponse(
                 totalGames,
@@ -132,6 +170,7 @@ public class ProfileStatsService {
         response.setPerfectGameBadgeEarned(perfectGameCount >= 1);
         response.setTotalCorrectAnswers(totalCorrectAnswers);
         response.setFastGameCount(fastGameCount);
+        response.setBest200ScoreStreak(best200ScoreStreak);
         response.setNoPassGameCount(noPassGameCount);
         response.setNoPassBadgeEarned(noPassGameCount >= 1);
 
@@ -142,6 +181,19 @@ public class ProfileStatsService {
         response.setDuel5BadgeEarned(duelMatchCount >= 5);
         response.setDuel10BadgeEarned(duelMatchCount >= 10);
         response.setDuelWinStreak(duelWinStreak);
+        response.setSameOpponentWinCount(sameOpponentWinCount);
+        response.setLoginStreak(user.getLoginStreak() == null ? 0 : user.getLoginStreak());
+
+        java.util.Set<String> uniqueOpponents = new java.util.HashSet<>();
+        for (GameResult game : myGames) {
+            if ("duel".equalsIgnoreCase(game.getGameMode()) && Boolean.TRUE.equals(game.getWon())) {
+                if (game.getOpponentName() != null && !game.getOpponentName().isBlank()) {
+                    uniqueOpponents.add(game.getOpponentName().toLowerCase());
+                }
+            }
+        }
+        int uniqueOpponentWinCount = uniqueOpponents.size();
+        response.setUniqueOpponentWinCount(uniqueOpponentWinCount);
 
         return response;
     }

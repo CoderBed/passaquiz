@@ -3220,7 +3220,7 @@ function App() {
                       { label: "Toplam oynanan oyun", value: profileStats?.totalGames ?? 0, color: "#60a5fa" },
                       { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
                       { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
-                      { label: "Günlük oyun galibiyet sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
+                      { label: "Günlük oyun sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
                       { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
                     ].map((item) => (
                       <div
@@ -3447,6 +3447,16 @@ function App() {
                       progress: `${Math.min(profileStats?.fastGameCount ?? 0, 1)}/1`,
                     },
                     {
+                      title: "Üst üste 5 oyunda en az 200 puan topla",
+                      earned: Boolean((profileStats?.best200ScoreStreak ?? 0) >= 5),
+                      progress: `${Math.min(profileStats?.best200ScoreStreak ?? 0, 5)}/5`,
+                    },
+                    {
+                      title: "7 gün üst üste giriş yap",
+                      earned: Boolean((profileStats?.loginStreak ?? 0) >= 7),
+                      progress: `${Math.min(profileStats?.loginStreak ?? 0, 7)}/7`,
+                    },
+                    {
                       title: "1 hafta boyunca günlük oyun oyna",
                       earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
                       progress: `${Math.min(profileStats?.dailyStreak ?? 0, 7)}/7`,
@@ -3506,11 +3516,22 @@ function App() {
                       earned: Boolean((profileStats?.duelMatchCount ?? 0) >= 25),
                       progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
                     },
-                    {
+                                      {
+                                        title: "Aynı rakibi 3 kez mağlup et",
+                                        earned: Boolean((profileStats?.sameOpponentWinCount ?? 0) >= 3),
+                                        progress: `${Math.min(profileStats?.sameOpponentWinCount ?? 0, 3)}/3`,
+                                      },
+                                      {
                                         title: "Üst üste 5 düello kazan",
                                         earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
                                         progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
                                       },
+                                      {
+                                        title: "10 farklı rakibi mağlup et",
+                                        earned: Boolean((profileStats?.uniqueOpponentWinCount ?? 0) >= 10),
+                                        progress: `${Math.min(profileStats?.uniqueOpponentWinCount ?? 0, 10)}/10`,
+                                      },
+
                   ].map((badge) => (
                     <div
                       key={badge.title}
@@ -4457,7 +4478,7 @@ function App() {
                       { label: "Toplam oynanan oyun", value: profileStats?.totalGames ?? 0, color: "#60a5fa" },
                       { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
                       { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
-                      { label: "Günlük oyun galibiyet sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
+                      { label: "Günlük oyun sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
                       { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
                     ].map((item) => (
                       <div
@@ -4682,6 +4703,16 @@ function App() {
                                                             earned: Boolean((profileStats?.fastGameCount ?? 0) >= 1),
                                                             progress: `${Math.min(profileStats?.fastGameCount ?? 0, 1)}/1`,
                                                           },
+                                                      {
+                                                                            title: "Üst üste 5 oyunda en az 200 puan topla",
+                                                                            earned: Boolean((profileStats?.best200ScoreStreak ?? 0) >= 5),
+                                                                            progress: `${Math.min(profileStats?.best200ScoreStreak ?? 0, 5)}/5`,
+                                                                          },
+                                                      {
+                                                                            title: "7 gün üst üste giriş yap",
+                                                                            earned: Boolean((profileStats?.loginStreak ?? 0) >= 7),
+                                                                            progress: `${Math.min(profileStats?.loginStreak ?? 0, 7)}/7`,
+                                                                          },
                     {
                       title: "1 hafta boyunca günlük oyun oyna",
                       earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
@@ -4742,11 +4773,21 @@ function App() {
                       earned: Boolean((profileStats?.duelMatchCount ?? 0) >= 25),
                       progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
                     },
+                                      {
+                                        title: "Aynı rakibi 3 kez mağlup et",
+                                        earned: Boolean((profileStats?.sameOpponentWinCount ?? 0) >= 3),
+                                        progress: `${Math.min(profileStats?.sameOpponentWinCount ?? 0, 3)}/3`,
+                                      },
                     {
                                         title: "Üst üste 5 düello kazan",
                                         earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
                                         progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
                                       },
+                    {
+                                                            title: "10 farklı rakibi mağlup et",
+                                                            earned: Boolean((profileStats?.uniqueOpponentWinCount ?? 0) >= 10),
+                                                            progress: `${Math.min(profileStats?.uniqueOpponentWinCount ?? 0, 10)}/10`,
+                                                          },
 
                   ].map((badge) => (
                     <div
@@ -5449,7 +5490,7 @@ function App() {
                     { label: "Toplam oynanan oyun", value: profileStats?.totalGames ?? 0, color: "#60a5fa" },
                     { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
                     { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
-                    { label: "Günlük oyun galibiyet sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
+                    { label: "Günlük oyun sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
                     { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
                   ].map((item) => (
                     <div
@@ -5675,6 +5716,16 @@ function App() {
                                                           earned: Boolean((profileStats?.fastGameCount ?? 0) >= 1),
                                                           progress: `${Math.min(profileStats?.fastGameCount ?? 0, 1)}/1`,
                                                         },
+                                                    {
+                                                                          title: "Üst üste 5 oyunda en az 200 puan topla",
+                                                                          earned: Boolean((profileStats?.best200ScoreStreak ?? 0) >= 5),
+                                                                          progress: `${Math.min(profileStats?.best200ScoreStreak ?? 0, 5)}/5`,
+                                                                        },
+                                                    {
+                                                                          title: "7 gün üst üste giriş yap",
+                                                                          earned: Boolean((profileStats?.loginStreak ?? 0) >= 7),
+                                                                          progress: `${Math.min(profileStats?.loginStreak ?? 0, 7)}/7`,
+                                                                        },
                   {
                     title: "1 hafta boyunca günlük oyun oyna",
                     earned: profileStats?.weeklyDailyBadgeEarned,
@@ -5736,10 +5787,20 @@ function App() {
                     progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
                   },
                   {
+                                      title: "Aynı rakibi 3 kez mağlup et",
+                                      earned: Boolean((profileStats?.sameOpponentWinCount ?? 0) >= 3),
+                                      progress: `${Math.min(profileStats?.sameOpponentWinCount ?? 0, 3)}/3`,
+                                    },
+                  {
                     title: "Üst üste 5 düello kazan",
                     earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
                     progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
                   },
+                  {
+                                                          title: "10 farklı rakibi mağlup et",
+                                                          earned: Boolean((profileStats?.uniqueOpponentWinCount ?? 0) >= 10),
+                                                          progress: `${Math.min(profileStats?.uniqueOpponentWinCount ?? 0, 10)}/10`,
+                                                        },
                 ].map((badge) => (
                   <div
                     key={badge.title}

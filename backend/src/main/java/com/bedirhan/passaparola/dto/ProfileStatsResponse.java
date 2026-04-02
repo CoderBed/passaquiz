@@ -26,6 +26,10 @@ public class ProfileStatsResponse {
     private int totalCorrectAnswers;
     private int fastGameCount;
     private int duelWinStreak;
+    private int sameOpponentWinCount;
+    private int loginStreak;
+    private int best200ScoreStreak;
+    private int uniqueOpponentWinCount;
 
     public ProfileStatsResponse() {
     }
@@ -221,5 +225,36 @@ public class ProfileStatsResponse {
 
     public void setDuelWinStreak(int duelWinStreak) {
         this.duelWinStreak = duelWinStreak;
+    }
+
+    public int getSameOpponentWinCount() {
+        return sameOpponentWinCount;
+    }
+
+    public void setSameOpponentWinCount(int sameOpponentWinCount) {
+        this.sameOpponentWinCount = sameOpponentWinCount;
+    }
+
+    public int getLoginStreak() {
+        return loginStreak;
+    }
+
+    public void setLoginStreak(int loginStreak) {
+        this.loginStreak = loginStreak;
+    }
+    public int getBest200ScoreStreak() {
+        return best200ScoreStreak;
+    }
+
+    public void setBest200ScoreStreak(int best200ScoreStreak) {
+        this.best200ScoreStreak = best200ScoreStreak;
+    }
+
+    public int getUniqueOpponentWinCount() {
+        return uniqueOpponentWinCount;
+    }
+
+    public void setUniqueOpponentWinCount(int uniqueOpponentWinCount) {
+        this.uniqueOpponentWinCount = uniqueOpponentWinCount;
     }
 }
