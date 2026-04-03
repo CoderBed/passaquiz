@@ -3,6 +3,7 @@ package com.bedirhan.passaparola.controller;
 import com.bedirhan.passaparola.dto.*;
 import com.bedirhan.passaparola.entity.FeedbackReaction;
 import com.bedirhan.passaparola.service.QuestionFeedbackService;
+import com.bedirhan.passaparola.dto.QuestionFeedbackSummaryResponse;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -37,5 +38,17 @@ public class QuestionFeedbackController {
     @GetMapping("/stats/{questionId}")
     public ResponseEntity<QuestionFeedbackStatsResponse> getStats(@PathVariable Long questionId) {
         return ResponseEntity.ok(questionFeedbackService.getStats(questionId));
+    }
+
+    @GetMapping("/summary/{questionId}")
+    public ResponseEntity<QuestionFeedbackSummaryResponse> getSummary(@PathVariable Long questionId,
+                                                                      @RequestParam String gameMode,
+                                                                      Authentication authentication) {
+
+        String userEmail = authentication.getName();
+
+        return ResponseEntity.ok(
+                questionFeedbackService.getSummary(questionId, userEmail, gameMode)
+        );
     }
 }

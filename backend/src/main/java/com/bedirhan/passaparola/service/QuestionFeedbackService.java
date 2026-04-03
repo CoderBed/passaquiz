@@ -3,6 +3,7 @@ package com.bedirhan.passaparola.service;
 import com.bedirhan.passaparola.entity.*;
 import com.bedirhan.passaparola.repository.*;
 import com.bedirhan.passaparola.dto.QuestionFeedbackStatsResponse;
+import com.bedirhan.passaparola.dto.QuestionFeedbackSummaryResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,10 @@ public class QuestionFeedbackService {
 
     public void saveOrToggleFeedback(Long questionId, String userEmail, FeedbackReaction reaction, String gameMode) {
 
+        if (reaction == null) {
+            throw new RuntimeException("Geçersiz oy bilgisi");
+        }
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
 
@@ -31,28 +36,20 @@ public class QuestionFeedbackService {
                 .findByQuestionIdAndUserId(questionId, user.getId())
                 .orElse(null);
 
-        if (existing == null) {
-            Question question = questionRepository.findById(questionId)
-                    .orElseThrow(() -> new RuntimeException("Soru bulunamadı: " + questionId));
-
-            QuestionFeedback feedback = new QuestionFeedback();
-            feedback.setQuestion(question);
-            feedback.setUser(user);
-            feedback.setReaction(reaction);
-            feedback.setGameMode(gameMode);
-
-            questionFeedbackRepository.save(feedback);
+        if (existing != null) {
             return;
         }
 
-        if (existing.getReaction() == reaction) {
-            questionFeedbackRepository.delete(existing);
-            return;
-        }
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("Soru bulunamadı: " + questionId));
 
-        existing.setReaction(reaction);
-        existing.setGameMode(gameMode);
-        questionFeedbackRepository.save(existing);
+        QuestionFeedback feedback = new QuestionFeedback();
+        feedback.setQuestion(question);
+        feedback.setUser(user);
+        feedback.setReaction(reaction);
+        feedback.setGameMode(gameMode);
+
+        questionFeedbackRepository.save(feedback);
     }
 
     @Transactional(readOnly = true)
@@ -65,5 +62,33 @@ public class QuestionFeedbackService {
                 .countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE);
 
         return new QuestionFeedbackStatsResponse(questionId, likeCount, dislikeCount);
+    }
+
+    @Transactional(readOnly = true)
+    public QuestionFeedbackSummaryResponse getSummary(Long questionId, String userEmail, String gameMode) {
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
+
+        long likeCount = questionFeedbackRepository
+                .countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE);
+
+        long dislikeCount = questionFeedbackRepository
+                .countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE);
+
+        QuestionFeedback existingFeedback = questionFeedbackRepository
+                .findByQuestionIdAndUserId(questionId, user.getId())
+                .orElse(null);
+
+        boolean hasVoted = existingFeedback != null;
+        FeedbackReaction userReaction = hasVoted ? existingFeedback.getReaction() : null;
+
+        return new QuestionFeedbackSummaryResponse(
+                questionId,
+                likeCount,
+                dislikeCount,
+                hasVoted,
+                userReaction
+        );
     }
 }
