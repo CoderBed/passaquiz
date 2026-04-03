@@ -549,6 +549,7 @@ function App() {
   const [showDuelHistoryModal, setShowDuelHistoryModal] = useState(false);
   const [duelHistory, setDuelHistory] = useState([]);
   const [duelHistoryLoading, setDuelHistoryLoading] = useState(false);
+  const [questionFeedback, setQuestionFeedback] = useState({});
 
   const profileFileInputRef = useRef(null);
 
@@ -656,6 +657,56 @@ function App() {
     const previousHistory = getRecentQuestionHistory();
     const updatedHistory = [gameRecord, ...previousHistory].slice(0, 10);
     localStorage.setItem(storageKey, JSON.stringify(updatedHistory));
+  };
+
+  const buildQuestionFeedbackKey = (questionObj, mode) => {
+    if (!questionObj) return null;
+
+    return questionObj.id ?? `${mode || gameMode}:${questionObj.letter}:${questionObj.question}`;
+  };
+
+  const sendQuestionFeedback = async (questionObj, reaction) => {
+    if (!questionObj) return;
+    // Prevent accidental event object being passed instead of reaction
+    if (typeof reaction !== "string") return;
+    const token = sessionStorage.getItem("token");
+    const questionId =
+      typeof questionObj?.id === "number" || typeof questionObj?.id === "string"
+        ? questionObj.id
+        : null;
+    const safeGameMode = ["classic", "daily", "duel"].includes(gameMode) ? gameMode : "classic";
+
+    const feedbackKey = buildQuestionFeedbackKey(questionObj, safeGameMode);
+    if (!feedbackKey || questionId === null) return;
+
+    const previousReaction = questionFeedback[feedbackKey] ?? null;
+    const nextReaction = previousReaction === reaction ? null : reaction;
+
+    setQuestionFeedback((prev) => ({
+      ...prev,
+      [feedbackKey]: nextReaction,
+    }));
+
+    try {
+      const response = await fetch("http://localhost:8080/api/question-feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          questionId,
+          reaction: nextReaction,
+          gameMode: safeGameMode,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Question feedback request failed");
+      }
+    } catch (error) {
+      console.error("Question feedback kaydedilemedi:", error);
+    }
   };
 
   const loadQuestions = async (mode = "classic") => {
@@ -6419,6 +6470,128 @@ function App() {
           >
             <h2 style={{ marginTop: 0, color: "#93c5fd" }}>Soru</h2>
             <p style={{ fontSize: "22px", marginBottom: "20px", color: "#e2e8f0", lineHeight: 1.45 }}>{question.questionText}</p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                gap: "12px",
+                marginTop: "18px",
+                marginBottom: "10px",
+              }}
+            >
+              {(() => {
+                const activeQuestion = questions[currentIndex];
+                const feedbackKey = buildQuestionFeedbackKey(activeQuestion, gameMode);
+                const selectedReaction = feedbackKey ? questionFeedback[feedbackKey] : null;
+
+                const feedbackButtonStyle = (reaction, activeBg, activeBorder, activeShadow) => ({
+                  width: "54px",
+                  height: "54px",
+                  borderRadius: "18px",
+                  outline: "none",
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                  WebkitTapHighlightColor: "transparent",
+                  border:
+                    selectedReaction === reaction
+                      ? `1.5px solid ${activeBorder}`
+                      : "1.5px solid rgba(255, 255, 255, 0.92)",
+                  background: selectedReaction === reaction ? activeBg : "transparent",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "24px",
+                  boxSizing: "border-box",
+                  boxShadow:
+                    selectedReaction === reaction
+                      ? `${activeShadow}, inset 0 0 0 999px ${activeBg}`
+                      : "none",
+                  transition: "all 0.2s ease",
+                  transform: selectedReaction === reaction ? "scale(1.04)" : "scale(1)",
+                });
+
+                return (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => sendQuestionFeedback(activeQuestion, "LIKE")}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.transform = "scale(0.96)";
+                      }}
+                      onMouseUp={(e) => {
+                        e.currentTarget.style.transform = selectedReaction === "LIKE" ? "scale(1.04)" : "scale(1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = selectedReaction === "LIKE" ? "scale(1.04)" : "scale(1)";
+                      }}
+                      style={feedbackButtonStyle(
+                        "LIKE",
+                        "rgba(34, 197, 94, 0.88)",
+                        "rgba(134, 239, 172, 0.98)",
+                        "0 12px 28px rgba(34, 197, 94, 0.34)"
+                      )}
+                      aria-label="Soruyu beğendim"
+                      title="Soruyu beğendim"
+                    >
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill={selectedReaction === "LIKE" ? "currentColor" : "none"}
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M14 10V5.8C14 4.806 13.194 4 12.2 4H12L8.3 10.2C8.105 10.526 8 10.899 8 11.28V19C8 20.105 8.895 21 10 21H17.2C18.017 21 18.743 20.474 18.998 19.698L20.798 14.198C20.864 13.998 20.897 13.789 20.897 13.578V12C20.897 10.895 20.002 10 18.897 10H14ZM6 21H4C2.895 21 2 20.105 2 19V12C2 10.895 2.895 10 4 10H6V21Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => sendQuestionFeedback(activeQuestion, "DISLIKE")}
+                      onMouseDown={(e) => {
+                        e.currentTarget.style.transform = "scale(0.96)";
+                      }}
+                      onMouseUp={(e) => {
+                        e.currentTarget.style.transform = selectedReaction === "DISLIKE" ? "scale(1.04)" : "scale(1)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = selectedReaction === "DISLIKE" ? "scale(1.04)" : "scale(1)";
+                      }}
+                      style={feedbackButtonStyle(
+                        "DISLIKE",
+                        "rgba(239, 68, 68, 0.88)",
+                        "rgba(252, 165, 165, 0.98)",
+                        "0 12px 28px rgba(239, 68, 68, 0.34)"
+                      )}
+                      aria-label="Soruyu beğenmedim"
+                      title="Soruyu beğenmedim"
+                    >
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill={selectedReaction === "DISLIKE" ? "currentColor" : "none"}
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M10 14V18.2C10 19.194 10.806 20 11.8 20H12L15.7 13.8C15.895 13.474 16 13.101 16 12.72V5C16 3.895 15.105 3 14 3H6.8C5.983 3 5.257 3.526 5.002 4.302L3.202 9.802C3.136 10.002 3.103 10.211 3.103 10.422V12C3.103 13.105 3.998 14 5.103 14H10ZM18 3H20C21.105 3 22 3.895 22 5V12C22 13.105 21.105 14 20 14H18V3Z"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
 
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <input
