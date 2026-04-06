@@ -551,6 +551,11 @@ function App() {
   const [duelHistoryLoading, setDuelHistoryLoading] = useState(false);
   const [questionFeedbackSummary, setQuestionFeedbackSummary] = useState(null);
   const [questionFeedbackLoading, setQuestionFeedbackLoading] = useState(false);
+  const [duelReaction, setDuelReaction] = useState(null);
+  const [lastSeenReactionId, setLastSeenReactionId] = useState(null);
+  const [showDuelReaction, setShowDuelReaction] = useState(false);
+  const [showDuelEmojiPicker, setShowDuelEmojiPicker] = useState(false);
+  const duelEmojiPickerRef = useRef(null);
 
   const profileFileInputRef = useRef(null);
 
@@ -1901,6 +1906,9 @@ function App() {
     ? duelRoomData?.player2Name || "Rakip"
     : duelRoomData?.player1Name || "Rakip";
 
+  const activeDuelRoomCode =
+    duelRoomData?.roomCode ?? duelRoomData?.code ?? duelRoomCode ?? null;
+
   const duelOpponentScore = isDuelPlayer1
     ? duelRoomData?.player2Score
     : duelRoomData?.player1Score;
@@ -2027,11 +2035,127 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [gameMode, duelWaitingForOpponent, gameFinished, timeLeft]);
 
+  async function sendDuelReaction(emoji) {
+    if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished) return;
+
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch("http://localhost:8080/api/duel-reactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          roomCode: activeDuelRoomCode,
+          emoji,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Duel reaction request failed");
+      }
+
+      setDuelReaction({
+        id: `local-${Date.now()}`,
+        senderId: currentUser?.id ?? null,
+        senderName: authUserName || currentUser?.name || authUserEmail || "Sen",
+        emoji,
+      });
+      setShowDuelReaction(true);
+    } catch (error) {
+      console.error("Düello emojisi gönderilemedi:", error);
+    }
+  }
+
+  useEffect(() => {
+    if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished) {
+      setDuelReaction(null);
+      setShowDuelReaction(false);
+      return;
+    }
+
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/duel-reactions/latest?roomCode=${activeDuelRoomCode}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const rawText = await response.text();
+        if (!rawText || rawText === "null") return;
+
+        const data = JSON.parse(rawText);
+        if (!data || !data.id) return;
+        if (data.roomCode && activeDuelRoomCode && data.roomCode !== activeDuelRoomCode) return;
+
+        if (data.id !== lastSeenReactionId) {
+          setDuelReaction(data);
+          setLastSeenReactionId(data.id);
+          setShowDuelReaction(true);
+        }
+      } catch (error) {
+        console.error("Düello emojisi alınamadı:", error);
+      }
+    }, 1500);
+
+    return () => clearInterval(intervalId);
+  }, [gameMode, activeDuelRoomCode, gameFinished, lastSeenReactionId, currentUser?.id]);
+
+  useEffect(() => {
+    if (!showDuelReaction) return;
+
+    const timeoutId = setTimeout(() => {
+      setShowDuelReaction(false);
+    }, 2500);
+
+    return () => clearTimeout(timeoutId);
+  }, [showDuelReaction]);
+
+  useEffect(() => {
+    if (!showDuelEmojiPicker) return;
+
+    function handleClickOutside(event) {
+      if (duelEmojiPickerRef.current && !duelEmojiPickerRef.current.contains(event.target)) {
+        setShowDuelEmojiPicker(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDuelEmojiPicker]);
+
+  const duelEmojiOptions = [
+    "👍",
+    "😅",
+    "🔥",
+    "😂",
+    "😡",
+    "😉",
+    "👎",
+    "🤫",
+    "😩",
+  ];
+
     // Question feedback helpers and effect
     function buildQuestionFeedbackKey(q, mode) {
       if (!q || !q.id) return null;
       return `${q.id}:${mode}`;
     }
+
 
     async function fetchQuestionFeedbackSummary(questionObj, mode = gameMode) {
       if (!questionObj?.id) {
@@ -5567,6 +5691,108 @@ function App() {
           </div>
         </div>
 
+        {gameMode === "duel" && !gameFinished && !duelWaitingForOpponent && (
+          <div
+            ref={duelEmojiPickerRef}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: "-4px",
+              marginBottom: "12px",
+              position: "relative",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowDuelEmojiPicker((prev) => !prev)}
+              style={{
+                height: "42px",
+                padding: "0 16px",
+                borderRadius: "14px",
+                border: "1px solid rgba(148, 163, 184, 0.18)",
+                background: "rgba(15, 23, 42, 0.75)",
+                color: "#f8fafc",
+                cursor: "pointer",
+                fontSize: "15px",
+                fontWeight: "700",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                boxShadow: "0 10px 22px rgba(2, 6, 23, 0.22)",
+              }}
+              aria-label="Emoji gönder"
+              title="Emoji gönder"
+            >
+              <span>Emoji gönder</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {showDuelEmojiPicker && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 10px)",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: "290px",
+                  padding: "14px",
+                  borderRadius: "18px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                  border: "1px solid rgba(148, 163, 184, 0.16)",
+                  boxShadow: "0 18px 40px rgba(2, 6, 23, 0.30)",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "10px",
+                  zIndex: 15,
+                }}
+              >
+                {duelEmojiOptions.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      sendDuelReaction(emoji);
+                      setShowDuelEmojiPicker(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      height: "54px",
+                      borderRadius: "14px",
+                      border: "1px solid rgba(148, 163, 184, 0.18)",
+                      background: "rgba(15, 23, 42, 0.74)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 10px 22px rgba(2, 6, 23, 0.18)",
+                      transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
+                      e.currentTarget.style.boxShadow = "0 14px 28px rgba(2, 6, 23, 0.24)";
+                      e.currentTarget.style.borderColor = "rgba(96, 165, 250, 0.45)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0) scale(1)";
+                      e.currentTarget.style.boxShadow = "0 10px 22px rgba(2, 6, 23, 0.18)";
+                      e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.18)";
+                    }}
+                    aria-label={`Düello emojisi ${emoji}`}
+                    title={emoji}
+                  >
+                    <svg width="30" height="30" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+                      <text x="18" y="24" textAnchor="middle" fontSize="24">{emoji}</text>
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {showStatsModal && (
           <div
             style={{
@@ -6535,6 +6761,27 @@ function App() {
               position: "relative",
             }}
           >
+            {gameMode === "duel" && showDuelReaction && duelReaction && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "-14px",
+                  right: "20px",
+                  padding: "10px 14px",
+                  borderRadius: "16px",
+                  background: "rgba(15, 23, 42, 0.92)",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  color: "#f8fafc",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  boxShadow: "0 18px 36px rgba(2, 6, 23, 0.28)",
+                  zIndex: 5,
+                }}
+              >
+                <span style={{ marginRight: "8px" }}>{duelReaction.emoji}</span>
+                <span>{duelReaction.senderName}</span>
+              </div>
+            )}
             <h2 style={{ marginTop: 0, color: "#93c5fd" }}>Soru</h2>
             <p style={{ fontSize: "22px", marginBottom: "20px", color: "#e2e8f0", lineHeight: 1.45 }}>{question.questionText}</p>
 
