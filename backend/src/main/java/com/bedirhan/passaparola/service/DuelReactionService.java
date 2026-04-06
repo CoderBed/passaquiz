@@ -30,7 +30,15 @@ public class DuelReactionService {
             throw new RuntimeException("Emoji boş olamaz");
         }
 
-        if (!emoji.equals("👍") && !emoji.equals("😅") && !emoji.equals("🔥")) {
+        if (!emoji.equals("👍")
+                && !emoji.equals("😅")
+                && !emoji.equals("🔥")
+                && !emoji.equals("😂")
+                && !emoji.equals("😡")
+                && !emoji.equals("😉")
+                && !emoji.equals("👎")
+                && !emoji.equals("🤫")
+                && !emoji.equals("😩")) {
             throw new RuntimeException("Geçersiz emoji");
         }
 

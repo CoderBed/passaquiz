@@ -555,6 +555,7 @@ function App() {
   const [lastSeenReactionId, setLastSeenReactionId] = useState(null);
   const [showDuelReaction, setShowDuelReaction] = useState(false);
   const [showDuelEmojiPicker, setShowDuelEmojiPicker] = useState(false);
+  const [duelEmojiCooldownUntil, setDuelEmojiCooldownUntil] = useState(0);
   const duelEmojiPickerRef = useRef(null);
 
   const profileFileInputRef = useRef(null);
@@ -1909,6 +1910,10 @@ function App() {
   const activeDuelRoomCode =
     duelRoomData?.roomCode ?? duelRoomData?.code ?? duelRoomCode ?? null;
 
+  const duelEmojiCooldownRemaining = Math.max(0, duelEmojiCooldownUntil - Date.now());
+  const duelEmojiCooldownSeconds = Math.ceil(duelEmojiCooldownRemaining / 1000);
+  const isDuelEmojiOnCooldown = duelEmojiCooldownRemaining > 0;
+
   const duelOpponentScore = isDuelPlayer1
     ? duelRoomData?.player2Score
     : duelRoomData?.player1Score;
@@ -2036,7 +2041,7 @@ function App() {
   }, [gameMode, duelWaitingForOpponent, gameFinished, timeLeft]);
 
   async function sendDuelReaction(emoji) {
-    if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished) return;
+    if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished || isDuelEmojiOnCooldown) return;
 
     const token = sessionStorage.getItem("token");
     if (!token) return;
@@ -2057,14 +2062,7 @@ function App() {
       if (!response.ok) {
         throw new Error("Duel reaction request failed");
       }
-
-      setDuelReaction({
-        id: `local-${Date.now()}`,
-        senderId: currentUser?.id ?? null,
-        senderName: authUserName || currentUser?.name || authUserEmail || "Sen",
-        emoji,
-      });
-      setShowDuelReaction(true);
+      setDuelEmojiCooldownUntil(Date.now() + 10000);
     } catch (error) {
       console.error("Düello emojisi gönderilemedi:", error);
     }
@@ -2102,7 +2100,15 @@ function App() {
         if (!data || !data.id) return;
         if (data.roomCode && activeDuelRoomCode && data.roomCode !== activeDuelRoomCode) return;
 
-        if (data.id !== lastSeenReactionId) {
+        const currentReactionOwner = authUserName || currentUser?.name || authUserEmail || null;
+        const isOwnReaction =
+          (typeof data.senderId !== "undefined" &&
+            data.senderId !== null &&
+            currentUser?.id != null &&
+            data.senderId === currentUser.id) ||
+          (currentReactionOwner && data.senderName && data.senderName === currentReactionOwner);
+
+        if (data.id !== lastSeenReactionId && !isOwnReaction) {
           setDuelReaction(data);
           setLastSeenReactionId(data.id);
           setShowDuelReaction(true);
@@ -2124,6 +2130,18 @@ function App() {
 
     return () => clearTimeout(timeoutId);
   }, [showDuelReaction]);
+
+  useEffect(() => {
+    if (!duelEmojiCooldownUntil) return;
+
+    const intervalId = setInterval(() => {
+      if (Date.now() >= duelEmojiCooldownUntil) {
+        setDuelEmojiCooldownUntil(0);
+      }
+    }, 250);
+
+    return () => clearInterval(intervalId);
+  }, [duelEmojiCooldownUntil]);
 
   useEffect(() => {
     if (!showDuelEmojiPicker) return;
@@ -5696,36 +5714,59 @@ function App() {
             ref={duelEmojiPickerRef}
             style={{
               display: "flex",
-              justifyContent: "center",
-              marginTop: "-4px",
-              marginBottom: "12px",
+              justifyContent: "flex-end",
+              marginTop: "2px",
+              marginBottom: "14px",
               position: "relative",
+              zIndex: 20,
+              paddingRight: "6px"
             }}
           >
             <button
               type="button"
-              onClick={() => setShowDuelEmojiPicker((prev) => !prev)}
+              onClick={() => {
+                setShowDuelEmojiPicker((prev) => !prev);
+              }}
               style={{
-                height: "42px",
-                padding: "0 16px",
-                borderRadius: "14px",
-                border: "1px solid rgba(148, 163, 184, 0.18)",
-                background: "rgba(15, 23, 42, 0.75)",
+                height: "46px",
+                padding: "0 18px",
+                borderRadius: "16px",
+                border: showDuelEmojiPicker
+                  ? "1px solid rgba(96, 165, 250, 0.55)"
+                  : "1px solid rgba(148, 163, 184, 0.22)",
+                background: showDuelEmojiPicker
+                  ? "linear-gradient(135deg, rgba(30, 64, 175, 0.78), rgba(15, 23, 42, 0.96))"
+                  : "linear-gradient(135deg, rgba(15, 23, 42, 0.90), rgba(30, 41, 59, 0.94))",
                 color: "#f8fafc",
                 cursor: "pointer",
                 fontSize: "15px",
-                fontWeight: "700",
+                fontWeight: "800",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "8px",
-                boxShadow: "0 10px 22px rgba(2, 6, 23, 0.22)",
+                gap: "10px",
+                boxShadow: showDuelEmojiPicker
+                  ? "0 14px 30px rgba(30, 64, 175, 0.28)"
+                  : "0 10px 22px rgba(2, 6, 23, 0.22)",
+                transition: "all 0.18s ease",
+                minWidth: "170px",
+                alignSelf: "flex-end",
               }}
               aria-label="Emoji gönder"
               title="Emoji gönder"
             >
               <span>Emoji gönder</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{
+                  transform: showDuelEmojiPicker ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.18s ease",
+                }}
+              >
                 <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </button>
@@ -5734,60 +5775,87 @@ function App() {
               <div
                 style={{
                   position: "absolute",
-                  top: "calc(100% + 10px)",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  width: "290px",
-                  padding: "14px",
-                  borderRadius: "18px",
-                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
-                  border: "1px solid rgba(148, 163, 184, 0.16)",
-                  boxShadow: "0 18px 40px rgba(2, 6, 23, 0.30)",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: "10px",
+                  top: "calc(100% + 12px)",
+                  right: "6px",
+                  width: "332px",
+                  padding: "16px",
+                  borderRadius: "24px",
+                  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98))",
+                  border: "1px solid rgba(148, 163, 184, 0.14)",
+                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.34)",
+                  backdropFilter: "blur(14px)",
                   zIndex: 15,
                 }}
               >
-                {duelEmojiOptions.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => {
-                      sendDuelReaction(emoji);
-                      setShowDuelEmojiPicker(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      height: "54px",
-                      borderRadius: "14px",
-                      border: "1px solid rgba(148, 163, 184, 0.18)",
-                      background: "rgba(15, 23, 42, 0.74)",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 10px 22px rgba(2, 6, 23, 0.18)",
-                      transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
-                      e.currentTarget.style.boxShadow = "0 14px 28px rgba(2, 6, 23, 0.24)";
-                      e.currentTarget.style.borderColor = "rgba(96, 165, 250, 0.45)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0) scale(1)";
-                      e.currentTarget.style.boxShadow = "0 10px 22px rgba(2, 6, 23, 0.18)";
-                      e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.18)";
-                    }}
-                    aria-label={`Düello emojisi ${emoji}`}
-                    title={emoji}
-                  >
-                    <svg width="30" height="30" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
-                      <text x="18" y="24" textAnchor="middle" fontSize="24">{emoji}</text>
-                    </svg>
-                  </button>
-                ))}
+                <div
+                  style={{
+                    color: "#cbd5e1",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                    letterSpacing: "0.3px",
+                    marginBottom: "12px",
+                    textAlign: "center",
+                  }}
+                >
+                  Rakibine emoji gönder
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: "12px",
+                  }}
+                >
+                  {duelEmojiOptions.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      disabled={isDuelEmojiOnCooldown}
+                      onClick={() => {
+                        if (isDuelEmojiOnCooldown) return;
+                        sendDuelReaction(emoji);
+                        setShowDuelEmojiPicker(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "62px",
+                        borderRadius: "18px",
+                        border: "1px solid rgba(148, 163, 184, 0.16)",
+                        background: "linear-gradient(180deg, rgba(15, 23, 42, 0.90), rgba(30, 41, 59, 0.88))",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 10px 22px rgba(2, 6, 23, 0.16)",
+                        transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease",
+                        opacity: isDuelEmojiOnCooldown ? 0.38 : 1,
+                        cursor: isDuelEmojiOnCooldown ? "not-allowed" : "pointer",
+                        filter: isDuelEmojiOnCooldown ? "grayscale(0.35) saturate(0.65)" : "none",
+                        transform: isDuelEmojiOnCooldown ? "scale(0.98)" : "scale(1)",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (isDuelEmojiOnCooldown) return;
+                        e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
+                        e.currentTarget.style.boxShadow = "0 16px 30px rgba(2, 6, 23, 0.24)";
+                        e.currentTarget.style.borderColor = "rgba(96, 165, 250, 0.42)";
+                        e.currentTarget.style.background = "linear-gradient(180deg, rgba(30, 64, 175, 0.22), rgba(15, 23, 42, 0.96))";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = isDuelEmojiOnCooldown ? "scale(0.98)" : "translateY(0) scale(1)";
+                        e.currentTarget.style.boxShadow = "0 10px 22px rgba(2, 6, 23, 0.16)";
+                        e.currentTarget.style.borderColor = "rgba(148, 163, 184, 0.16)";
+                        e.currentTarget.style.background = "linear-gradient(180deg, rgba(15, 23, 42, 0.90), rgba(30, 41, 59, 0.88))";
+                      }}
+                      aria-label={`Düello emojisi ${emoji}`}
+                      title={emoji}
+                    >
+                      <svg width="34" height="34" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+                        <text x="18" y="25" textAnchor="middle" fontSize="26">{emoji}</text>
+                      </svg>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
