@@ -510,6 +510,7 @@ function App() {
   const [duelRoomCode, setDuelRoomCode] = useState("");
   const [duelRoomData, setDuelRoomData] = useState(null);
   const [duelWaitingForOpponent, setDuelWaitingForOpponent] = useState(false);
+  const [duelSharedStartTime, setDuelSharedStartTime] = useState(null);
   const [dailyResult, setDailyResult] = useState(null);
   const [dailyCountdownSeconds, setDailyCountdownSeconds] = useState(0);
   const [authUserId, setAuthUserId] = useState(null);
@@ -557,6 +558,26 @@ function App() {
   const [showDuelEmojiPicker, setShowDuelEmojiPicker] = useState(false);
   const [duelEmojiCooldownUntil, setDuelEmojiCooldownUntil] = useState(0);
   const duelEmojiPickerRef = useRef(null);
+
+  const currentUser = {
+    id: authUserId,
+    name: authUserName,
+    email: authUserEmail,
+  };
+
+  const activeDuelRoomCode =
+    duelRoomData?.roomCode ?? duelRoomData?.code ?? duelRoomCode ?? null;
+
+  const duelSharedStartStorageKey = activeDuelRoomCode ? `duelStart_${activeDuelRoomCode}` : null;
+  const duelEmojiCooldownRemaining = Math.max(0, duelEmojiCooldownUntil - Date.now());
+  const duelEmojiCooldownSeconds = Math.ceil(duelEmojiCooldownRemaining / 1000);
+  const isDuelEmojiOnCooldown = duelEmojiCooldownRemaining > 0;
+
+  const isDuelPlayer1 = duelRoomData?.player1Id === currentUser?.id;
+
+  const duelOpponentName = isDuelPlayer1
+    ? duelRoomData?.player2Name || "Rakip"
+    : duelRoomData?.player1Name || "Rakip";
 
   const profileFileInputRef = useRef(null);
 
@@ -768,6 +789,16 @@ function App() {
       "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z",
     ];
 
+    const roomCodeValue = room?.roomCode || room?.code || "";
+    const storageKey = roomCodeValue ? `duelStart_${roomCodeValue}` : null;
+    const backendSharedStartAt = room?.gameStartAt || room?.startAt || room?.matchStartAt || null;
+    const storedSharedStartAt = storageKey ? localStorage.getItem(storageKey) : null;
+    const sharedDuelStartAt = backendSharedStartAt || storedSharedStartAt || new Date().toISOString();
+
+    if (storageKey) {
+      localStorage.setItem(storageKey, sharedDuelStartAt);
+    }
+
     const duelQuestions = Array.isArray(room?.questions)
       ? [...room.questions]
           .map((item) => ({
@@ -823,8 +854,9 @@ function App() {
     setShowHowToPlay(false);
     setShowLeaderboard(false);
     setShowProfileMenu(false);
-    setDuelRoomCode(room?.roomCode || "");
+    setDuelRoomCode(roomCodeValue);
     setDuelRoomData(room || null);
+    setDuelSharedStartTime(sharedDuelStartAt);
     setDuelWaitingForOpponent(false);
     setGameStarted(true);
   };
@@ -907,17 +939,51 @@ function App() {
   useEffect(() => {
     if (!gameStarted || gameFinished || isPaused || duelWaitingForOpponent) return;
 
+    if (gameMode === "duel" && duelSharedStartTime) {
+      const startTimestamp = new Date(duelSharedStartTime).getTime();
+
+      if (Number.isNaN(startTimestamp)) {
+        return;
+      }
+
+      const updateSharedDuelTimer = () => {
+        const elapsedSeconds = Math.floor((Date.now() - startTimestamp) / 1000);
+        const remainingSeconds = Math.max(selectedDuration - elapsedSeconds, 0);
+
+        setTimeLeft(remainingSeconds);
+
+        if (remainingSeconds <= 0) {
+          finishGame();
+        }
+      };
+
+      updateSharedDuelTimer();
+      const intervalId = setInterval(updateSharedDuelTimer, 250);
+
+      return () => clearInterval(intervalId);
+    }
+
     if (timeLeft <= 0) {
       finishGame();
       return;
     }
 
     const intervalId = setInterval(() => {
-      setTimeLeft((prevTime) => prevTime - 1);
+      setTimeLeft((prevTime) => {
+        const nextTime = prevTime - 1;
+
+        if (nextTime <= 0) {
+          clearInterval(intervalId);
+          setTimeout(() => finishGame(), 0);
+          return 0;
+        }
+
+        return nextTime;
+      });
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [gameStarted, gameFinished, timeLeft, isPaused, duelWaitingForOpponent]);
+  }, [gameStarted, gameFinished, isPaused, duelWaitingForOpponent, gameMode, duelSharedStartTime, selectedDuration, timeLeft]);
 
   useEffect(() => {
     if (!gameStarted) {
@@ -936,6 +1002,38 @@ function App() {
 
     return () => clearTimeout(timeoutId);
   }, [score, gameStarted]);
+
+  useEffect(() => {
+    if (gameMode !== "duel") return;
+
+    const backendSharedStartAt =
+      duelRoomData?.gameStartAt || duelRoomData?.startAt || duelRoomData?.matchStartAt || null;
+    const storedSharedStartAt = duelSharedStartStorageKey
+      ? localStorage.getItem(duelSharedStartStorageKey)
+      : null;
+    const resolvedSharedStartAt = backendSharedStartAt || storedSharedStartAt || null;
+
+    if (resolvedSharedStartAt) {
+      setDuelSharedStartTime(resolvedSharedStartAt);
+
+      if (duelSharedStartStorageKey && resolvedSharedStartAt !== storedSharedStartAt) {
+        localStorage.setItem(duelSharedStartStorageKey, resolvedSharedStartAt);
+      }
+    }
+  }, [gameMode, duelRoomData, duelSharedStartStorageKey]);
+
+  useEffect(() => {
+    if (!duelSharedStartStorageKey) return;
+
+    const handleStorageChange = (event) => {
+      if (event.key === duelSharedStartStorageKey && event.newValue) {
+        setDuelSharedStartTime(event.newValue);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [duelSharedStartStorageKey]);
 
   // Pulse effect for active letter
   useEffect(() => {
@@ -1153,9 +1251,13 @@ function App() {
     setShowProfileMenu(false);
 
     if (gameMode === "duel") {
+      if (duelSharedStartStorageKey) {
+        localStorage.removeItem(duelSharedStartStorageKey);
+      }
       setDuelWaitingForOpponent(false);
       setDuelRoomData(null);
       setDuelRoomCode("");
+      setDuelSharedStartTime(null);
       setGameStarted(false);
       setGameMode("classic");
       return;
@@ -1196,9 +1298,13 @@ function App() {
     if (gameMode === "duel" && gameStarted && !gameFinished) {
       await submitDuelProgress(true);
     }
+    if (duelSharedStartStorageKey) {
+      localStorage.removeItem(duelSharedStartStorageKey);
+    }
     setQuestions([]);
     setDuelRoomCode("");
     setDuelRoomData(null);
+    setDuelSharedStartTime(null);
     setDuelWaitingForOpponent(false);
     setGameStarted(false);
   };
@@ -1343,10 +1449,14 @@ function App() {
     setShowHowToPlay(false);
     setDailyResult(null);
     setDailyCountdownSeconds(0);
+    if (duelSharedStartStorageKey) {
+      localStorage.removeItem(duelSharedStartStorageKey);
+    }
     setDuelRoomCode("");
     setJoinedRoomCode("");
     setCreatedRoom(null);
     setDuelRoomData(null);
+    setDuelSharedStartTime(null);
     setDuelWaitingForOpponent(false);
     setStartCountdown(null);
     resultSavedRef.current = false;
@@ -1895,24 +2005,6 @@ function App() {
     });
   }, [questions, answerHistory, questionStatuses, gameMode, gameStarted, dailyResult]);
 
-  const currentUser = {
-    id: authUserId,
-    name: authUserName,
-    email: authUserEmail,
-  };
-
-  const isDuelPlayer1 = duelRoomData?.player1Id === currentUser?.id;
-
-  const duelOpponentName = isDuelPlayer1
-    ? duelRoomData?.player2Name || "Rakip"
-    : duelRoomData?.player1Name || "Rakip";
-
-  const activeDuelRoomCode =
-    duelRoomData?.roomCode ?? duelRoomData?.code ?? duelRoomCode ?? null;
-
-  const duelEmojiCooldownRemaining = Math.max(0, duelEmojiCooldownUntil - Date.now());
-  const duelEmojiCooldownSeconds = Math.ceil(duelEmojiCooldownRemaining / 1000);
-  const isDuelEmojiOnCooldown = duelEmojiCooldownRemaining > 0;
 
   const duelOpponentScore = isDuelPlayer1
     ? duelRoomData?.player2Score
@@ -2354,7 +2446,7 @@ function App() {
             {authMode === "register" && (
               <input
                 type="text"
-                placeholder="Ad Soyad"
+                placeholder="Kullanıcı Adı"
                 value={authName}
                 onChange={(e) => setAuthName(e.target.value)}
                 style={authInputStyle}
