@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByLetter(String letter);
+
+    boolean existsByLetterAndQuestionText(String letter, String questionText);
 }

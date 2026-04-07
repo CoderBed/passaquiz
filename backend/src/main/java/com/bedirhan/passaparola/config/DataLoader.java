@@ -33,23 +33,43 @@ public class DataLoader {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
             reader.lines().skip(1).forEach(line -> {
+                if (line == null || line.isBlank()) {
+                    return;
+                }
+
                 int firstComma = line.indexOf(",");
                 int lastComma = line.lastIndexOf(",");
 
-                if (firstComma != -1 && lastComma != -1 && firstComma != lastComma) {
-                    String letter = line.substring(0, firstComma).trim();
-                    String questionText = line.substring(firstComma + 1, lastComma).trim();
-                    String answer = line.substring(lastComma + 1).trim();
-
-                    saveIfNotExists(questionRepository, letter, questionText, answer);
+                if (firstComma == -1 || lastComma == -1 || firstComma == lastComma) {
+                    System.out.println("Atlanan satır (kolon eksik): " + line);
+                    return;
                 }
+
+                String letter = line.substring(0, firstComma).trim();
+                String questionText = line.substring(firstComma + 1, lastComma).trim();
+                String answer = line.substring(lastComma + 1).trim();
+
+                if (questionText.startsWith("\"") && questionText.endsWith("\"") && questionText.length() >= 2) {
+                    questionText = questionText.substring(1, questionText.length() - 1);
+                }
+
+                if (answer.startsWith("\"") && answer.endsWith("\"") && answer.length() >= 2) {
+                    answer = answer.substring(1, answer.length() - 1);
+                }
+
+                if (letter.isEmpty() || questionText.isEmpty() || answer.isEmpty()) {
+                    System.out.println("Atlanan satır (boş alan): " + line);
+                    return;
+                }
+
+                saveIfNotExists(questionRepository, letter, questionText, answer);
             });
         };
     }
 
     private void saveIfNotExists(QuestionRepository questionRepository, String letter, String questionText, String answer) {
         boolean exists = questionRepository.findAll().stream()
-                .anyMatch(q -> q.getLetter().equals(letter) && q.getQuestionText().equals(questionText));
+                .anyMatch(q -> letter.equals(q.getLetter()) && questionText.equals(q.getQuestionText()));
 
         if (!exists) {
             questionRepository.save(new Question(letter, questionText, answer));
