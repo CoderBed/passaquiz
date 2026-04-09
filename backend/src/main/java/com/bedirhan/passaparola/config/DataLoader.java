@@ -18,10 +18,7 @@ public class DataLoader {
     CommandLineRunner loadData(QuestionRepository questionRepository,
                                DailyQuestionSetRepository dailyQuestionSetRepository) {
         return args -> {
-            if (questionRepository.count() > 0) {
-                System.out.println("Sorular zaten yüklü, tekrar yükleme yapılmadı.");
-                return;
-            }
+            System.out.println("question.csv kontrol ediliyor, yeni sorular varsa eklenecek...");
 
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("question.csv");
 
