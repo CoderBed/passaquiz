@@ -78,6 +78,11 @@ public class GameController {
     @PostMapping("/api/game/result")
     public ResponseEntity<?> saveResult(@RequestBody GameResultRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (email.endsWith("@guest.local")) {
+            return ResponseEntity.ok("Misafir kullanıcı için sonuç kaydedilmedi.");
+        }
+
         User user = userRepository.findByEmail(email).orElseThrow();
 
         GameResult result = new GameResult();
@@ -112,6 +117,11 @@ public class GameController {
     @PostMapping("/api/game/duel-result")
     public ResponseEntity<?> saveDuelResult(@RequestBody GameResultRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (email.endsWith("@guest.local")) {
+            return ResponseEntity.ok("Misafir kullanıcı için düello sonucu kaydedilmedi.");
+        }
+
         User user = userRepository.findByEmail(email).orElseThrow();
 
         GameResult result = new GameResult();

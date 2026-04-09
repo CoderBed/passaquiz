@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import com.bedirhan.passaparola.service.JwtService;
 import com.bedirhan.passaparola.dto.LoginResponse;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -81,6 +82,23 @@ public class AuthController {
                 user.getId(),
                 user.getName(),
                 user.getEmail()
+        ));
+    }
+
+    @PostMapping("/guest-login")
+    public ResponseEntity<?> guestLogin() {
+        String guestCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String guestName = "Misafir-" + guestCode;
+        String guestEmail = "guest_" + guestCode + "@guest.local";
+        long guestId = -Math.abs(UUID.randomUUID().getMostSignificantBits());
+
+        String token = jwtService.generateToken(guestEmail);
+
+        return ResponseEntity.ok(new LoginResponse(
+                token,
+                guestId,
+                guestName,
+                guestEmail
         ));
     }
 }

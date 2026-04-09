@@ -348,6 +348,8 @@ B, Dumanı ocaktan çekip havaya vermeye yarayan yol, Baca
 B, Mecaz anlamda yaramaz, haylaz çocuk, Bastıbacak
 B, Alınla üst dudak arasında bulunan, çıkıntılı, iki delikli koklama ve solunum organı, Burun
 B, Deniz içine uzanmış ince ve uzun kara parçası, Burun
+B, Bir müzik eserini oluşturan ezgilerin bütünü, Beste
+B, Resmî bir makam, kurum veya resmî olmayan bir örgüt, topluluk tarafından herhangi bir durumu ilgililere duyurmak için yazılan yazı, Bildiri
 
 C, İlgi uyandıran, elverişli, Cazip
 C, Genellikle dükkânlarda malların sergilendiği camlı bölme, Camekan
@@ -2616,6 +2618,7 @@ S, Futbol, voleybol vb. karşılaşmalarında oyun başlamadan önce takımları
 S, İtfaiye, ambulans ve polis araçlarında bulunan, tiz ses çıkaran uyarıcı alet, Siren
 S, Eş zamanlı, Senkron
 S, Afrika’da yerlilerin oturduğu yerlerde kafile hâlinde yapılan vahşi hayvan avı, Safari
+S, Katılımcıların vahşi hayatı yerinde görmelerini sağlayan turistik gezi, Safari
 S, At bakımı ile görevli olan, at tımar eden kimse, at bakıcısı, Seyis
 S, Şili'nin başkenti, Santiago
 S, Genellikle camilere bitişik özel bir biçimde yapılmış, karşılık beklemeden hayır için içme suyu dağıtılan taş yapı, Sebil
@@ -2721,6 +2724,10 @@ S, Kişi veya kuruluşların genel ağda oluşturduğu değişik konulardaki bil
 S, İlk Çağda kendi yasalarıyla yönetilen bir veya birkaç kentten oluşan devlet, Site
 S, Bir modaevinde yeni ürünlerin oluşumunu ve yaratılmasını sağlayan kimse, Stilist
 S, Osmanlı devlet teşkilâtında padişahın vekili olarak yönetimi elinde tutan, vezirler, vekiller heyetine başkanlık eden devlet görevlisi, Sadrazam/Sadır
+S, Toplumun kibar, zevkli, zarif, gelir düzeyi yüksek olan insanlarının oluşturduğu ve kendilerine özgü yaşama biçimleri olan kesimi, Sosyete
+S, Anlamları aynı veya birbirine çok yakın olan kelimeler, Sinonim
+S, Özellikle maden birleşiklerinden oluşan, katalitik özellikler taşıyan ve çabuk kurumasını sağlamak amacıyla boya, vernik ve yağlı boyalara az miktarda katılan madde, Sikatif
+S, Ateş, baş ağrısı, burun tıkanıklığı ve akıntı ile kendini gösteren, burun boşluğuna yakın bulunan kemik içindeki boşluklardan bir veya daha fazlasının iltihaplanması, Sinüzit
 
 Ş, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık
@@ -3275,7 +3282,7 @@ Y, Bir kimseyi ya da bir olayı anımsatan nesne, Yadigar
 Y, Kahvelerde oynanan oyunları seyreden ve bedavadan yiyip içen kimse, Yancı
 Y, Bitki, tüy vb. çekerek yerinden çıkarmak, çekip koparmak, Yolmak
 Y, Doğuştan beri geçen ve yıl birimi ile ölçülen zaman, Yaş
-Y, Herhangi bir şeyden çekinmeme, korkmama, yüreklilik, korkusuzluk durumu, Yürek
+Y, Herhangi bir şeyden çekinmeme, korkmama, korkusuzluk durumu, Yürek/Yüreklilik
 Y, Delik ve yırtığı uygun bir parça ile onarma, kapatma, Yama
 Y, Kötü işlerde birine yardım eden kimse, Yardakçı
 Y, Bakıma ve barınmaya muhtaç bir grup insanın oturduğu, yetiştirildiği veya bakıldığı kurum, Yurt
