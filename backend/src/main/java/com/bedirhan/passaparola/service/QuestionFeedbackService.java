@@ -12,13 +12,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuestionFeedbackService {
 
     private final QuestionFeedbackRepository questionFeedbackRepository;
+    private final GuestQuestionFeedbackRepository guestQuestionFeedbackRepository;
     private final QuestionRepository questionRepository;
     private final UserRepository userRepository;
 
     public QuestionFeedbackService(QuestionFeedbackRepository questionFeedbackRepository,
+                                   GuestQuestionFeedbackRepository guestQuestionFeedbackRepository,
                                    QuestionRepository questionRepository,
                                    UserRepository userRepository) {
         this.questionFeedbackRepository = questionFeedbackRepository;
+        this.guestQuestionFeedbackRepository = guestQuestionFeedbackRepository;
         this.questionRepository = questionRepository;
         this.userRepository = userRepository;
     }
@@ -29,37 +32,62 @@ public class QuestionFeedbackService {
             throw new RuntimeException("Geçersiz oy bilgisi");
         }
 
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
-
-        QuestionFeedback existing = questionFeedbackRepository
-                .findByQuestionIdAndUserId(questionId, user.getId())
-                .orElse(null);
-
-        if (existing != null) {
-            return;
-        }
+        boolean isGuest = userEmail != null && userEmail.endsWith("@guest.local");
 
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Soru bulunamadı: " + questionId));
 
-        QuestionFeedback feedback = new QuestionFeedback();
+        if (!isGuest) {
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
+
+            QuestionFeedback existing = questionFeedbackRepository
+                    .findByQuestionIdAndUserId(questionId, user.getId())
+                    .orElse(null);
+
+            if (existing != null) {
+                return;
+            }
+
+            QuestionFeedback feedback = new QuestionFeedback();
+            feedback.setQuestion(question);
+            feedback.setUser(user);
+            feedback.setReaction(reaction);
+            feedback.setGameMode(gameMode);
+
+            questionFeedbackRepository.save(feedback);
+            return;
+        }
+
+        String guestKey = userEmail;
+
+        GuestQuestionFeedback existingGuestFeedback = guestQuestionFeedbackRepository
+                .findByQuestionIdAndGuestKey(questionId, guestKey)
+                .orElse(null);
+
+        if (existingGuestFeedback != null) {
+            return;
+        }
+
+        GuestQuestionFeedback feedback = new GuestQuestionFeedback();
         feedback.setQuestion(question);
-        feedback.setUser(user);
+        feedback.setGuestKey(guestKey);
         feedback.setReaction(reaction);
         feedback.setGameMode(gameMode);
 
-        questionFeedbackRepository.save(feedback);
+        guestQuestionFeedbackRepository.save(feedback);
     }
 
     @Transactional(readOnly = true)
     public QuestionFeedbackStatsResponse getStats(Long questionId) {
 
         long likeCount = questionFeedbackRepository
-                .countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE);
+                .countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE)
+                + guestQuestionFeedbackRepository.countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE);
 
         long dislikeCount = questionFeedbackRepository
-                .countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE);
+                .countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE)
+                + guestQuestionFeedbackRepository.countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE);
 
         return new QuestionFeedbackStatsResponse(questionId, likeCount, dislikeCount);
     }
@@ -67,14 +95,28 @@ public class QuestionFeedbackService {
     @Transactional(readOnly = true)
     public QuestionFeedbackSummaryResponse getSummary(Long questionId, String userEmail, String gameMode) {
 
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
+        boolean isGuest = userEmail != null && userEmail.endsWith("@guest.local");
 
         long likeCount = questionFeedbackRepository
-                .countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE);
+                .countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE)
+                + guestQuestionFeedbackRepository.countByQuestionIdAndReaction(questionId, FeedbackReaction.LIKE);
 
         long dislikeCount = questionFeedbackRepository
-                .countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE);
+                .countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE)
+                + guestQuestionFeedbackRepository.countByQuestionIdAndReaction(questionId, FeedbackReaction.DISLIKE);
+
+        if (isGuest) {
+            return new QuestionFeedbackSummaryResponse(
+                    questionId,
+                    likeCount,
+                    dislikeCount,
+                    false,
+                    null
+            );
+        }
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
 
         QuestionFeedback existingFeedback = questionFeedbackRepository
                 .findByQuestionIdAndUserId(questionId, user.getId())
