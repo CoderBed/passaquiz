@@ -515,6 +515,7 @@ function App() {
   const [dailyCountdownSeconds, setDailyCountdownSeconds] = useState(0);
   const [authUserId, setAuthUserId] = useState(null);
   const [scorePop, setScorePop] = useState(false);
+  const [isGuestUser, setIsGuestUser] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [authName, setAuthName] = useState("");
@@ -1406,10 +1407,41 @@ function App() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/auth/guest-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert("Misafir girişi başarısız.");
+        return;
+      }
+
+      sessionStorage.setItem("token", data.token);
+
+      setIsAuthenticated(true);
+      setIsGuestUser(true);
+
+      setAuthUserId(data.id ?? `guest_${Date.now()}`);
+
+      setAuthUserName(data.name || "Misafir");
+      setAuthUserEmail(data.email || "");
+      setAuthUserImage("");
+    } catch (error) {
+      console.error("Guest login error:", error);
+      alert("Misafir girişi sırasında bir hata oluştu.");
+    }
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("token");
 
     setIsAuthenticated(false);
+    setIsGuestUser(false);
     setAuthUserId(null);
     setAuthUserName("");
     setAuthUserEmail("");
@@ -1468,6 +1500,8 @@ function App() {
   };
 
   const handleProfileImageChange = (event) => {
+    if (effectiveIsGuestUser) return;
+
     const file = event.target.files?.[0];
     if (!file || !authUserEmail) return;
 
@@ -1482,7 +1516,7 @@ function App() {
 
   const saveGameResult = async ({ modeOverride = null, wonOverride = undefined } = {}) => {
     const token = sessionStorage.getItem("token");
-    if (!token) return;
+    if (!token || effectiveIsGuestUser) return;
 
     const resolvedGameMode = modeOverride || activeGameModeRef.current || (gameMode === "daily" ? "daily" : "classic");
     const resolvedWon = wonOverride !== undefined
@@ -1744,7 +1778,7 @@ function App() {
 
   const fetchProfileStats = async () => {
     const token = sessionStorage.getItem("token");
-    if (!token) return;
+    if (!token || effectiveIsGuestUser) return;
 
     setProfileStatsLoading(true);
 
@@ -1784,7 +1818,7 @@ function App() {
 
   const fetchDuelHistory = async () => {
     const token = sessionStorage.getItem("token");
-    if (!token) return;
+    if (!token || effectiveIsGuestUser) return;
 
     setDuelHistoryLoading(true);
     try {
@@ -1967,6 +2001,68 @@ function App() {
   );
   const elapsedTime = selectedDuration - timeLeft;
 
+  const effectiveIsGuestUser =
+    isGuestUser ||
+    (typeof authUserEmail === "string" && authUserEmail.endsWith("@guest.local")) ||
+    (typeof currentUser?.email === "string" && currentUser.email.endsWith("@guest.local"));
+
+  const guestAvatarPalettes = [
+    ["#60a5fa", "#2563eb"],
+    ["#a78bfa", "#7c3aed"],
+    ["#34d399", "#059669"],
+    ["#f59e0b", "#ea580c"],
+    ["#f472b6", "#db2777"],
+    ["#22d3ee", "#0891b2"],
+    ["#f87171", "#dc2626"],
+    ["#4ade80", "#16a34a"],
+  ];
+
+  const getGuestAvatarStyle = (seedValue) => {
+    const seed = String(seedValue || "guest");
+    let hash = 0;
+
+    for (let i = 0; i < seed.length; i += 1) {
+      hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const palette = guestAvatarPalettes[Math.abs(hash) % guestAvatarPalettes.length];
+
+    return {
+      background: `radial-gradient(circle at top, ${palette[0]}, ${palette[1]})`,
+      boxShadow: `inset 0 0 18px rgba(255,255,255,0.12), 0 10px 24px ${palette[1]}55`,
+    };
+  };
+
+  const guestAvatarSeed = authUserEmail || authUserName || currentUser?.email || "guest";
+
+  const getGuestVoteStorageKey = () => {
+    const guestId = authUserId ?? currentUser?.id ?? authUserEmail ?? "guest";
+    return `guestQuestionVotes_${guestId}`;
+  };
+
+  const readGuestVotesFromSession = () => {
+    try {
+      const raw = sessionStorage.getItem(getGuestVoteStorageKey());
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const writeGuestVoteToSession = (questionId, reactionType) => {
+    try {
+      const existing = readGuestVotesFromSession();
+      const updated = {
+        ...existing,
+        [questionId]: reactionType,
+      };
+      sessionStorage.setItem(getGuestVoteStorageKey(), JSON.stringify(updated));
+      return updated;
+    } catch {
+      return readGuestVotesFromSession();
+    }
+  };
+
   useEffect(() => {
     if (!gameStarted || gameFinished) return;
     setAnswered(false);
@@ -2135,15 +2231,17 @@ function App() {
   async function sendDuelReaction(emoji) {
     if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished || isDuelEmojiOnCooldown) return;
 
-    const token = sessionStorage.getItem("token");
-    if (!token) return;
+    const rawToken = sessionStorage.getItem("token");
+    if (!rawToken) return;
+
+    const authHeader = rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`;
 
     try {
       const response = await fetch("http://localhost:8080/api/duel-reactions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: authHeader,
         },
         body: JSON.stringify({
           roomCode: activeDuelRoomCode,
@@ -2161,25 +2259,37 @@ function App() {
   }
 
   useEffect(() => {
-    if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished) {
+    if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished || !isAuthenticated) {
       setDuelReaction(null);
       setShowDuelReaction(false);
       return;
     }
 
-    const token = sessionStorage.getItem("token");
-    if (!token) return;
+    let isStopped = false;
 
     const intervalId = setInterval(async () => {
       try {
+        const rawToken = sessionStorage.getItem("token");
+        if (!rawToken || isStopped) return;
+
+        const authHeader = rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`;
+
         const response = await fetch(
           `http://localhost:8080/api/duel-reactions/latest?roomCode=${activeDuelRoomCode}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              Authorization: authHeader,
             },
+            cache: "no-store",
           }
         );
+
+        if (response.status === 401 || response.status === 403) {
+          isStopped = true;
+          clearInterval(intervalId);
+          console.error("Düello emojisi isteği yetki nedeniyle durduruldu:", response.status);
+          return;
+        }
 
         if (!response.ok) {
           return;
@@ -2206,12 +2316,17 @@ function App() {
           setShowDuelReaction(true);
         }
       } catch (error) {
-        console.error("Düello emojisi alınamadı:", error);
+        if (!isStopped) {
+          console.error("Düello emojisi alınamadı:", error);
+        }
       }
     }, 1500);
 
-    return () => clearInterval(intervalId);
-  }, [gameMode, activeDuelRoomCode, gameFinished, lastSeenReactionId, currentUser?.id]);
+    return () => {
+      isStopped = true;
+      clearInterval(intervalId);
+    };
+  }, [gameMode, activeDuelRoomCode, gameFinished, isAuthenticated, lastSeenReactionId, currentUser?.id, authUserName, authUserEmail]);
 
   useEffect(() => {
     if (!showDuelReaction) return;
@@ -2298,12 +2413,18 @@ function App() {
         }
 
         const data = await response.json();
+        const guestVotes = effectiveIsGuestUser ? readGuestVotesFromSession() : {};
+        const guestReaction = effectiveIsGuestUser ? guestVotes[questionObj.id] ?? null : null;
         setQuestionFeedbackSummary((prev) => ({
           questionId: questionObj.id,
           likeCount: typeof data?.likeCount === "number" ? data.likeCount : prev?.likeCount ?? 0,
           dislikeCount: typeof data?.dislikeCount === "number" ? data.dislikeCount : prev?.dislikeCount ?? 0,
-          hasVoted: typeof data?.hasVoted === "boolean" ? data.hasVoted : prev?.hasVoted ?? false,
-          userReaction: data?.userReaction ?? prev?.userReaction ?? null,
+          hasVoted: effectiveIsGuestUser
+            ? Boolean(guestReaction)
+            : (typeof data?.hasVoted === "boolean" ? data.hasVoted : prev?.hasVoted ?? false),
+          userReaction: effectiveIsGuestUser
+            ? guestReaction
+            : (data?.userReaction ?? prev?.userReaction ?? null),
         }));
       } catch (error) {
         console.error("Question feedback özeti alınamadı:", error);
@@ -2321,6 +2442,11 @@ function App() {
       if (!token) return;
 
       const safeGameMode = ["classic", "daily", "duel"].includes(gameMode) ? gameMode : "classic";
+
+      if (effectiveIsGuestUser) {
+        const guestVotes = readGuestVotesFromSession();
+        if (guestVotes[questionObj.id]) return;
+      }
 
       try {
         const response = await fetch("http://localhost:8080/api/question-feedback", {
@@ -2340,6 +2466,9 @@ function App() {
           throw new Error("Question feedback request failed");
         }
 
+        if (effectiveIsGuestUser) {
+          writeGuestVoteToSession(questionObj.id, reaction);
+        }
         setQuestionFeedbackSummary((prev) => {
           const previousLikeCount = prev?.likeCount ?? 0;
           const previousDislikeCount = prev?.dislikeCount ?? 0;
@@ -2475,12 +2604,25 @@ function App() {
             />
           </div>
 
+          <p
+            onClick={handleGuestLogin}
+            style={{
+              marginTop: "6px",
+              marginBottom: "4px",
+              color: "#94a3b8",
+              fontSize: "14px",
+              cursor: "pointer",
+              opacity: authLoading ? 0.6 : 1,
+            }}
+          >
+            Misafir olarak devam et
+          </p>
           <button
             onClick={authMode === "login" ? handleLogin : handleRegister}
             disabled={authLoading}
             style={{
               ...(authMode === "login" ? primaryButtonStyle : successButtonStyle),
-              marginTop: "22px",
+              marginTop: "14px",
               marginRight: 0,
               minWidth: "220px",
               fontSize: "17px",
@@ -2654,7 +2796,9 @@ function App() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        ...(effectiveIsGuestUser ? getGuestAvatarStyle(guestAvatarSeed) : {
+                          background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        }),
                         color: "#f8fafc",
                         fontSize: "32px",
                         fontWeight: "800",
@@ -2706,7 +2850,9 @@ function App() {
                       <div style={{ color: "#f8fafc", fontSize: "15px", fontWeight: "700", marginBottom: "4px" }}>
                         {authUserName || "Kullanıcı"}
                       </div>
-                      <div style={{ color: "#93c5fd", fontSize: "13px" }}>{authUserEmail}</div>
+                      <div style={{ color: "#93c5fd", fontSize: "13px" }}>
+                        {authUserEmail}
+                      </div>
                     </div>
 
                     <input
@@ -2717,80 +2863,84 @@ function App() {
                       style={{ display: "none" }}
                     />
 
-                    <button
-                      onClick={() => profileFileInputRef.current?.click()}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Profil Fotoğrafı Yükle
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowBadgesModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-                        boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
-                      }}
-                    >
-                      Rozetlerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowStatsModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
-                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
-                      }}
-                    >
-                      İstatistiklerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowDuelHistoryModal(true);
-                        fetchDuelHistory();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #334155, #1e293b)",
-                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
-                      }}
-                    >
-                      Düello Maç Geçmişi
-                    </button>
+                    {!effectiveIsGuestUser && (
+                      <>
+                        <button
+                          onClick={() => profileFileInputRef.current?.click()}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Profil Fotoğrafı Yükle
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowBadgesModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                            boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
+                          }}
+                        >
+                          Rozetlerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowStatsModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                            boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
+                          }}
+                        >
+                          İstatistiklerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowDuelHistoryModal(true);
+                            fetchDuelHistory();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #334155, #1e293b)",
+                            boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                          }}
+                        >
+                          Düello Maç Geçmişi
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={handleLogout}
                       style={{
@@ -3282,7 +3432,9 @@ function App() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        ...(effectiveIsGuestUser ? getGuestAvatarStyle(guestAvatarSeed) : {
+                          background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        }),
                         color: "#f8fafc",
                         fontSize: "32px",
                         fontWeight: "800",
@@ -3347,80 +3499,84 @@ function App() {
                       style={{ display: "none" }}
                     />
 
-                    <button
-                      onClick={() => profileFileInputRef.current?.click()}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Profil Fotoğrafı Yükle
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowBadgesModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-                        boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
-                      }}
-                    >
-                      Rozetlerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowStatsModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
-                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
-                      }}
-                    >
-                      İstatistiklerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowDuelHistoryModal(true);
-                        fetchDuelHistory();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #334155, #1e293b)",
-                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
-                      }}
-                    >
-                      Düello Maç Geçmişi
-                    </button>
+                   {!effectiveIsGuestUser && (
+                      <>
+                        <button
+                          onClick={() => profileFileInputRef.current?.click()}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Profil Fotoğrafı Yükle
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowBadgesModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                            boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
+                          }}
+                        >
+                          Rozetlerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowStatsModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                            boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
+                          }}
+                        >
+                          İstatistiklerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowDuelHistoryModal(true);
+                            fetchDuelHistory();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #334155, #1e293b)",
+                            boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                          }}
+                        >
+                          Düello Maç Geçmişi
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={handleLogout}
                       style={{
@@ -4190,6 +4346,21 @@ function App() {
       </div>
     );
   }
+  const durationOptions = [180, 210, 240, 270, 300, 330, 360];
+
+  const formatDurationLabel = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    if (remainingSeconds === 0) {
+      return `${minutes} dakika`;
+    }
+
+    return `${minutes} dakika ${remainingSeconds} saniye`;
+  };
+
+  const question = questions[currentIndex];
+
   if (!gameStarted) {
     return (
       <div style={pageStyle}>
@@ -4333,7 +4504,9 @@ function App() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        ...(effectiveIsGuestUser ? getGuestAvatarStyle(guestAvatarSeed) : {
+                                                  background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                                                }),
                         color: "#f8fafc",
                         fontSize: "32px",
                         fontWeight: "800",
@@ -4398,80 +4571,84 @@ function App() {
                       style={{ display: "none" }}
                     />
 
-                    <button
-                      onClick={() => profileFileInputRef.current?.click()}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Profil Fotoğrafı Yükle
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowBadgesModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-                        boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
-                      }}
-                    >
-                      Rozetlerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowStatsModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
-                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
-                      }}
-                    >
-                      İstatistiklerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowDuelHistoryModal(true);
-                        fetchDuelHistory();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #334155, #1e293b)",
-                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
-                      }}
-                    >
-                      Düello Maç Geçmişi
-                    </button>
+                    {!effectiveIsGuestUser && (
+                      <>
+                        <button
+                          onClick={() => profileFileInputRef.current?.click()}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Profil Fotoğrafı Yükle
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowBadgesModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                            boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
+                          }}
+                        >
+                          Rozetlerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowStatsModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                            boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
+                          }}
+                        >
+                          İstatistiklerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowDuelHistoryModal(true);
+                            fetchDuelHistory();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #334155, #1e293b)",
+                            boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                          }}
+                        >
+                          Düello Maç Geçmişi
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={handleLogout}
                       style={{
@@ -4582,22 +4759,92 @@ function App() {
 
           <div
             style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "16px",
-              flexWrap: "wrap",
-              marginBottom: "20px",
+              width: "100%",
+              maxWidth: "760px",
+              margin: "0 auto 20px auto",
+              padding: "16px 20px 18px 20px",
+              boxSizing: "border-box",
+              borderRadius: "24px",
+              background: "linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.94))",
+              border: "1px solid rgba(148, 163, 184, 0.14)",
+              boxShadow: "0 18px 40px rgba(2, 6, 23, 0.24)",
             }}
           >
-            <button onClick={() => { setSelectedDuration(180); setGameMode("classic"); }} style={durationButtonStyle(180)}>
-              3 Dakika
-            </button>
-            <button onClick={() => { setSelectedDuration(240); setGameMode("classic"); }} style={durationButtonStyle(240)}>
-              4 Dakika
-            </button>
-            <button onClick={() => { setSelectedDuration(300); setGameMode("classic"); }} style={durationButtonStyle(300)}>
-              5 Dakika
-            </button>
+            <div
+              style={{
+                textAlign: "center",
+                color: "#f8fafc",
+                fontSize: "20px",
+                fontWeight: "800",
+                marginBottom: "4px",
+                letterSpacing: "0.2px",
+              }}
+            >
+              {formatDurationLabel(selectedDuration)}
+            </div>
+
+            <input
+              type="range"
+              min="0"
+              max={durationOptions.length - 1}
+              step="1"
+              value={Math.max(0, durationOptions.indexOf(selectedDuration))}
+              onChange={(e) => {
+                const selectedIndex = Number(e.target.value);
+                setSelectedDuration(durationOptions[selectedIndex]);
+                setGameMode("classic");
+              }}
+              style={{
+                width: "calc(100% - 24px)",
+                margin: "0 12px",
+                appearance: "none",
+                WebkitAppearance: "none",
+                height: "10px",
+                borderRadius: "999px",
+                background: "rgba(255,255,255,0.82)",
+                outline: "none",
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                boxSizing: "border-box",
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0 12px",
+                marginTop: "10px",
+                gap: "8px",
+                flexWrap: "wrap",
+                color: "#cbd5e1",
+                fontSize: "13px",
+                fontWeight: "700",
+              }}
+            >
+              {durationOptions.map((option) => (
+                <span
+                  key={option}
+                  style={{
+                    color: selectedDuration === option ? "#60a5fa" : "#94a3b8",
+                    transition: "all 0.25s ease",
+                    minWidth: "60px",
+                    textAlign: "center",
+                    transform: selectedDuration === option ? "scale(1.15)" : "scale(1)",
+                    textShadow: selectedDuration === option
+                      ? "0 0 8px rgba(96,165,250,0.9), 0 0 16px rgba(96,165,250,0.6)"
+                      : "none",
+                    fontWeight: selectedDuration === option ? "900" : "700",
+                  }}
+                >
+                  <div>
+                    {option % 60 === 0
+                      ? `${option / 60} dk`
+                      : `${Math.floor(option / 60)} dk 30 sn`}
+                  </div>
+                </span>
+              ))}
+            </div>
           </div>
           {gameMode === "daily" ? (
             dailyResult ? (
@@ -5315,7 +5562,6 @@ function App() {
     );
   }
 
-  const question = questions[currentIndex];
 
 
   const duelIsCurrentUserPlayer1 = duelRoomData?.player1?.id === currentUser?.id;
@@ -5521,7 +5767,9 @@ function App() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        ...(effectiveIsGuestUser ? getGuestAvatarStyle(guestAvatarSeed) : {
+                                                  background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                                                }),
                         color: "#f8fafc",
                         fontSize: "32px",
                         fontWeight: "800",
@@ -5574,7 +5822,7 @@ function App() {
                         {authUserName || "Kullanıcı"}
                       </div>
                       <div style={{ color: "#93c5fd", fontSize: "13px" }}>
-                        {authUserEmail}
+                          {authUserEmail}
                       </div>
                     </div>
 
@@ -5586,80 +5834,84 @@ function App() {
                       style={{ display: "none" }}
                     />
 
-                    <button
-                      onClick={() => profileFileInputRef.current?.click()}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Profil Fotoğrafı Yükle
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowBadgesModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-                        boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
-                      }}
-                    >
-                      Rozetlerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowStatsModal(true);
-                        fetchProfileStats();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #0f766e, #134e4a)",
-                        boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
-                      }}
-                    >
-                      İstatistiklerim
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setShowDuelHistoryModal(true);
-                        fetchDuelHistory();
-                      }}
-                      style={{
-                        ...primaryButtonStyle,
-                        marginTop: 0,
-                        marginRight: 0,
-                        width: "100%",
-                        fontSize: "14px",
-                        padding: "12px 16px",
-                        marginBottom: "10px",
-                        background: "linear-gradient(135deg, #334155, #1e293b)",
-                        boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
-                      }}
-                    >
-                      Düello Maç Geçmişi
-                    </button>
+                    {!effectiveIsGuestUser && (
+                      <>
+                        <button
+                          onClick={() => profileFileInputRef.current?.click()}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          Profil Fotoğrafı Yükle
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowBadgesModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                            boxShadow: "0 10px 24px rgba(124, 58, 237, 0.30)",
+                          }}
+                        >
+                          Rozetlerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowStatsModal(true);
+                            fetchProfileStats();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #0f766e, #134e4a)",
+                            boxShadow: "0 10px 24px rgba(15, 118, 110, 0.30)",
+                          }}
+                        >
+                          İstatistiklerim
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            setShowDuelHistoryModal(true);
+                            fetchDuelHistory();
+                          }}
+                          style={{
+                            ...primaryButtonStyle,
+                            marginTop: 0,
+                            marginRight: 0,
+                            width: "100%",
+                            fontSize: "14px",
+                            padding: "12px 16px",
+                            marginBottom: "10px",
+                            background: "linear-gradient(135deg, #334155, #1e293b)",
+                            boxShadow: "0 10px 24px rgba(30, 41, 59, 0.30)",
+                          }}
+                        >
+                          Düello Maç Geçmişi
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={handleLogout}
                       style={{
