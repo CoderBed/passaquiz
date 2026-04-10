@@ -42,13 +42,31 @@ public class DuelReactionService {
             throw new RuntimeException("Geçersiz emoji");
         }
 
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
+        boolean isGuest = userEmail != null && userEmail.endsWith("@guest.local");
 
         DuelReaction reaction = new DuelReaction();
         reaction.setRoomCode(roomCode);
-        reaction.setSender(user);
         reaction.setEmoji(emoji);
+
+        if (!isGuest) {
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı: " + userEmail));
+            reaction.setSender(user);
+        } else {
+            reaction.setGuestSenderEmail(userEmail);
+
+            String guestName = "Misafir";
+            if (userEmail != null) {
+                String guestPrefix = userEmail.split("@")[0];
+                if (guestPrefix.startsWith("guest_")) {
+                    guestName = "Misafir-" + guestPrefix.substring("guest_".length()).toUpperCase();
+                } else {
+                    guestName = guestPrefix;
+                }
+            }
+
+            reaction.setGuestSenderName(guestName);
+        }
 
         duelReactionRepository.save(reaction);
     }
@@ -62,13 +80,24 @@ public class DuelReactionService {
             return null;
         }
 
+        Long senderId = reaction.getSender() != null ? reaction.getSender().getId() : null;
+
+        String senderName;
+        if (reaction.getSender() != null) {
+            senderName = reaction.getSender().getName() != null
+                    ? reaction.getSender().getName()
+                    : reaction.getSender().getEmail();
+        } else {
+            senderName = reaction.getGuestSenderName() != null
+                    ? reaction.getGuestSenderName()
+                    : "Misafir";
+        }
+
         return new DuelReactionResponse(
                 reaction.getId(),
                 reaction.getRoomCode(),
-                reaction.getSender().getId(),
-                reaction.getSender().getName() != null
-                        ? reaction.getSender().getName()
-                        : reaction.getSender().getEmail(),
+                senderId,
+                senderName,
                 reaction.getEmoji(),
                 reaction.getCreatedAt()
         );

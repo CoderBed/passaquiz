@@ -14,9 +14,15 @@ public class DuelReaction {
     @Column(name = "room_code", nullable = false)
     private String roomCode;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sender_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "sender_id", nullable = true)
     private User sender;
+
+    @Column(name = "guest_sender_name")
+    private String guestSenderName;
+
+    @Column(name = "guest_sender_email")
+    private String guestSenderEmail;
 
     @Column(name = "emoji", nullable = false, length = 10)
     private String emoji;
@@ -50,6 +56,22 @@ public class DuelReaction {
 
     public void setSender(User sender) {
         this.sender = sender;
+    }
+
+    public String getGuestSenderName() {
+        return guestSenderName;
+    }
+
+    public void setGuestSenderName(String guestSenderName) {
+        this.guestSenderName = guestSenderName;
+    }
+
+    public String getGuestSenderEmail() {
+        return guestSenderEmail;
+    }
+
+    public void setGuestSenderEmail(String guestSenderEmail) {
+        this.guestSenderEmail = guestSenderEmail;
     }
 
     public String getEmoji() {
