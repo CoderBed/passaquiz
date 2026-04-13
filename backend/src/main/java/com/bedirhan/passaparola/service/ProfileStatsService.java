@@ -41,7 +41,15 @@ public class ProfileStatsService {
 
         long dailyWins = gameResultRepository.countByUserEmailAndGameModeAndWonTrue(email, "daily");
         long duelWins = gameResultRepository.countByUserEmailAndGameModeAndWonTrue(email, "duel");
-        long duelLosses = gameResultRepository.countByUserEmailAndGameModeAndWonFalse(email, "duel");
+        long duelDraws = myGames.stream()
+                .filter(game -> "duel".equalsIgnoreCase(game.getGameMode()))
+                .filter(game -> "-".equals(game.getWinnerName()))
+                .count();
+        long duelLosses = myGames.stream()
+                .filter(game -> "duel".equalsIgnoreCase(game.getGameMode()))
+                .filter(game -> !Boolean.TRUE.equals(game.getWon()))
+                .filter(game -> !"-".equals(game.getWinnerName()))
+                .count();
 
         int dailyGameCount = (int) myGames.stream()
                 .filter(game -> "daily".equalsIgnoreCase(game.getGameMode()))
@@ -161,6 +169,7 @@ public class ProfileStatsService {
                 duelWins,
                 duelLosses
         );
+        response.setDuelDraws((int) duelDraws);
 
         response.setDailyGameCount(dailyGameCount);
         response.setDuelMatchCount(duelMatchCount);

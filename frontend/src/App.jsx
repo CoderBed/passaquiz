@@ -1608,9 +1608,14 @@ function App() {
         : roomData?.player2PassedCount ?? passedCount
     );
 
+    const isDraw =
+      myScore === opponentScore &&
+      myElapsedTime === opponentElapsedTime;
+
     const didWin =
-      myScore > opponentScore ||
-      (myScore === opponentScore && myElapsedTime < opponentElapsedTime);
+      !isDraw &&
+      (myScore > opponentScore ||
+        (myScore === opponentScore && myElapsedTime < opponentElapsedTime));
 
     duelResultSavedRef.current = true;
     lastSavedDuelRoomCodeRef.current = currentRoomCode;
@@ -1639,12 +1644,19 @@ function App() {
             ? (roomData?.player2Name || roomData?.player2?.name || "Rakip")
             : (roomData?.player1Name || roomData?.player1?.name || "Rakip"),
           opponentScore: opponentScore,
-          durationDifferenceSeconds: Math.abs(myElapsedTime - opponentElapsedTime),
-          winnerName: didWin
-            ? (authUserName || authUserEmail || "Sen")
-            : (isPlayer1
-                ? (roomData?.player2Name || roomData?.player2?.name || "Rakip")
-                : (roomData?.player1Name || roomData?.player1?.name || "Rakip")),
+          durationDifferenceSeconds:
+            myElapsedTime === opponentElapsedTime
+              ? 0
+              : myElapsedTime < opponentElapsedTime
+                ? Math.abs(opponentElapsedTime - myElapsedTime)
+                : -Math.abs(myElapsedTime - opponentElapsedTime),
+          winnerName: isDraw
+            ? "-"
+            : didWin
+              ? (authUserName || authUserEmail || "Sen")
+              : (isPlayer1
+                  ? (roomData?.player2Name || roomData?.player2?.name || "Rakip")
+                  : (roomData?.player1Name || roomData?.player1?.name || "Rakip")),
           duelRoomCode: currentRoomCode,
           won: didWin,
         }),
@@ -1834,11 +1846,45 @@ function App() {
 
       const data = await response.json();
       if (Array.isArray(data)) {
-        const sorted = [...data].sort((a, b) => {
+        const normalized = data.map((item) => {
+          const scoreText = String(item?.score ?? "0").trim();
+          const opponentScoreText = String(item?.opponentScore ?? "0").trim();
+          const durationDifferenceText = String(item?.durationDifferenceSeconds ?? "0").trim();
+          const winnerNameText = String(item?.winnerName ?? "").trim();
+
+          const isDraw =
+            (scoreText === opponentScoreText &&
+              (durationDifferenceText === "0" ||
+               durationDifferenceText === "0.0" ||
+               durationDifferenceText === "0.00")) ||
+            winnerNameText === "-";
+
+          const resultLabel = isDraw
+            ? "Beraberlik"
+            : item?.won
+              ? "Galibiyet"
+              : "Mağlubiyet";
+
+          const resultColor = isDraw
+            ? "#facc15"
+            : item?.won
+              ? "#22c55e"
+              : "#f87171";
+
+          return {
+            ...item,
+            isDraw,
+            resultLabel,
+            resultColor,
+          };
+        });
+
+        const sorted = [...normalized].sort((a, b) => {
           const dateA = new Date(a.playedAt || 0).getTime();
           const dateB = new Date(b.playedAt || 0).getTime();
-          return dateB - dateA; // newest first
+          return dateB - dateA;
         });
+
         setDuelHistory(sorted);
       } else {
         setDuelHistory([]);
@@ -3728,7 +3774,11 @@ function App() {
                       { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
                       { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
                       { label: "Günlük oyun sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
-                      { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
+                      {
+                        label: "Düello galibiyet / beraberlik / mağlubiyet",
+                        value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelDraws ?? 0} / ${profileStats?.duelLosses ?? 0}`,
+                        color: "#f87171"
+                      },
                     ].map((item) => (
                       <div
                         key={item.label}
@@ -3817,62 +3867,89 @@ function App() {
                   </p>
                 ) : (
                   <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
-                    {duelHistory.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          padding: "18px 20px",
-                          borderRadius: "18px",
-                          background: "rgba(15, 23, 42, 0.68)",
-                          border: "1px solid rgba(148, 163, 184, 0.12)",
-                        }}
-                      >
+                    {duelHistory.map((item) => {
+                      const scoreText = String(item.score ?? "0").trim();
+                      const opponentScoreText = String(item.opponentScore ?? "0").trim();
+                      const durationDifferenceText = String(item.durationDifferenceSeconds ?? "0").trim();
+                      const winnerNameText = String(item.winnerName ?? "").trim();
+
+                      const durationValue = parseFloat(durationDifferenceText);
+
+                      const isDraw =
+                        (scoreText === opponentScoreText && durationValue === 0) ||
+                        winnerNameText === "-";
+
+                      const resultLabel = isDraw
+                        ? "Beraberlik"
+                        : item.won
+                          ? "Galibiyet"
+                          : "Mağlubiyet";
+
+                      const resultColor = isDraw
+                        ? "#facc15"
+                        : item.won
+                          ? "#22c55e"
+                          : "#f87171";
+
+                      return (
                         <div
+                          key={item.id}
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "12px",
-                            flexWrap: "wrap",
-                            marginBottom: "10px",
+                            padding: "18px 20px",
+                            borderRadius: "18px",
+                            background: "rgba(15, 23, 42, 0.68)",
+                            border: "1px solid rgba(148, 163, 184, 0.12)",
                           }}
                         >
-                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
-                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
-                          </div>
                           <div
                             style={{
-                              color: item.won ? "#22c55e" : "#f87171",
-                              fontSize: "15px",
-                              fontWeight: "800",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "12px",
+                              flexWrap: "wrap",
+                              marginBottom: "10px",
                             }}
                           >
-                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                            <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                              Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                            </div>
+                            <div
+                              style={{
+                                color: resultColor,
+                                fontSize: "15px",
+                                fontWeight: "800",
+                              }}
+                            >
+                              {resultLabel}
+                            </div>
                           </div>
-                        </div>
 
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                            gap: "10px",
-                          }}
-                        >
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Kazanan:</strong> {item.winnerName || "-"}
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                              gap: "10px",
+                            }}
+                          >
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Kazanan:</strong> {item.winnerName || "-"}
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Süre farkı:</strong> {Number(item.durationDifferenceSeconds ?? 0) > 0
+                                ? `+${item.durationDifferenceSeconds}`
+                                : item.durationDifferenceSeconds ?? 0} sn
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -4159,62 +4236,89 @@ function App() {
                   </p>
                 ) : (
                   <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
-                    {duelHistory.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          padding: "18px 20px",
-                          borderRadius: "18px",
-                          background: "rgba(15, 23, 42, 0.68)",
-                          border: "1px solid rgba(148, 163, 184, 0.12)",
-                        }}
-                      >
+                    {duelHistory.map((item) => {
+                      const scoreText = String(item.score ?? "0").trim();
+                      const opponentScoreText = String(item.opponentScore ?? "0").trim();
+                      const durationDifferenceText = String(item.durationDifferenceSeconds ?? "0").trim();
+                      const winnerNameText = String(item.winnerName ?? "").trim();
+
+                      const durationValue = parseFloat(durationDifferenceText);
+
+                      const isDraw =
+                        (scoreText === opponentScoreText && (durationValue === 0)) ||
+                        winnerNameText === "-";
+
+                      const resultLabel = isDraw
+                        ? "Beraberlik"
+                        : item.won
+                          ? "Galibiyet"
+                          : "Mağlubiyet";
+
+                      const resultColor = isDraw
+                        ? "#facc15"
+                        : item.won
+                          ? "#22c55e"
+                          : "#f87171";
+
+                      return (
                         <div
+                          key={item.id}
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "12px",
-                            flexWrap: "wrap",
-                            marginBottom: "10px",
+                            padding: "18px 20px",
+                            borderRadius: "18px",
+                            background: "rgba(15, 23, 42, 0.68)",
+                            border: "1px solid rgba(148, 163, 184, 0.12)",
                           }}
                         >
-                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
-                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
-                          </div>
                           <div
                             style={{
-                              color: item.won ? "#22c55e" : "#f87171",
-                              fontSize: "15px",
-                              fontWeight: "800",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "12px",
+                              flexWrap: "wrap",
+                              marginBottom: "10px",
                             }}
                           >
-                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                            <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                              Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                            </div>
+                            <div
+                              style={{
+                                color: resultColor,
+                                fontSize: "15px",
+                                fontWeight: "800",
+                              }}
+                            >
+                              {resultLabel}
+                            </div>
                           </div>
-                        </div>
 
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                            gap: "10px",
-                          }}
-                        >
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Kazanan:</strong> {item.winnerName || "-"}
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                              gap: "10px",
+                            }}
+                          >
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Kazanan:</strong> {item.winnerName || "-"}
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Süre farkı:</strong> {Number(item.durationDifferenceSeconds ?? 0) > 0
+                                ? `+${item.durationDifferenceSeconds}`
+                                : item.durationDifferenceSeconds ?? 0} sn
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -5077,7 +5181,11 @@ function App() {
                       { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
                       { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
                       { label: "Günlük oyun sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
-                      { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
+                      {
+                          label: "Düello galibiyet / beraberlik / mağlubiyet",
+                          value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelDraws ?? 0} / ${profileStats?.duelLosses ?? 0}`,
+                          color: "#f87171"
+                      },
                     ].map((item) => (
                       <div
                         key={item.label}
@@ -5166,62 +5274,89 @@ function App() {
                   </p>
                 ) : (
                   <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
-                    {duelHistory.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          padding: "18px 20px",
-                          borderRadius: "18px",
-                          background: "rgba(15, 23, 42, 0.68)",
-                          border: "1px solid rgba(148, 163, 184, 0.12)",
-                        }}
-                      >
+                    {duelHistory.map((item) => {
+                      const scoreText = String(item.score ?? "0").trim();
+                      const opponentScoreText = String(item.opponentScore ?? "0").trim();
+                      const durationDifferenceText = String(item.durationDifferenceSeconds ?? "0").trim();
+                      const winnerNameText = String(item.winnerName ?? "").trim();
+
+                      const durationValue = parseFloat(durationDifferenceText);
+
+                      const isDraw =
+                        (scoreText === opponentScoreText && durationValue === 0) ||
+                        winnerNameText === "-";
+
+                      const resultLabel = isDraw
+                        ? "Beraberlik"
+                        : item.won
+                          ? "Galibiyet"
+                          : "Mağlubiyet";
+
+                      const resultColor = isDraw
+                        ? "#facc15"
+                        : item.won
+                          ? "#22c55e"
+                          : "#f87171";
+
+                      return (
                         <div
+                          key={item.id}
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "12px",
-                            flexWrap: "wrap",
-                            marginBottom: "10px",
+                            padding: "18px 20px",
+                            borderRadius: "18px",
+                            background: "rgba(15, 23, 42, 0.68)",
+                            border: "1px solid rgba(148, 163, 184, 0.12)",
                           }}
                         >
-                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
-                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
-                          </div>
                           <div
                             style={{
-                              color: item.won ? "#22c55e" : "#f87171",
-                              fontSize: "15px",
-                              fontWeight: "800",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "12px",
+                              flexWrap: "wrap",
+                              marginBottom: "10px",
                             }}
                           >
-                            {item.won ? "Galibiyet" : "Mağlubiyet"}
+                            <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                              Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                            </div>
+                            <div
+                              style={{
+                                color: resultColor,
+                                fontSize: "15px",
+                                fontWeight: "800",
+                              }}
+                            >
+                              {resultLabel}
+                            </div>
                           </div>
-                        </div>
 
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                            gap: "10px",
-                          }}
-                        >
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Kazanan:</strong> {item.winnerName || "-"}
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
-                          </div>
-                          <div style={{ color: "#e2e8f0" }}>
-                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                              gap: "10px",
+                            }}
+                          >
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Kazanan:</strong> {item.winnerName || "-"}
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Süre farkı:</strong> {Number(item.durationDifferenceSeconds ?? 0) > 0
+                                ? `+${item.durationDifferenceSeconds}`
+                                : item.durationDifferenceSeconds ?? 0} sn
+                            </div>
+                            <div style={{ color: "#e2e8f0" }}>
+                              <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -6247,7 +6382,11 @@ function App() {
                     { label: "En yüksek skor", value: profileStats?.highestScore ?? 0, color: "#22c55e" },
                     { label: "Ortalama skor", value: profileStats?.averageScore ?? 0, color: "#f59e0b" },
                     { label: "Günlük oyun sayısı", value: profileStats?.dailyWins ?? 0, color: "#a78bfa" },
-                    { label: "Düello galibiyet / mağlubiyet", value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelLosses ?? 0}`, color: "#f87171" },
+                    {
+                                            label: "Düello galibiyet / beraberlik / mağlubiyet",
+                                            value: `${profileStats?.duelWins ?? 0} / ${profileStats?.duelDraws ?? 0} / ${profileStats?.duelLosses ?? 0}`,
+                                            color: "#f87171"
+                                          },
                   ].map((item) => (
                     <div
                       key={item.label}
@@ -6337,62 +6476,89 @@ function App() {
                 </p>
               ) : (
                 <div style={{ display: "grid", gap: "14px", marginBottom: "24px" }}>
-                  {duelHistory.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        padding: "18px 20px",
-                        borderRadius: "18px",
-                        background: "rgba(15, 23, 42, 0.68)",
-                        border: "1px solid rgba(148, 163, 184, 0.12)",
-                      }}
-                    >
+                  {duelHistory.map((item) => {
+                    const scoreText = String(item.score ?? "0").trim();
+                    const opponentScoreText = String(item.opponentScore ?? "0").trim();
+                    const durationDifferenceText = String(item.durationDifferenceSeconds ?? "0").trim();
+                    const winnerNameText = String(item.winnerName ?? "").trim();
+
+                    const durationValue = parseFloat(durationDifferenceText);
+
+                    const isDraw =
+                      (scoreText === opponentScoreText && durationValue === 0) ||
+                      winnerNameText === "-";
+
+                    const resultLabel = isDraw
+                      ? "Beraberlik"
+                      : item.won
+                        ? "Galibiyet"
+                        : "Mağlubiyet";
+
+                    const resultColor = isDraw
+                      ? "#facc15"
+                      : item.won
+                        ? "#22c55e"
+                        : "#f87171";
+
+                    return (
                       <div
+                        key={item.id}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "12px",
-                          flexWrap: "wrap",
-                          marginBottom: "10px",
+                          padding: "18px 20px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.68)",
+                          border: "1px solid rgba(148, 163, 184, 0.12)",
                         }}
                       >
-                        <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
-                          Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
-                        </div>
                         <div
                           style={{
-                            color: item.won ? "#22c55e" : "#f87171",
-                            fontSize: "15px",
-                            fontWeight: "800",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginBottom: "10px",
                           }}
                         >
-                          {item.won ? "Galibiyet" : "Mağlubiyet"}
+                          <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800" }}>
+                            Rakip: <span style={{ color: "#93c5fd" }}>{item.opponentName || "Rakip"}</span>
+                          </div>
+                          <div
+                            style={{
+                              color: resultColor,
+                              fontSize: "15px",
+                              fontWeight: "800",
+                            }}
+                          >
+                            {resultLabel}
+                          </div>
                         </div>
-                      </div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                          gap: "10px",
-                        }}
-                      >
-                        <div style={{ color: "#e2e8f0" }}>
-                          <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
-                        </div>
-                        <div style={{ color: "#e2e8f0" }}>
-                          <strong>Kazanan:</strong> {item.winnerName || "-"}
-                        </div>
-                        <div style={{ color: "#e2e8f0" }}>
-                          <strong>Süre farkı:</strong> {item.durationDifferenceSeconds ?? 0} sn
-                        </div>
-                        <div style={{ color: "#e2e8f0" }}>
-                          <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Skor:</strong> {item.score ?? 0} - {item.opponentScore ?? 0}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Kazanan:</strong> {item.winnerName || "-"}
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Süre farkı:</strong> {Number(item.durationDifferenceSeconds ?? 0) > 0
+                              ? `+${item.durationDifferenceSeconds}`
+                              : item.durationDifferenceSeconds ?? 0} sn
+                          </div>
+                          <div style={{ color: "#e2e8f0" }}>
+                            <strong>Tarih:</strong> {item.playedAt ? new Date(item.playedAt).toLocaleString("tr-TR") : "-"}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

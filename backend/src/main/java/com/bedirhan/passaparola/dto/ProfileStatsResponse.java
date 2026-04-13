@@ -6,6 +6,7 @@ public class ProfileStatsResponse {
     private int averageScore;
     private long dailyWins;
     private long duelWins;
+    private long duelDraws;
     private long duelLosses;
 
     private int dailyGameCount;
@@ -82,6 +83,14 @@ public class ProfileStatsResponse {
 
     public void setDuelWins(long duelWins) {
         this.duelWins = duelWins;
+    }
+
+    public long getDuelDraws() {
+        return duelDraws;
+    }
+
+    public void setDuelDraws(long duelDraws) {
+        this.duelDraws = duelDraws;
     }
 
     public long getDuelLosses() {
