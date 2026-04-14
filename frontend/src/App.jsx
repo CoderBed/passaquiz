@@ -136,6 +136,18 @@ function DuelLobby({ currentUser, onBack, onStartDuel }) {
   };
 
   useEffect(() => {
+    return () => {
+      if (!roomCode || !currentUser?.id) return;
+
+      const payload = JSON.stringify({ playerId: currentUser.id });
+      navigator.sendBeacon(
+        `http://localhost:8080/api/duel/rooms/${roomCode}/leave`,
+        new Blob([payload], { type: "application/json" })
+      );
+    };
+  }, [roomCode, currentUser?.id]);
+
+  useEffect(() => {
     if (!roomCode) return;
 
     const intervalId = setInterval(async () => {
@@ -541,6 +553,8 @@ function App() {
   const resultSavedRef = useRef(false);
   const duelResultSavedRef = useRef(false);
   const lastSavedDuelRoomCodeRef = useRef("");
+  const previousGameModeRef = useRef("classic");
+  const latestDuelSessionRef = useRef({ roomCode: null, playerId: null });
   const activeGameModeRef = useRef("classic");
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showBadgesModal, setShowBadgesModal] = useState(false);
@@ -1225,7 +1239,23 @@ function App() {
     setGameStarted(true);
   };
 
-  const restartGame = () => {
+  const activePlayerId = authUserId ?? currentUser?.id ?? null;
+
+  useEffect(() => {
+    const resolvedRoomCode = activeDuelRoomCode || duelRoomCode || duelRoomData?.roomCode || duelRoomData?.code || null;
+
+    if (gameMode === "duel" && resolvedRoomCode && activePlayerId) {
+      latestDuelSessionRef.current = {
+        roomCode: resolvedRoomCode,
+        playerId: activePlayerId,
+      };
+    }
+  }, [gameMode, activeDuelRoomCode, duelRoomCode, duelRoomData, activePlayerId]);
+
+  const restartGame = async () => {
+    if (gameMode === "duel" && duelRoomCode && activePlayerId) {
+      await leaveDuelRoom();
+    }
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
     lastSavedDuelRoomCodeRef.current = "";
@@ -1272,6 +1302,9 @@ function App() {
   };
 
   const exitGame = async () => {
+    if (gameMode === "duel" && duelRoomCode && activePlayerId) {
+      await leaveDuelRoom();
+    }
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
     lastSavedDuelRoomCodeRef.current = "";
@@ -1437,7 +1470,14 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (gameMode === "duel" && duelRoomCode && activePlayerId) {
+      try {
+        await leaveDuelRoom();
+      } catch (error) {
+        console.error("Çıkış öncesi düello odası bildirilemedi:", error);
+      }
+    }
     sessionStorage.removeItem("token");
 
     setIsAuthenticated(false);
@@ -1672,6 +1712,73 @@ function App() {
     }
   };
 
+  const leaveDuelRoom = async () => {
+    const roomCodeToLeave =
+      activeDuelRoomCode ||
+      duelRoomCode ||
+      duelRoomData?.roomCode ||
+      duelRoomData?.code ||
+      latestDuelSessionRef.current.roomCode;
+    const playerIdToLeave = activePlayerId || latestDuelSessionRef.current.playerId;
+
+    console.log("leaveDuelRoom çağrıldı", {
+      gameMode,
+      duelRoomCode,
+      activeDuelRoomCode,
+      duelRoomData,
+      activePlayerId,
+      roomCodeToLeave,
+      playerIdToLeave,
+      latest: latestDuelSessionRef.current,
+    });
+
+    if (!roomCodeToLeave || !playerIdToLeave) {
+      console.log("leaveDuelRoom erken çıktı");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/duel/rooms/${roomCodeToLeave}/leave`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        keepalive: true,
+        body: JSON.stringify({
+          playerId: playerIdToLeave,
+        }),
+      });
+
+      console.log("leave response status:", response.status);
+    } catch (error) {
+      console.error("Düello odasından çıkış bildirilemedi:", error);
+    }
+  };
+
+  const returnToMainMenu = async () => {
+    console.log("returnToMainMenu çalıştı", {
+      gameMode,
+      duelRoomCode,
+      activePlayerId,
+      latest: latestDuelSessionRef.current,
+    });
+
+    await leaveDuelRoom();
+
+    if (duelSharedStartStorageKey) {
+      localStorage.removeItem(duelSharedStartStorageKey);
+    }
+
+    previousGameModeRef.current = "classic";
+
+    setGameMode("classic");
+    setDuelRoomCode("");
+    setDuelRoomData(null);
+    setDuelWaitingForOpponent(false);
+    setDuelSharedStartTime(null);
+    setGameStarted(false);
+  };
+
   const finishGame = async () => {
     if (resultSavedRef.current) return;
     resultSavedRef.current = true;
@@ -1720,7 +1827,7 @@ function App() {
   };
 
   const submitDuelProgress = async (abandoned = false) => {
-    if (!duelRoomCode || !currentUser?.id) return null;
+    if (!duelRoomCode || !activePlayerId) return null;
 
     const elapsed = selectedDuration - timeLeft;
 
@@ -1731,7 +1838,7 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          playerId: currentUser.id,
+          playerId: activePlayerId,
           score,
           elapsedTime: elapsed,
           correctCount,
@@ -2116,6 +2223,30 @@ function App() {
     setUserAnswer("");
   }, [currentIndex, gameStarted, gameFinished]);
 
+  useEffect(() => {
+    const previousMode = previousGameModeRef.current;
+
+    if (previousMode === "duel" && gameMode !== "duel") {
+      const { roomCode, playerId } = latestDuelSessionRef.current;
+
+      if (roomCode && playerId) {
+        fetch(`http://localhost:8080/api/duel/rooms/${roomCode}/leave`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            playerId,
+          }),
+        }).catch((error) => {
+          console.error("Düello modundan çıkış backend'e bildirilemedi:", error);
+        });
+      }
+    }
+
+    previousGameModeRef.current = gameMode;
+  }, [gameMode]);
+
   const completeAnswerKey = useMemo(() => {
     const sourceHistory =
       gameMode === "daily" && !gameStarted && Array.isArray(dailyResult?.answerHistory)
@@ -2221,6 +2352,9 @@ function App() {
   const duelWinnerName = duelWinnerInfo.winnerName;
   const duelWinnerMessage = duelWinnerInfo.message;
 
+  // Track if duel room previously had an opponent
+  const duelOpponentPresentRef = useRef(false);
+
   useEffect(() => {
     if (gameMode !== "duel" || !duelRoomCode) return;
 
@@ -2235,6 +2369,20 @@ function App() {
         const data = JSON.parse(raw);
         setDuelRoomData(data);
 
+        const currentPlayerId = String(activePlayerId ?? "");
+        const hasOpponentNow = [data?.player1Id, data?.player2Id]
+          .filter((id) => id != null)
+          .some((id) => String(id) !== currentPlayerId);
+
+        const hadOpponent = duelOpponentPresentRef.current;
+        duelOpponentPresentRef.current = hasOpponentNow;
+
+        if (hadOpponent && !hasOpponentNow && data?.status !== "FINISHED") {
+          setDuelWaitingForOpponent(false);
+          setGameStarted(false);
+          alert("Rakibin odadan ayrıldı.");
+        }
+
         if (data?.player1Finished && data?.player2Finished) {
           setDuelWaitingForOpponent(false);
           setGameFinished(true);
@@ -2246,7 +2394,41 @@ function App() {
     }, 1500);
 
     return () => clearInterval(intervalId);
-  }, [gameMode, duelRoomCode]);
+  }, [gameMode, duelRoomCode, activePlayerId]);
+
+  useEffect(() => {
+    if (gameMode !== "duel") {
+      duelOpponentPresentRef.current = false;
+      return;
+    }
+
+    const currentPlayerId = String(activePlayerId ?? "");
+    const hasOpponent = [duelRoomData?.player1Id, duelRoomData?.player2Id]
+      .filter((id) => id != null)
+      .some((id) => String(id) !== currentPlayerId);
+
+    duelOpponentPresentRef.current = hasOpponent;
+  }, [gameMode, duelRoomData, activePlayerId]);
+
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (gameMode !== "duel") return;
+      if (!duelRoomCode || !activePlayerId) return;
+
+      const payload = JSON.stringify({ playerId: activePlayerId });
+
+      navigator.sendBeacon(
+        `http://localhost:8080/api/duel/rooms/${duelRoomCode}/leave`,
+        new Blob([payload], { type: "application/json" })
+      );
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [gameMode, duelRoomCode, activePlayerId]);
 
   useEffect(() => {
     if (gameMode !== "duel") return;
@@ -2768,7 +2950,7 @@ function App() {
           >
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
               <button
-                onClick={() => setGameMode("classic")}
+                onClick={returnToMainMenu}
                 style={{
                   width: "44px",
                   height: "44px",
@@ -3338,7 +3520,7 @@ function App() {
           >
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
               <button
-                onClick={() => setGameMode("classic")}
+                onClick={returnToMainMenu}
                 style={{
                   width: "44px",
                   height: "44px",
@@ -4953,7 +5135,7 @@ function App() {
           {gameMode === "daily" ? (
             dailyResult ? (
               <button
-                onClick={() => setGameMode("classic")}
+                onClick={returnToMainMenu}
                 style={{
                   padding: "18px 28px",
                   fontSize: "20px",
@@ -7651,7 +7833,7 @@ function App() {
                         ? "#dc2626"
                         : resultMessage === "Lütfen bir cevap yazın"
                           ? "#475569"
-                          : "#d97706",
+                          : "#f8fafc",
                 }}
               >
                 {resultMessage}

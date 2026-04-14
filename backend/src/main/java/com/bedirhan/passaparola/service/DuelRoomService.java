@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
@@ -189,6 +190,66 @@ public class DuelRoomService {
         }
 
         return room;
+    }
+
+    public DuelRoom leaveRoom(String roomCode, Long playerId) {
+        DuelRoom room = rooms.get(roomCode);
+
+        if (room == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
+        }
+
+        if (playerId == null) {
+            throw new RuntimeException("Oyuncu bilgisi eksik.");
+        }
+
+        if (Objects.equals(room.getPlayer1Id(), playerId)) {
+            if (room.getPlayer2Id() != null) {
+                room.setPlayer1Id(room.getPlayer2Id());
+                room.setPlayer1Name(room.getPlayer2Name());
+                room.setPlayer1Ready(false);
+                room.setPlayer1Score(room.getPlayer2Score());
+                room.setPlayer1ElapsedTime(room.getPlayer2ElapsedTime());
+                room.setPlayer1CorrectCount(room.getPlayer2CorrectCount());
+                room.setPlayer1WrongCount(room.getPlayer2WrongCount());
+                room.setPlayer1PassedCount(room.getPlayer2PassedCount());
+                room.setPlayer1Finished(room.isPlayer2Finished());
+
+                room.setPlayer2Id(null);
+                room.setPlayer2Name(null);
+                room.setPlayer2Ready(false);
+                room.setPlayer2Score(0);
+                room.setPlayer2ElapsedTime(0);
+                room.setPlayer2CorrectCount(0);
+                room.setPlayer2WrongCount(0);
+                room.setPlayer2PassedCount(0);
+                room.setPlayer2Finished(false);
+
+                room.setStatus(DuelStatus.WAITING);
+                room.setGameStartAt(null);
+                return room;
+            }
+
+            rooms.remove(roomCode);
+            return null;
+        }
+
+        if (Objects.equals(room.getPlayer2Id(), playerId)) {
+            room.setPlayer2Id(null);
+            room.setPlayer2Name(null);
+            room.setPlayer2Ready(false);
+            room.setPlayer2Score(0);
+            room.setPlayer2ElapsedTime(0);
+            room.setPlayer2CorrectCount(0);
+            room.setPlayer2WrongCount(0);
+            room.setPlayer2PassedCount(0);
+            room.setPlayer2Finished(false);
+            room.setStatus(DuelStatus.WAITING);
+            room.setGameStartAt(null);
+            return room;
+        }
+
+        throw new RuntimeException("Oyuncu bu odada değil.");
     }
 
     public DuelRoom getRoom(String roomCode) {
