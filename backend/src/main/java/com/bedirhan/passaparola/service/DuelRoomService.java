@@ -75,6 +75,10 @@ public class DuelRoomService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
         }
 
+        if (room.getStatus() == DuelStatus.STARTED || room.getStatus() == DuelStatus.FINISHED) {
+            return room;
+        }
+
         if (room.getPlayer1Id() != null && room.getPlayer1Id().equals(request.getPlayerId())) {
             room.setPlayer1Ready(request.isReady());
         } else if (room.getPlayer2Id() != null && room.getPlayer2Id().equals(request.getPlayerId())) {
@@ -83,7 +87,7 @@ public class DuelRoomService {
             throw new RuntimeException("Oyuncu bu odada değil.");
         }
 
-        if (room.isFull()) {
+        if (room.isFull() && !room.isBothReady()) {
             room.setStatus(DuelStatus.READY);
         }
 
@@ -201,6 +205,10 @@ public class DuelRoomService {
 
         if (playerId == null) {
             throw new RuntimeException("Oyuncu bilgisi eksik.");
+        }
+
+        if (room.getStatus() == DuelStatus.STARTED) {
+            return room;
         }
 
         if (Objects.equals(room.getPlayer1Id(), playerId)) {

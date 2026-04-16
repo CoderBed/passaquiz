@@ -4,6 +4,7 @@ public class DuelReactionRequest {
 
     private String roomCode;
     private String emoji;
+    private String userEmail;
 
     public DuelReactionRequest() {
     }
@@ -22,5 +23,13 @@ public class DuelReactionRequest {
 
     public void setEmoji(String emoji) {
         this.emoji = emoji;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }

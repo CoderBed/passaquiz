@@ -9,6 +9,7 @@ import com.bedirhan.passaparola.entity.User;
 import com.bedirhan.passaparola.repository.UserRepository;
 import com.bedirhan.passaparola.service.DailyGameService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Optional;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -77,13 +79,24 @@ public class GameController {
 
     @PostMapping("/api/game/result")
     public ResponseEntity<?> saveResult(@RequestBody GameResultRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication != null ? authentication.getName() : null;
+
+        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
+        }
 
         if (email.endsWith("@guest.local")) {
             return ResponseEntity.ok("Misafir kullanıcı için sonuç kaydedilmedi.");
         }
 
-        User user = userRepository.findByEmail(email).orElseThrow();
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Kullanıcı bulunamadı: " + email);
+        }
+
+        User user = userOptional.get();
 
         GameResult result = new GameResult();
         result.setUserEmail(user.getEmail());
@@ -116,13 +129,24 @@ public class GameController {
 
     @PostMapping("/api/game/duel-result")
     public ResponseEntity<?> saveDuelResult(@RequestBody GameResultRequest request) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication != null ? authentication.getName() : null;
+
+        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
+        }
 
         if (email.endsWith("@guest.local")) {
             return ResponseEntity.ok("Misafir kullanıcı için düello sonucu kaydedilmedi.");
         }
 
-        User user = userRepository.findByEmail(email).orElseThrow();
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Kullanıcı bulunamadı: " + email);
+        }
+
+        User user = userOptional.get();
 
         GameResult result = new GameResult();
         result.setUserEmail(user.getEmail());
@@ -156,7 +180,12 @@ public class GameController {
 
     @GetMapping("/api/game/duel-history")
     public ResponseEntity<?> getDuelHistory() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication != null ? authentication.getName() : null;
+
+        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
+        }
         List<GameResult> history = gameResultRepository.findByUserEmailAndGameModeOrderByPlayedAtDesc(email, "duel");
         return ResponseEntity.ok(history);
     }

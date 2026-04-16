@@ -573,6 +573,8 @@ function App() {
   const [showDuelEmojiPicker, setShowDuelEmojiPicker] = useState(false);
   const [duelEmojiCooldownUntil, setDuelEmojiCooldownUntil] = useState(0);
   const duelEmojiPickerRef = useRef(null);
+  const duelOpponentPresentRef = useRef(false);
+  const finishedDuelSnapshotRef = useRef(null);
 
   const currentUser = {
     id: authUserId,
@@ -827,28 +829,7 @@ function App() {
     duelResultSavedRef.current = false;
     lastSavedDuelRoomCodeRef.current = "";
     activeGameModeRef.current = "duel";
-    setAnswerHistory([]);
-    setShowAnswerKey(false);
-    setResultTab("stats");
-    setExpandedAnswerIndex(null);
-    setHoveredResultTab(null);
-    setQuestions(duelQuestions);
-    setQuestionStatuses(duelQuestions.map(() => "pending"));
-    setPassedQueue([]);
-    setIsReviewingPassed(false);
-    setCurrentIndex(0);
-    setUserAnswer("");
-    setResultMessage("");
-    setScore(0);
-    setAnswered(false);
-    setGameFinished(false);
-    setIsPaused(false);
-    // Reset streaks when starting duel game
-    setCurrentCorrectStreak(0);
-    setMaxCorrectStreak(0);
-
-    resultSavedRef.current = false;
-    duelResultSavedRef.current = false;
+    setGameMode("duel");
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -873,6 +854,8 @@ function App() {
     setDuelRoomData(room || null);
     setDuelSharedStartTime(sharedDuelStartAt);
     setDuelWaitingForOpponent(false);
+    setCurrentCorrectStreak(0);
+    setMaxCorrectStreak(0);
     setGameStarted(true);
   };
 
@@ -1258,6 +1241,7 @@ function App() {
     }
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
+    finishedDuelSnapshotRef.current = null;
     lastSavedDuelRoomCodeRef.current = "";
     activeGameModeRef.current = "classic";
     setAnswerHistory([]);
@@ -1307,6 +1291,7 @@ function App() {
     }
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
+    finishedDuelSnapshotRef.current = null;
     lastSavedDuelRoomCodeRef.current = "";
     activeGameModeRef.current = "classic";
     setAnswerHistory([]);
@@ -1503,10 +1488,6 @@ function App() {
     setAnswered(false);
     setPassedQueue([]);
     setIsReviewingPassed(false);
-    setCorrectCount(0);
-    setWrongCount(0);
-    setPassedCount(0);
-    setElapsedTime(0);
     setTimeLeft(180);
     setAnswerHistory([]);
     setExpandedAnswerIndex(null);
@@ -1525,14 +1506,12 @@ function App() {
       localStorage.removeItem(duelSharedStartStorageKey);
     }
     setDuelRoomCode("");
-    setJoinedRoomCode("");
-    setCreatedRoom(null);
     setDuelRoomData(null);
     setDuelSharedStartTime(null);
     setDuelWaitingForOpponent(false);
-    setStartCountdown(null);
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
+    finishedDuelSnapshotRef.current = null;
     lastSavedDuelRoomCodeRef.current = "";
     previousScoreRef.current = 0;
 
@@ -1703,12 +1682,21 @@ function App() {
       });
 
       if (!response.ok) {
-        throw new Error("Düello sonucu kaydedilemedi");
+        const errorText = await response.text();
+        throw new Error(`Düello sonucu kaydedilemedi: ${response.status} - ${errorText}`);
       }
     } catch (error) {
       duelResultSavedRef.current = false;
       lastSavedDuelRoomCodeRef.current = "";
       console.error("Düello sonucu kaydedilemedi:", error);
+      console.error("Düello sonucu kayıt debug:", {
+        roomData,
+        currentRoomCode,
+        authUserId,
+        authUserName,
+        authUserEmail,
+        tokenExists: Boolean(token),
+      });
     }
   };
 
@@ -1720,6 +1708,10 @@ function App() {
       duelRoomData?.code ||
       latestDuelSessionRef.current.roomCode;
     const playerIdToLeave = activePlayerId || latestDuelSessionRef.current.playerId;
+    const rawToken = sessionStorage.getItem("token");
+    const authHeader = rawToken
+      ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`)
+      : null;
 
     console.log("leaveDuelRoom çağrıldı", {
       gameMode,
@@ -1742,6 +1734,7 @@ function App() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
         },
         keepalive: true,
         body: JSON.stringify({
@@ -1769,6 +1762,7 @@ function App() {
       localStorage.removeItem(duelSharedStartStorageKey);
     }
 
+    finishedDuelSnapshotRef.current = null;
     previousGameModeRef.current = "classic";
 
     setGameMode("classic");
@@ -1789,6 +1783,7 @@ function App() {
       const data = await submitDuelProgress(false);
 
       if (data?.player1Finished && data?.player2Finished) {
+        finishedDuelSnapshotRef.current = data;
         setDuelRoomData(data);
         setDuelWaitingForOpponent(false);
         setGameFinished(true);
@@ -1827,18 +1822,33 @@ function App() {
   };
 
   const submitDuelProgress = async (abandoned = false) => {
-    if (!duelRoomCode || !activePlayerId) return null;
+    const roomCodeToSubmit =
+      activeDuelRoomCode ||
+      duelRoomCode ||
+      duelRoomData?.roomCode ||
+      duelRoomData?.code ||
+      latestDuelSessionRef.current.roomCode;
+
+    const playerIdToSubmit =
+      activePlayerId || latestDuelSessionRef.current.playerId;
+
+    if (!roomCodeToSubmit || !playerIdToSubmit) return null;
+    const rawToken = sessionStorage.getItem("token");
+    const authHeader = rawToken
+      ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`)
+      : null;
 
     const elapsed = selectedDuration - timeLeft;
 
     try {
-      const response = await fetch(`http://localhost:8080/api/duel/rooms/${duelRoomCode}/finish`, {
+      const response = await fetch(`http://localhost:8080/api/duel/rooms/${roomCodeToSubmit}/finish`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
         },
         body: JSON.stringify({
-          playerId: activePlayerId,
+          playerId: playerIdToSubmit,
           score,
           elapsedTime: elapsed,
           correctCount,
@@ -1849,6 +1859,16 @@ function App() {
       });
 
       const raw = await response.text();
+
+      if (!response.ok) {
+        console.error("Düello finish isteği başarısız oldu:", response.status, raw);
+        return {
+          authError: response.status === 401 || response.status === 403,
+          statusCode: response.status,
+          raw,
+        };
+      }
+
       if (!raw) return null;
 
       const data = JSON.parse(raw);
@@ -2223,30 +2243,6 @@ function App() {
     setUserAnswer("");
   }, [currentIndex, gameStarted, gameFinished]);
 
-  useEffect(() => {
-    const previousMode = previousGameModeRef.current;
-
-    if (previousMode === "duel" && gameMode !== "duel") {
-      const { roomCode, playerId } = latestDuelSessionRef.current;
-
-      if (roomCode && playerId) {
-        fetch(`http://localhost:8080/api/duel/rooms/${roomCode}/leave`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            playerId,
-          }),
-        }).catch((error) => {
-          console.error("Düello modundan çıkış backend'e bildirilemedi:", error);
-        });
-      }
-    }
-
-    previousGameModeRef.current = gameMode;
-  }, [gameMode]);
-
   const completeAnswerKey = useMemo(() => {
     const sourceHistory =
       gameMode === "daily" && !gameStarted && Array.isArray(dailyResult?.answerHistory)
@@ -2278,51 +2274,61 @@ function App() {
     });
   }, [questions, answerHistory, questionStatuses, gameMode, gameStarted, dailyResult]);
 
+  const effectiveDuelRoomData =
+    gameMode === "duel" && gameFinished && finishedDuelSnapshotRef.current
+      ? finishedDuelSnapshotRef.current
+      : duelRoomData;
 
   const duelOpponentScore = isDuelPlayer1
-    ? duelRoomData?.player2Score
-    : duelRoomData?.player1Score;
+    ? effectiveDuelRoomData?.player2Score
+    : effectiveDuelRoomData?.player1Score;
 
   const duelMyRecordedScore = isDuelPlayer1
-    ? duelRoomData?.player1Score
-    : duelRoomData?.player2Score;
+    ? effectiveDuelRoomData?.player1Score
+    : effectiveDuelRoomData?.player2Score;
 
   const duelOpponentElapsedTime = isDuelPlayer1
-    ? duelRoomData?.player2ElapsedTime
-    : duelRoomData?.player1ElapsedTime;
+    ? effectiveDuelRoomData?.player2ElapsedTime
+    : effectiveDuelRoomData?.player1ElapsedTime;
 
   const duelOpponentCorrectCount = isDuelPlayer1
-    ? duelRoomData?.player2CorrectCount
-    : duelRoomData?.player1CorrectCount;
+    ? effectiveDuelRoomData?.player2CorrectCount
+    : effectiveDuelRoomData?.player1CorrectCount;
 
   const duelOpponentWrongCount = isDuelPlayer1
-    ? duelRoomData?.player2WrongCount
-    : duelRoomData?.player1WrongCount;
+    ? effectiveDuelRoomData?.player2WrongCount
+    : effectiveDuelRoomData?.player1WrongCount;
 
   const duelOpponentPassedCount = isDuelPlayer1
-    ? duelRoomData?.player2PassedCount
-    : duelRoomData?.player1PassedCount;
+    ? effectiveDuelRoomData?.player2PassedCount
+    : effectiveDuelRoomData?.player1PassedCount;
 
   const duelWinnerInfo = (() => {
-    if (gameMode !== "duel" || !duelRoomData) {
+    if (gameMode !== "duel" || !effectiveDuelRoomData) {
+      return {
+        winnerName: "",
+        message: "",
+      };
+    }
+    if (!effectiveDuelRoomData?.player1Finished || !effectiveDuelRoomData?.player2Finished) {
       return {
         winnerName: "",
         message: "",
       };
     }
 
-    const player1Score = Number(duelRoomData?.player1Score ?? 0);
-    const player2Score = Number(duelRoomData?.player2Score ?? 0);
+    const player1Score = Number(effectiveDuelRoomData?.player1Score ?? 0);
+    const player2Score = Number(effectiveDuelRoomData?.player2Score ?? 0);
 
     const player1ElapsedTime = Number(
-      duelRoomData?.player1ElapsedTime ?? Number.MAX_SAFE_INTEGER
+      effectiveDuelRoomData?.player1ElapsedTime ?? Number.MAX_SAFE_INTEGER
     );
     const player2ElapsedTime = Number(
-      duelRoomData?.player2ElapsedTime ?? Number.MAX_SAFE_INTEGER
+      effectiveDuelRoomData?.player2ElapsedTime ?? Number.MAX_SAFE_INTEGER
     );
 
-    const player1Name = duelRoomData?.player1Name || "Oyuncu 1";
-    const player2Name = duelRoomData?.player2Name || "Oyuncu 2";
+    const player1Name = effectiveDuelRoomData?.player1Name || "Oyuncu 1";
+    const player2Name = effectiveDuelRoomData?.player2Name || "Oyuncu 2";
 
     if (player1Score === player2Score) {
       if (player1ElapsedTime === player2ElapsedTime) {
@@ -2352,49 +2358,114 @@ function App() {
   const duelWinnerName = duelWinnerInfo.winnerName;
   const duelWinnerMessage = duelWinnerInfo.message;
 
-  // Track if duel room previously had an opponent
-  const duelOpponentPresentRef = useRef(false);
 
   useEffect(() => {
-    if (gameMode !== "duel" || !duelRoomCode) return;
+    const hasCompleteFinishedSnapshot =
+      Boolean(finishedDuelSnapshotRef.current?.player1Finished) &&
+      Boolean(finishedDuelSnapshotRef.current?.player2Finished);
 
-    const intervalId = setInterval(async () => {
+    if (gameMode !== "duel" || !duelRoomCode || hasCompleteFinishedSnapshot) return;
+
+    let stopped = false;
+    let intervalId = null;
+
+    const fetchDuelRoom = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/duel/rooms/${duelRoomCode}`);
+        const rawToken = sessionStorage.getItem("token");
+        if (!rawToken || stopped) return;
+
+        const authHeader = rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`;
+
+        const response = await fetch(`http://localhost:8080/api/duel/rooms/${duelRoomCode}`, {
+          headers: {
+            Authorization: authHeader,
+          },
+          cache: "no-store",
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          stopped = true;
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
+
         if (!response.ok) return;
 
         const raw = await response.text();
-        if (!raw) return;
+        if (!raw || stopped) return;
 
         const data = JSON.parse(raw);
-        setDuelRoomData(data);
+        if (stopped) return;
+
+        const preserveFinishedSnapshot =
+          Boolean(finishedDuelSnapshotRef.current?.player1Finished) &&
+          Boolean(finishedDuelSnapshotRef.current?.player2Finished);
+
+        const mergedRoomData = preserveFinishedSnapshot
+          ? {
+              ...finishedDuelSnapshotRef.current,
+              ...data,
+              player1Id: data?.player1Id ?? finishedDuelSnapshotRef.current?.player1Id,
+              player1Name: data?.player1Name ?? finishedDuelSnapshotRef.current?.player1Name,
+              player1Score: data?.player1Score ?? finishedDuelSnapshotRef.current?.player1Score,
+              player1ElapsedTime: data?.player1ElapsedTime ?? finishedDuelSnapshotRef.current?.player1ElapsedTime,
+              player1CorrectCount: data?.player1CorrectCount ?? finishedDuelSnapshotRef.current?.player1CorrectCount,
+              player1WrongCount: data?.player1WrongCount ?? finishedDuelSnapshotRef.current?.player1WrongCount,
+              player1PassedCount: data?.player1PassedCount ?? finishedDuelSnapshotRef.current?.player1PassedCount,
+              player1Finished: data?.player1Finished ?? finishedDuelSnapshotRef.current?.player1Finished,
+              player2Id: data?.player2Id ?? finishedDuelSnapshotRef.current?.player2Id,
+              player2Name: data?.player2Name ?? finishedDuelSnapshotRef.current?.player2Name,
+              player2Score: data?.player2Score ?? finishedDuelSnapshotRef.current?.player2Score,
+              player2ElapsedTime: data?.player2ElapsedTime ?? finishedDuelSnapshotRef.current?.player2ElapsedTime,
+              player2CorrectCount: data?.player2CorrectCount ?? finishedDuelSnapshotRef.current?.player2CorrectCount,
+              player2WrongCount: data?.player2WrongCount ?? finishedDuelSnapshotRef.current?.player2WrongCount,
+              player2PassedCount: data?.player2PassedCount ?? finishedDuelSnapshotRef.current?.player2PassedCount,
+              player2Finished: data?.player2Finished ?? finishedDuelSnapshotRef.current?.player2Finished,
+            }
+          : data;
+
+        setDuelRoomData(mergedRoomData);
 
         const currentPlayerId = String(activePlayerId ?? "");
-        const hasOpponentNow = [data?.player1Id, data?.player2Id]
+        const hasOpponentNow = [mergedRoomData?.player1Id, mergedRoomData?.player2Id]
           .filter((id) => id != null)
           .some((id) => String(id) !== currentPlayerId);
+
+        const duelCompleted =
+          mergedRoomData?.status === "FINISHED" ||
+          (mergedRoomData?.player1Finished && mergedRoomData?.player2Finished);
 
         const hadOpponent = duelOpponentPresentRef.current;
         duelOpponentPresentRef.current = hasOpponentNow;
 
-        if (hadOpponent && !hasOpponentNow && data?.status !== "FINISHED") {
+        if (hadOpponent && !hasOpponentNow && !duelCompleted && !gameFinished) {
           setDuelWaitingForOpponent(false);
           setGameStarted(false);
           alert("Rakibin odadan ayrıldı.");
         }
 
-        if (data?.player1Finished && data?.player2Finished) {
+        if (duelCompleted) {
+          finishedDuelSnapshotRef.current = mergedRoomData;
           setDuelWaitingForOpponent(false);
           setGameFinished(true);
-          saveDuelGameResult(data);
+          setDuelRoomData(mergedRoomData);
+          saveDuelGameResult(mergedRoomData);
         }
       } catch (error) {
-
+        if (!stopped) {
+          console.error("Düello oda polling hatası:", error);
+        }
       }
-    }, 1500);
+    };
 
-    return () => clearInterval(intervalId);
-  }, [gameMode, duelRoomCode, activePlayerId]);
+    fetchDuelRoom();
+    intervalId = setInterval(fetchDuelRoom, 1500);
+
+    return () => {
+      stopped = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [gameMode, duelRoomCode, activePlayerId, gameFinished, duelRoomData]);
 
   useEffect(() => {
     if (gameMode !== "duel") {
@@ -2413,12 +2484,23 @@ function App() {
   useEffect(() => {
     const handlePageHide = () => {
       if (gameMode !== "duel") return;
-      if (!duelRoomCode || !activePlayerId) return;
 
-      const payload = JSON.stringify({ playerId: activePlayerId });
+      const roomCodeToLeave =
+        activeDuelRoomCode ||
+        duelRoomCode ||
+        duelRoomData?.roomCode ||
+        duelRoomData?.code ||
+        latestDuelSessionRef.current.roomCode;
+
+      const playerIdToLeave =
+        activePlayerId || latestDuelSessionRef.current.playerId;
+
+      if (!roomCodeToLeave || !playerIdToLeave) return;
+
+      const payload = JSON.stringify({ playerId: playerIdToLeave });
 
       navigator.sendBeacon(
-        `http://localhost:8080/api/duel/rooms/${duelRoomCode}/leave`,
+        `http://localhost:8080/api/duel/rooms/${roomCodeToLeave}/leave`,
         new Blob([payload], { type: "application/json" })
       );
     };
@@ -2428,14 +2510,16 @@ function App() {
     return () => {
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, [gameMode, duelRoomCode, activePlayerId]);
+  }, [gameMode, activeDuelRoomCode, duelRoomCode, duelRoomData, activePlayerId]);
 
   useEffect(() => {
     if (gameMode !== "duel") return;
     if (!gameFinished) return;
-    if (!duelRoomData?.player1Finished || !duelRoomData?.player2Finished) return;
 
-    saveDuelGameResult(duelRoomData);
+    const finalRoomData = finishedDuelSnapshotRef.current || duelRoomData;
+    if (!finalRoomData?.player1Finished || !finalRoomData?.player2Finished) return;
+
+    saveDuelGameResult(finalRoomData);
   }, [gameMode, gameFinished, duelRoomData]);
 
 

@@ -20,7 +20,7 @@ public class DuelReactionController {
     @PostMapping
     public ResponseEntity<Void> sendReaction(@RequestBody DuelReactionRequest request,
                                              Authentication authentication) {
-        String userEmail = authentication.getName();
+        String userEmail = authentication != null ? authentication.getName() : request.getUserEmail();
 
         duelReactionService.sendReaction(
                 userEmail,
@@ -32,10 +32,7 @@ public class DuelReactionController {
     }
 
     @GetMapping("/latest")
-    public ResponseEntity<DuelReactionResponse> getLatestReaction(@RequestParam String roomCode,
-                                                                  Authentication authentication) {
-        String userEmail = authentication.getName();
-
+    public ResponseEntity<DuelReactionResponse> getLatestReaction(@RequestParam String roomCode) {
         DuelReactionResponse response = duelReactionService.getLatestReaction(roomCode);
         return ResponseEntity.ok(response);
     }

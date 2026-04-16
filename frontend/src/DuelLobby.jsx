@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 
 const API = "http://localhost:8080/api/duel";
@@ -9,15 +9,37 @@ export default function DuelLobby({ currentUser, onBack, onStartDuel }) {
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
 
+  const skipLeaveOnUnmountRef = useRef(false);
+  const duelStartedRef = useRef(false);
+  const pollingIntervalRef = useRef(null);
+
+  const getAuthHeaders = () => {
+    const rawToken = sessionStorage.getItem("token");
+    if (!rawToken) return {};
+
+    return {
+      Authorization: rawToken.startsWith("Bearer ")
+        ? rawToken
+        : `Bearer ${rawToken}`,
+    };
+  };
+
   const createRoom = async () => {
     try {
       setError("");
-      const res = await axios.post(`${API}/rooms`, {
-        playerId: currentUser.id,
-        playerName: currentUser.username,
-      });
+      const res = await axios.post(
+        `${API}/rooms`,
+        {
+          playerId: currentUser.id,
+          playerName: currentUser.username,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
       setRoom(res.data);
       setRoomCode(res.data.roomCode);
+      duelStartedRef.current = false;
     } catch (err) {
       setError(err.response?.data?.message || "Oda oluşturulamadı.");
     }
@@ -26,13 +48,20 @@ export default function DuelLobby({ currentUser, onBack, onStartDuel }) {
   const joinRoom = async () => {
     try {
       setError("");
-      const res = await axios.post(`${API}/rooms/join`, {
-        playerId: currentUser.id,
-        playerName: currentUser.username,
-        roomCode: joinCode.trim().toUpperCase(),
-      });
+      const res = await axios.post(
+        `${API}/rooms/join`,
+        {
+          playerId: currentUser.id,
+          playerName: currentUser.username,
+          roomCode: joinCode.trim().toUpperCase(),
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
       setRoom(res.data);
       setRoomCode(res.data.roomCode);
+      duelStartedRef.current = false;
     } catch (err) {
       setError(err.response?.data?.message || "Odaya katılınamadı.");
     }
@@ -42,10 +71,16 @@ export default function DuelLobby({ currentUser, onBack, onStartDuel }) {
     if (!roomCode) return;
 
     try {
-      const res = await axios.post(`${API}/rooms/${roomCode}/ready`, {
-        playerId: currentUser.id,
-        ready,
-      });
+      const res = await axios.post(
+        `${API}/rooms/${roomCode}/ready`,
+        {
+          playerId: currentUser.id,
+          ready,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
       setRoom(res.data);
     } catch (err) {
       setError(err.response?.data?.message || "Hazır durumu güncellenemedi.");
@@ -55,28 +90,115 @@ export default function DuelLobby({ currentUser, onBack, onStartDuel }) {
   useEffect(() => {
     if (!roomCode) return;
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(`${API}/rooms/${roomCode}`);
-        setRoom(res.data);
-      } catch (_) {}
-    }, 1500);
+    let cancelled = false;
 
-    return () => clearInterval(interval);
+    const stopPolling = () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+
+    const fetchRoom = async () => {
+      try {
+        const res = await axios.get(`${API}/rooms/${roomCode}`, {
+          headers: getAuthHeaders(),
+        });
+
+        if (cancelled) return;
+
+        setRoom(res.data);
+
+        if (res.data?.status === "STARTED") {
+          stopPolling();
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        if (err.response?.status === 403) {
+          console.log("Polling durduruldu (403)");
+          stopPolling();
+          return;
+        }
+      }
+    };
+
+    stopPolling();
+    fetchRoom();
+    pollingIntervalRef.current = setInterval(fetchRoom, 1500);
+
+    return () => {
+      cancelled = true;
+      stopPolling();
+    };
   }, [roomCode]);
 
+  const leaveRoom = async () => {
+    if (!roomCode || !currentUser?.id) return;
+
+    try {
+      await axios.post(
+        `${API}/rooms/${roomCode}/leave`,
+        {
+          playerId: currentUser.id,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+    } catch (_) {
+      // lobby çıkışında sessiz geç
+    }
+  };
+
   useEffect(() => {
-    if (room?.status === "STARTED" && typeof onStartDuel === "function") {
+    if (room?.status === "STARTED" && typeof onStartDuel === "function" && !duelStartedRef.current) {
+      duelStartedRef.current = true;
+      skipLeaveOnUnmountRef.current = true;
+
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+
       onStartDuel(room);
     }
   }, [room, onStartDuel]);
+
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+
+      if (skipLeaveOnUnmountRef.current) {
+        skipLeaveOnUnmountRef.current = false;
+      }
+    };
+  }, []);
 
   return (
     <div className="duel-lobby">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>Düello Modu</h2>
         {typeof onBack === "function" && (
-          <button onClick={onBack}>Geri</button>
+          <button
+            onClick={async () => {
+              duelStartedRef.current = false;
+              skipLeaveOnUnmountRef.current = false;
+
+              if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+              }
+
+              await leaveRoom();
+              onBack();
+            }}
+          >
+            Geri
+          </button>
         )}
       </div>
 
