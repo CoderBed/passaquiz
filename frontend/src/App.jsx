@@ -1816,13 +1816,14 @@ function App() {
   };
 
   const replayClassicGame = async () => {
-    if (gameMode !== "classic") return;
+    if (gameMode === "daily" || gameMode === "duel") return;
 
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
     lastSavedDuelRoomCodeRef.current = "";
     activeGameModeRef.current = "classic";
 
+    setGameMode("classic");
     setAnswerHistory([]);
     setShowAnswerKey(false);
     setResultTab("stats");
@@ -1836,7 +1837,6 @@ function App() {
     setPassedQueue([]);
     setIsReviewingPassed(false);
     setGameFinished(false);
-    setGameStarted(false);
     setIsPaused(false);
     setQuestionStatuses([]);
     setQuestions([]);
@@ -1844,7 +1844,7 @@ function App() {
     setCurrentCorrectStreak(0);
     setMaxCorrectStreak(0);
 
-    await startGame("classic");
+    await startGame();
   };
 
   const togglePause = () => {
@@ -6112,7 +6112,15 @@ function App() {
               gap: "16px",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                gap: "10px",
+                flexWrap: "wrap",
+              }}
+            >
               <button
                 onClick={restartGame}
                 style={{
@@ -6135,6 +6143,22 @@ function App() {
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
+
+              {gameFinished && gameMode === "classic" && (
+                <button
+                  onClick={replayClassicGame}
+                  style={{
+                    ...primaryButtonStyle,
+                    marginTop: 0,
+                    marginRight: 0,
+                    padding: "12px 18px",
+                    fontSize: "16px",
+                    minWidth: "160px",
+                  }}
+                >
+                  Tekrar Oyna
+                </button>
+              )}
             </div>
 
             <div
@@ -7623,7 +7647,21 @@ function App() {
                   marginTop: "26px",
                 }}
               >
-
+                {gameMode !== "daily" && gameMode !== "duel" && (
+                  <button
+                    onClick={replayClassicGame}
+                    style={{
+                      ...primaryButtonStyle,
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "220px",
+                      fontSize: "17px",
+                      padding: "14px 24px",
+                    }}
+                  >
+                    Tekrar Oyna
+                  </button>
+                )}
               </div>
             </div>
           </div>

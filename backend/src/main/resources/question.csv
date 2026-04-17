@@ -259,6 +259,11 @@ A, 1, Kan bağıyla birbirine bağlı olan kimse, Akraba
 A, 4, Dörtçekerli, her arazi koşulunda kullanılabilen, manevra kabiliyeti güçlü, personel ve mühimmat taşıyan zırhlı araç, Akrep
 A, 1, Saatin iki ibresinden dakikayı göstereni, Akrep
 A, 3, Yan yana sıralanmış deliklerden her biri üflendiğinde ayrı notada sesler çıkaran küçük ağız çalgısı, mızıka, Armonik/Armonika
+A, 2, Lades oyununa katılanlardan biri ötekine bir şey verirken karşıdakinin "unutmadım" anlamında söylediği söz, Aklımda
+A, 1, İslam dinine göre namaz kılmak, Kur’an okumak, Kâbe’yi tavaf etmek gibi ibadetleri yerine getirebilmek için niyet ederek el, ağız, burun, yüz, kol ve ayakları yıkamak; baş, kulaklar ve boynun iki yanını mesh etmek yoluyla arınma, Abdest
+A, 3, Yeryüzü parçası, toprak, Arazi
+A, 4, müzikte bir eserin yeniden yorumlanması veya düzenlenmesi, Aranjman
+A, 4, Isı ve elektriği iletmeyen, mat görünümlü, kırılgan ve şekil verilemeyen elementler grubu, Ametal/Ametaller
 
 B, 3, Bir bilgisayarda verileri geçici saklayan donanım, Bellek
 B, 4, Dana veya sığırın göğüs eti veya döş bölgesi, Brisket
@@ -810,6 +815,7 @@ D, 3, Bir işte üstünlük sağlamayacak, aleyhte olabilecek durum, engel teşk
 D, 1, Halkın egemenliği temeline dayanan yönetim biçimi, Demokrasi/Demokratlık
 D, 2, Sürücünün aracın arkadan kayma açısının öne göre daha fazla olması esasını kullanıp viraj içerisinde direksiyonu ters yönde çevirerek gerçekleştirdiği araç sürme tekniği, Drift/Drift Atma/Drift Atmak
 D, 1, Taşıta istenilen yönü vermeye ve taşıtı belirli bir doğrultuda götürmeye yarayan düzenek, Direksiyon
+D, 4, Üstü kapalı, dar ve uzun geçit, Dehliz
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -1005,7 +1011,7 @@ F, 1, Bir yarışmada sona kalan kimse veya takım, Finalist
 F, 1, Satılan malın cinsini, fiyatını, miktârını gösteren ve satıcı tarafından alıcıya verilen hesap pusulası, Fatura
 F, 1, Birkaç gün süren şenlik, Festival
 F, 1, Kadın haklarını genişletmeyi, erkeğinkine eşit duruma getirmeyi amaç edinen düşünce akımı, Feminizm
-F, 4, İlâçların etkisini ve kullanılışını inceleyen bilim dalı, Farmakoloji
+F, 4, İlaçların etkisini ve kullanılışını inceleyen bilim dalı, Farmakoloji
 F, 3, Gücünü gerçek ve tabiattan değil hayalden alan değişik düşünüş ve davranış, Fantezi
 F, 2, 1'den başlayarak bir sayıya kadar olan tüm doğal sayıların çarpımı, Faktöriyel
 F, 4, Bir iş yürütülürken usûl ve kānun bakımından yapılması gereken işlem, Formalite
@@ -2154,7 +2160,7 @@ L, 1, Bir düşünce anlatan kelime veya kelime dizisi, söz, Laf
 L, 1, Ağız yoluyla alınan tat, Lezzet
 L, 1, Tadı güzel olan, Leziz/Lezzetli
 L, 1, Gerekli, lüzumlu, Lazım
-L, 4, ışığın uyarılmış radyasyon ile yükseltilmesini sağlayan optik düzenek, Lazer
+L, 4, Işığın uyarılmış radyasyon ile yükseltilmesini sağlayan optik düzenek, Lazer
 
 M, 5, Hafif makineli tüfek, Mirtalyöz
 M, 5, Dört dizeli bentlerden oluşan divan şiiri, Murabba
@@ -3581,6 +3587,7 @@ S, 5, Pamuk ipliğinden yapılan kalınca kilim, Savan
 Ş, 4, Alüminyum ve potasyum sülfatından veya amonyum alüminyum sülfatından oluşan, sıcak suda eriyen, tadı buruk, antiseptik madde, Şap
 Ş, 4, Üzerine genellikle bir kurum veya kuruluşun adı, işareti kazınmış veya basılmış olan ve armağan olarak bir kimse veya takıma verilen levha, Şilt
 Ş, 4, Üstünde oturulan, yatılan, içi yünle, pamukla doldurulmuş döşek, Şilte
+Ş, 4, Patladığında etrafa küçük parçalar saçan bir tür top mermisi, Şarapnel
 
 T, 5, Batı Afrika kıyılarında esen güçlü hava akımı, Tornado
 T, 4, 78 özel karttan oluşan, geçmiş, şimdi ve potansiyel gelecek hakkında içgörü sağlamak amacıyla kullanılan sembolik bir deste, Tarot
