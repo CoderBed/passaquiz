@@ -1815,6 +1815,38 @@ function App() {
     saveGameResult({ modeOverride: "classic", wonOverride: null });
   };
 
+  const replayClassicGame = async () => {
+    if (gameMode !== "classic") return;
+
+    resultSavedRef.current = false;
+    duelResultSavedRef.current = false;
+    lastSavedDuelRoomCodeRef.current = "";
+    activeGameModeRef.current = "classic";
+
+    setAnswerHistory([]);
+    setShowAnswerKey(false);
+    setResultTab("stats");
+    setExpandedAnswerIndex(null);
+    setHoveredResultTab(null);
+    setCurrentIndex(0);
+    setUserAnswer("");
+    setResultMessage("");
+    setScore(0);
+    setAnswered(false);
+    setPassedQueue([]);
+    setIsReviewingPassed(false);
+    setGameFinished(false);
+    setGameStarted(false);
+    setIsPaused(false);
+    setQuestionStatuses([]);
+    setQuestions([]);
+    setTimeLeft(selectedDuration);
+    setCurrentCorrectStreak(0);
+    setMaxCorrectStreak(0);
+
+    await startGame("classic");
+  };
+
   const togglePause = () => {
     if (!gameStarted || gameFinished) return;
     setShowProfileMenu(false);

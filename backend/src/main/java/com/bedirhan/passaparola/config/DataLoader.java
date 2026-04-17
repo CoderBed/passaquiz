@@ -35,15 +35,17 @@ public class DataLoader {
                 }
 
                 int firstComma = line.indexOf(",");
+                int secondComma = line.indexOf(",", firstComma + 1);
                 int lastComma = line.lastIndexOf(",");
 
-                if (firstComma == -1 || lastComma == -1 || firstComma == lastComma) {
+                if (firstComma == -1 || secondComma == -1 || lastComma == -1 || secondComma == lastComma) {
                     System.out.println("Atlanan satır (kolon eksik): " + line);
                     return;
                 }
 
                 String letter = line.substring(0, firstComma).trim();
-                String questionText = line.substring(firstComma + 1, lastComma).trim();
+                Integer difficultyLevel = Integer.parseInt(line.substring(firstComma + 1, secondComma).trim());
+                String questionText = line.substring(secondComma + 1, lastComma).trim();
                 String answer = line.substring(lastComma + 1).trim();
 
                 if (questionText.startsWith("\"") && questionText.endsWith("\"") && questionText.length() >= 2) {
@@ -59,17 +61,23 @@ public class DataLoader {
                     return;
                 }
 
-                saveIfNotExists(questionRepository, letter, questionText, answer);
+                saveIfNotExists(questionRepository, letter, difficultyLevel, questionText, answer);
             });
         };
     }
 
-    private void saveIfNotExists(QuestionRepository questionRepository, String letter, String questionText, String answer) {
-        boolean exists = questionRepository.findAll().stream()
-                .anyMatch(q -> letter.equals(q.getLetter()) && questionText.equals(q.getQuestionText()));
+    private void saveIfNotExists(QuestionRepository questionRepository, String letter, Integer difficultyLevel, String questionText, String answer) {
+        Question existingQuestion = questionRepository.findAll().stream()
+                .filter(q -> letter.equals(q.getLetter()) && questionText.equals(q.getQuestionText()))
+                .findFirst()
+                .orElse(null);
 
-        if (!exists) {
-            questionRepository.save(new Question(letter, questionText, answer));
+        if (existingQuestion == null) {
+            questionRepository.save(new Question(letter, difficultyLevel, questionText, answer));
+        } else {
+            existingQuestion.setDifficultyLevel(difficultyLevel);
+            existingQuestion.setAnswer(answer);
+            questionRepository.save(existingQuestion);
         }
     }
 }

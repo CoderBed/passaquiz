@@ -11,6 +11,9 @@ public class Question {
 
     private String letter;
 
+    @Column(name = "difficulty_level")
+    private Integer difficultyLevel;
+
     @Column(columnDefinition = "TEXT")
     private String questionText;
 
@@ -22,6 +25,13 @@ public class Question {
 
     public Question(String letter, String questionText, String answer) {
         this.letter = letter;
+        this.questionText = questionText;
+        this.answer = answer;
+    }
+
+    public Question(String letter, Integer difficultyLevel, String questionText, String answer) {
+        this.letter = letter;
+        this.difficultyLevel = difficultyLevel;
         this.questionText = questionText;
         this.answer = answer;
     }
@@ -52,5 +62,12 @@ public class Question {
 
     public void setAnswer(String answer) {
         this.answer = answer;
+    }
+    public Integer getDifficultyLevel() {
+        return difficultyLevel;
+    }
+
+    public void setDifficultyLevel(Integer difficultyLevel) {
+        this.difficultyLevel = difficultyLevel;
     }
 }
