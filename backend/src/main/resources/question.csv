@@ -264,6 +264,8 @@ A, 1, İslam dinine göre namaz kılmak, Kur’an okumak, Kâbe’yi tavaf etmek
 A, 3, Yeryüzü parçası, toprak, Arazi
 A, 4, müzikte bir eserin yeniden yorumlanması veya düzenlenmesi, Aranjman
 A, 4, Isı ve elektriği iletmeyen, mat görünümlü, kırılgan ve şekil verilemeyen elementler grubu, Ametal/Ametaller
+A, 2, Bir işin yolunda gitmemesi durumu, terslik, Aksilik
+A, 3, Huysuz, hırçın, ters, geçimsiz, Aksi
 
 B, 3, Bir bilgisayarda verileri geçici saklayan donanım, Bellek
 B, 4, Dana veya sığırın göğüs eti veya döş bölgesi, Brisket
@@ -618,6 +620,7 @@ C, 2, Yabancı ülkelerden kaçırılıp özgürlükten yoksun bırakılan, alı
 Ç, 3, Kaba dokumaları dikmekte kullanılan, ucu yassı ve eğrice, kalın, büyük dikiş iğnesi, Çuvaldız
 Ç, 3, Taşa vurulup kıvılcım çıkarılan çelik parçası, Çakmak
 Ç, 2, Çelik, taş, cam, plastik vb. maddeden yapılmış gaz veya benzinle dolu tutuşturma aleti, Çakmak
+Ç, 1, Müzik yapmak amacıyla kullanılan her türlü ses verebilen alet, Çalgı
 
 D, 2, Sıkı düzen, düzence, düzen bağı, inzibat, zapturapt, Disiplin
 D, 2, Tırtıllı veya lastik tekerlekli yol yapım makinesi, Dozer
@@ -816,6 +819,19 @@ D, 1, Halkın egemenliği temeline dayanan yönetim biçimi, Demokrasi/Demokratl
 D, 2, Sürücünün aracın arkadan kayma açısının öne göre daha fazla olması esasını kullanıp viraj içerisinde direksiyonu ters yönde çevirerek gerçekleştirdiği araç sürme tekniği, Drift/Drift Atma/Drift Atmak
 D, 1, Taşıta istenilen yönü vermeye ve taşıtı belirli bir doğrultuda götürmeye yarayan düzenek, Direksiyon
 D, 4, Üstü kapalı, dar ve uzun geçit, Dehliz
+D, 1, Başkalarını çekiştirmek ve kınamak üzere yapılan konuşma, Dedikodu
+D, 3, Göğüs ve karın boşluklarını birbirinden ayıran ince ve geniş kas, Diyafram
+D, 5, Bir ışık demetinde uçtaki ışıkları tutmak ve optik cihazlarda daha net bir görüntü elde etmek için kullanılan çapı ayarlanabilir ışık geçirmez levha, Diyafram
+D, 5, Bir malın önceden belirlenmiş bölgelere gönderilmesini sağlayan kişi veya kuruluş, Dağıtıcı/Distribütör
+D, 3, Geniş bir alana yayılmış olan, Dağınık
+D, 2, Düzeni bozuk, düzensiz, karışık olan, Dağınık
+D, 3, Ne yaptığını bilmeyecek kadar içip kendinden geçmek, Dağıtma/Dağıtmak
+D, 1, Hava ve deniz taşıtlarında, taşıta istenilen yönü vermeye ve belirli bir doğrultuda götürmeye yarayan hareketli parça, Dümen
+D, 4, Ağzına deri gerilmiş, çanak biçiminde, darbukaya benzer bir tür çalgı, Dümbelek/Dümbüldek
+D, 3, Toprak veya madenden yapılan, bir yanı açık, vurmalı çalgı, Darbuka
+D, 2, Başına geldiği sıfata bir karşılaştırmaya dayanarak fazlalık ve üstünlük anlamı katan zarf, Daha
+D, 5, Çok iyi, en iyi, en güzel, en seçkin, Daniska
+D, 4, Kuşlara yedirilen çeşitli tahıl taneleri, Dane
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -873,7 +889,7 @@ E, 3, Tahılın tarlaya atıldığı andan harman oluncaya kadar aldığı durum
 E, 2, Şart anlamını güçlendirmek için şartlı cümlelerin başına getirilen bir söz, Eğer
 E, 2, Olay, düşünce, duygu ve hayallerin dil aracılığıyla sözlü veya yazılı olarak biçimlendirilmesi sanat, Edebiyat
 E, 5, Değişik felsefe meselelerinin telif edilebilir görüşlerini bir araya toplayarak yeni bir sistem meydana getirme usûlü ve bu usûlü benimseyen görüş, seçmecilik, Eklektizm
-E, 5, Kat kat rafları bulunan, kapaksız, küçük mobilya, Etajer
+E, 4, Raflı veya çekmeceli, taşınabilir, küçük dolap, Etajer
 E, 4, Batı Anadolu’da Aydın ve İzmir bölgelerinde zeybeklerin ağalarına, köy yiğitlerine verilen isim, Efe
 E, 3, Radyo, televizyon ve sahne oyunlarında, filim seslendirmelerinde, olayda bulunması gereken sesleri gerçek hissini verecek şekilde birtakım âletlerle çıkarma işi, Efekt
 E, 4, Mutfakta musluk altında bulaşık yıkamaya yarayan tekne, Eviye
@@ -924,6 +940,7 @@ E, 2, Aynı cins atomlardan oluşan ve kimyasal yollarla kendinden daha basit ve
 E, 4, Orta Çağ'da, Katoliklerde katı din inançlarına karşı gelenleri cezalandırma, Engizisyon
 E, 1, Sonbaharın ilk ayı, Eylül
 E, 2, Yaptıkları işlere göre sınıflara ayrılmış olan, kazançları sermayeden ziyade çalışmaya ve beden gücüne dayanan zanaatkârlara ve küçük ticaret sahiplerine verilen ortak isim, Esnaf
+E, 2, Açık kestane rengi, Ela
 
 F, 2, Evre, safha, Faz
 F, 3, Pürüzsüz göstermek veya renk vermek için cilde sürülen, yarı sıvı veya boyalı krem, Fondöten
@@ -1189,6 +1206,7 @@ G, 3, Ekmek ve kâğıt için ağırlık ölçüsü, Gramaj
 G, 4, Fransa'da ölüm cezasına çarptırılanların başını kesmek için kullanılan araç, Giyotin
 G, 1, Yenilebilir, beslenmeye elverişli her tür madde, besin, Gıda
 G, 4, Tavuğun kesik kesik bağırması, Gıdak/Gıdaklama/Gıdaklamak
+G, 3, Dedikodu, Gıybet
 
 H, 5, Tütün kıyma makinesi, Havan
 H, 2, İşe yaramayacak derecede bozulmuş, zarar görmüş, Hurda
@@ -3452,6 +3470,7 @@ S, 2, Kamu yararını gözetmek amacıyla devlet adına dava açmaya yetkili ola
 S, 4, Ekvator kuşağındaki otsu bitkilerle kaplı çayırlar, Savana
 S, 4, Tropikal iklim bölgesinin tipik bitki örtüsü, Savana
 S, 5, Pamuk ipliğinden yapılan kalınca kilim, Savan
+S, 2, İnsan eliyle tabiî örneklerine benzetilerek yapılan, doğal olmayan, yapma, yapay, Suni
 
 Ş, 1, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, 4, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık
@@ -3588,6 +3607,10 @@ S, 5, Pamuk ipliğinden yapılan kalınca kilim, Savan
 Ş, 4, Üzerine genellikle bir kurum veya kuruluşun adı, işareti kazınmış veya basılmış olan ve armağan olarak bir kimse veya takıma verilen levha, Şilt
 Ş, 4, Üstünde oturulan, yatılan, içi yünle, pamukla doldurulmuş döşek, Şilte
 Ş, 4, Patladığında etrafa küçük parçalar saçan bir tür top mermisi, Şarapnel
+Ş, 5, Dizel motorlu denizaltının su altında uzun süre kalmasını sağlayan düzen, Şnorkel
+Ş, 3, Deniz, havuz vb. yerlerde başı su altında olan kimsenin suyun üstünde kalan kısmıyle soluk almasını sağlayan boru, Şnorkel
+Ş, 5, İran’a karşı kazandığı Çaldıran seferinden sonra Yavuz Sultan Selim’in kestirdiği altınlara verilen ad, Şahi
+Ş, 5, Bal mumuna veya parafine batırılmış fitil, Şama
 
 T, 5, Batı Afrika kıyılarında esen güçlü hava akımı, Tornado
 T, 4, 78 özel karttan oluşan, geçmiş, şimdi ve potansiyel gelecek hakkında içgörü sağlamak amacıyla kullanılan sembolik bir deste, Tarot
@@ -3893,6 +3916,7 @@ T, 1, Ekranı dokunmalı özellikte olan, sağladığı depolama alanıyla veril
 T, 4, Kutsal sayılan bazı insanlara, hayvanlara, nesnelere dokunulmasını, kullanılmasını yasaklayan, aksi yapıldığında zararı dokunacağı düşünülen dini inanç, Tabu
 T, 4, Belli davranış veya sözlerin bir toplumca, bir toplumsal grupça tehlikeli sayılması ve olumsuz yaptırımlara bağlanarak yasaklanması, Tabu
 T, 1, Hastaneden çıkması kararlaştırılmış hasta, Taburcu
+T, 5, Sibirya’da yaşayan, balıkçılık ve hayvancılıkla geçinen, Ural-Altay soyundan yarı göçebe bir halk, Tunguz/Tunguzlar
 
 U, 4, Afrika kıtasının doğu kesiminde yer alan ve denize kıyısı olmayan bir kara ülkesi, Uganda
 U, 3, Düz arazide veya açık denizde gökle yerin birleşir gibi göründüğü yer, Ufuk/Ufuk Çizgisi
@@ -4155,6 +4179,7 @@ Y, 3, Basılıp satışa çıkarılan kitap, gazete vb., Yayın
 Y, 2, Parayı, gelir getirici, taşınır veya taşınmaz bir mala yatırma, Yatırım
 Y, 3, Kolsuz, önü açık veya düğmeli üst giysisi, Yelek
 Y, 5, Okun yay kirişine takılan bölümündeki tüy, Yelek
+Y, 2, Gözü pek, düşüncelerini açıkça söylemekten çekinmeyen kimse, Yiğit
 
 Z, 5, Ay takviminin on ikinci ayı, kurban ayı, Zilhicce
 Z, 3, Gücüne güvenerek hükmü altında bulunanlara söz hakkı ve davranış özgürlüğü tanımayan kimse, Zorba
@@ -4226,7 +4251,7 @@ Z, 5, Yerden sıçrayan çamur, Zifos
 Z, 5, Arap harfli metinlerde bir ünsüzün o, ö, u, ü seslerinden biriyle okunacağını gösteren işaret, ötre, Zamme
 Z, 4, Pipo veya sigara ağızlığının sap bölümü, Zıvana
 Z, 5, Hasırdan örülmüş saplı torba, Zembil
-Z, 5, Takva, Züht
+Z, 5, Dünyaya rağbet etmeyip kendini ibadete verme, nefsini her türlü zevkten alıkoyup ibadet yolunu seçme, takva, Züht
 Z, 3, Cam, porselen vb. maddelerden yapılmış bardak, tabak vb. eşya, Züccaciye
 Z, 4, Güneydoğu Anadolu Bölgesi'nin bazı yerlerinde genellikle düğünlerde eğlenmek amacıyla dili ağız içinde değişik bir biçimde oynatarak ahenkli bir ses çıkarma, Zılgıt
 Z, 5, Sakın ola ki, asla, katiyen anlamlarında kullanılan Farsça kökenli bir zarf, Zinhar
@@ -4241,3 +4266,5 @@ Z, 5, Eski dilde mecaz anlamda karşılık beklemeden yapılan yardım, Zuhurat
 Z, 2, Güçlü bir kimsenin yasaya veya vicdana aykırı olarak başkalarına yaptığı her türlü kötülük, haksızlık, Zulüm
 Z, 2, Çekicilik, biçim, görünüş, durum, konuşma ve davranışlarıyla hoşa giden, beğenilen, Zarif/Zarafetli
 Z, 2, Büyük balıkları vurup çekmeye yarayan ucu çengelli mızrak, Zıpkın
+Z, 1, Organizmaya girdiğinde kimyasal etkisiyle fizyolojik görevleri bozan ve miktarına göre canlıyı öldürebilen madde, Zehir
+Z, 5, Büyük yük üzerine konulan küçük yük, Zelber
