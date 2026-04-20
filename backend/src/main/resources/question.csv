@@ -891,6 +891,7 @@ D, 5, Halk edebiyatında ve türkülerden önce söylenen, bazen tekerleme biçi
 D, 3, Yapılarda taban üzerine döşenen tahta vb. kaplama, Döşeme
 D, 4, Zarla oynanan oyunlarda, atılan zarlardan her ikisinin de iki benekli olan yüzünün üste gelmesi, Dubara
 D, 4, İrlanda Cumhuriyeti'nin başkenti, Dublin
+D, 4, Franz Kafka'nın pazarlamacı Gregor Samsa'nın bir sabah dev bir böceğe dönüşmesini konu alan, modern insanın yalnızlığını, yabancılaşmasını ve toplumsal/ailevi baskılar sonucu değersizleşmesini anlatan eseri, Dönüşüm
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -997,6 +998,7 @@ E, 3, Mavi, kırmızı ve çok az beyazın karışımından ortaya çıkan açı
 E, 3, Çeşitli meslek kolları arasında tarafların uyması veya kaçınması gereken davranışlar bütünü, Etik
 E, 2, Aynı cins atomlardan oluşan ve kimyasal yollarla kendinden daha basit ve farklı maddelere ayrılamayan saf madde, Element
 E, 4, Orta Çağ'da, Katoliklerde katı din inançlarına karşı gelenleri cezalandırma, Engizisyon
+E, 5, Bütün atomlarda bulunan negatif yüke sahip temel parçacık, Elektron
 E, 1, Sonbaharın ilk ayı, Eylül
 E, 2, Yaptıkları işlere göre sınıflara ayrılmış olan, kazançları sermayeden ziyade çalışmaya ve beden gücüne dayanan zanaatkârlara ve küçük ticaret sahiplerine verilen ortak isim, Esnaf
 E, 2, Açık kestane rengi, Ela
@@ -1674,6 +1676,7 @@ I, 3, 18 Şubat 1856'da Sultan Abdülmecid döneminde, Paris Antlaşması önces
 İ, 5, Benzer yapıda olan maddeler arasındaki billurlaşma benzerliği, İzomorfizm
 İ, 5, Aynı oranlarda birleşmiş aynı elementlerden oluşan fakat moleküllerinde atom gruplaşmaları değişik olduğu için birbirlerinden farklı özellikler gösteren maddeler, İzomer
 İ, 5, Kişinin kendine verdiği değer, İzzetinefis
+İ, 1, Bir şeyin geçtiği veya önce bulunduğu yerde bıraktığı belirti, İz
 
 J, 1, Tıraşta kullanılan, ince çelikten yapılmış, iki yanı keskin bıçak, Jilet
 J, 3, Tuzlanıp ise tutularak hazırlanmış domuz budu veya kolu, Jambon
@@ -2704,6 +2707,8 @@ M, 4, Terzilikte ölçü almak için kullanılan, genellikle 1,5 metre uzunluğu
 M, 3, Yapılmış, işlenmiş, imal edilmiş eşya, yiyecek, Mamul
 M, 5, Camilerde parmaklıkla ayrılmış yüksek yer, Mahfil
 M, 3, Orkestra şefi, Maestro
+M, 5, Bir konuda en üst derecede bulunabilme tutkusu, Mistisizm
+M, 5, Gizemcilik yanlısı olan, ilahiyat veya gizemsel yaşamla uğraşan, Mistik
 
 N, 4, Inception, The Prestige ve Oppenheimer gibi dünyaca ünlü filmlerin yönetmeni, Christopher ..., Nolan
 N, 3, Gerçekten, hakikaten anlamına gelen bir zarf, Nitekim
@@ -2807,6 +2812,7 @@ N, 5, Canlı maddelerin fiziksel ve kimyasal değişimi, Nekroz
 N, 5, Antik bir şehrin dışında yer alan mezarlık alanı, Nekropol
 N, 2, Aynı yıllarda yaşamış olan, yaklaşık aynı yaşta bulunan kişilerin bütünü, Nesil
 N, 1, Torunu olan kadın, Nene/Nine
+N, 5, Yaklaşık olarak proton ağırlığında ve elektrik yüklü olmayan atom cisimciği, Nötron
 
 O, 3, Şeffaf zıttı, mat yüzey, Opak
 O, 3, Gereğinden çok yemek yiyen, doymak bilmeyen kimse, Obur
@@ -3697,6 +3703,7 @@ S, 5, Tam ve kesin biçimde belirli olma durumu, açıklık, Sarahat
 S, 2, Bir şeklin, nesnenin veya tasarımın bir eksene göre iki yarısının birbirinin ayna görüntüsü olacak şekilde eş, orantılı ve dengeli olması durumu, Simetri
 S, 5, Sınır boylarında, eyalet paşaları ile sancak beylerinin emrinde bulunan, yerli ahali arasından seçilmiş asker sınıfı, Sekban
 S, 5, Birbirinden ayrı düşünce, inanış veya öğretileri kaynaştırmaya çalışan felsefe sistemi, Senkretizm
+S, 5, Stefan Zweig'ın Nazi zulmü altındaki Avrupa'dan kaçarken kaleme aldığı, yazarın intiharından hemen önce tamamladığı psikolojik öykü türündeki eseri, Satranç
 
 Ş, 1, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, 4, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık
@@ -4565,3 +4572,4 @@ Z, 5, Arapça'da saf, tatlı su, Zülal
 Z, 5, Tanrı'ya ve ahirete inanmayan kimseler için kullanılan Arapça kökenli bir sıfat, Zındık
 Z, 5, Kumaş, süslü kâğıt, halı, yer muşambası, tablo vb. desenli nesnelerde, biçimlerin üzerinde yer aldığı renk, Zemin
 Z, 2, Üstü kapalı bir yerin gezinilen, ayakla basılan yüzü, Zemin
+Z, 1, Acınacak kadar kötü durumda bulunan, Zavallı
