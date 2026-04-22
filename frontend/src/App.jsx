@@ -1847,6 +1847,13 @@ function App() {
     await startGame();
   };
 
+  const goToGuestRegister = async () => {
+    setAuthMode("register");
+    await handleLogout();
+    setAuthMode("register");
+    setAuthMessage("İlerlemeni kaydetmek için hesap oluşturabilirsin.");
+  };
+
   const togglePause = () => {
     if (!gameStarted || gameFinished) return;
     setShowProfileMenu(false);
@@ -2849,6 +2856,16 @@ function App() {
       fetchQuestionFeedbackSummary(activeQuestion, gameMode);
     }, [gameStarted, currentIndex, gameMode, questions]);
 
+  const safeCurrentUser = typeof currentUser !== "undefined" ? currentUser : null;
+  const safeMe = typeof me !== "undefined" ? me : null;
+
+  const shouldShowGuestRegisterCTA = Boolean(
+    effectiveIsGuestUser ||
+    safeCurrentUser?.isGuest ||
+    safeMe?.isGuest ||
+    (!authUserEmail && (guestAvatarSeed || authUserName))
+  );
+
 
   if (!isAuthenticated) {
     return (
@@ -3607,6 +3624,59 @@ function App() {
                   </div>
                 )}
               </div>
+              {shouldShowGuestRegisterCTA && (
+                <div
+                  style={{
+                    marginTop: "20px",
+                    marginBottom: "24px",
+                    padding: "22px 24px",
+                    borderRadius: "20px",
+                    background: "rgba(15, 23, 42, 0.72)",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    textAlign: "center",
+                    width: "100%",
+                    maxWidth: "520px",
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                    display: "block",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#f8fafc",
+                      fontSize: "20px",
+                      fontWeight: "800",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    Bugünkü sonucunu kaybetme
+                  </div>
+                  <div
+                    style={{
+                      color: "#cbd5e1",
+                      fontSize: "15px",
+                      lineHeight: 1.6,
+                      marginBottom: "14px",
+                    }}
+                  >
+                    Bugünkü sonucunu ve günlük serini kaybetmemek için hesap oluştur.
+                  </div>
+                  <button
+                    onClick={goToGuestRegister}
+                    style={{
+                      ...primaryButtonStyle,
+                      marginTop: "6px",
+                      marginRight: 0,
+                      minWidth: "200px",
+                      fontSize: "15px",
+                      padding: "12px 18px",
+                      display: "inline-block",
+                    }}
+                  >
+                    Hesap Oluştur
+                  </button>
+                </div>
+              )}
             </>
           )}
 
@@ -5158,6 +5228,58 @@ function App() {
               </div>
             </div>
           )}
+
+          {gameMode === "daily" && dailyResult && shouldShowGuestRegisterCTA && (
+              <div
+                style={{
+                  marginTop: "18px",
+                  marginBottom: "6px",
+                  padding: "18px 20px",
+                  borderRadius: "18px",
+                  background: "rgba(15, 23, 42, 0.62)",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  textAlign: "center",
+                  maxWidth: "420px",
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div
+                  style={{
+                    color: "#f8fafc",
+                    fontSize: "20px",
+                    fontWeight: "800",
+                    marginBottom: "10px",
+                  }}
+                >
+                  Bugünkü sonucunu kaybetme
+                </div>
+                <div
+                  style={{
+                    color: "#cbd5e1",
+                    fontSize: "15px",
+                    lineHeight: 1.6,
+                    marginBottom: "14px",
+                  }}
+                >
+                  Bugünkü sonucunu ve günlük serini kaybetmemek için hesap oluştur.
+                </div>
+                <button
+                  onClick={goToGuestRegister}
+                  style={{
+                    ...primaryButtonStyle,
+                    marginTop: 0,
+                    marginRight: 0,
+                    minWidth: "190px",
+                    fontSize: "15px",
+                    padding: "12px 18px",
+                  }}
+                >
+                  Hesap Oluştur
+                </button>
+              </div>
+            )}
 
           <div
             style={{
@@ -7642,7 +7764,8 @@ function App() {
                 style={{
                   display: "flex",
                   justifyContent: "center",
-                  gap: "14px",
+                  alignItems: "stretch",
+                  gap: "18px",
                   flexWrap: "wrap",
                   marginTop: "26px",
                 }}
@@ -7654,13 +7777,64 @@ function App() {
                       ...primaryButtonStyle,
                       marginTop: 0,
                       marginRight: 0,
-                      minWidth: "220px",
-                      fontSize: "17px",
-                      padding: "14px 24px",
+                      minWidth: "170px",
+                      fontSize: "16px",
+                      padding: "12px 20px",
+                      height: "56px",
+                      alignSelf: "center",
                     }}
                   >
                     Tekrar Oyna
                   </button>
+                )}
+
+                {shouldShowGuestRegisterCTA && gameMode !== "daily" && (
+                  <div
+                    style={{
+                      width: "100%",
+                      maxWidth: "420px",
+                      boxSizing: "border-box",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "12px",
+                      padding: "22px 24px",
+                      borderRadius: "24px",
+                      background: "linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.96))",
+                      border: "1px solid rgba(96, 165, 250, 0.18)",
+                      boxShadow: "0 18px 40px rgba(2, 6, 23, 0.28)",
+                      textAlign: "center",
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                    }}
+                  >
+                    <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800", lineHeight: 1.45 }}>
+                      {gameMode === "duel"
+                        ? "Düello sonucunu kaybetmek ister misin?"
+                        : "İlerlemeni kaydetmek ister misin?"}
+                    </div>
+                    <div style={{ color: "#cbd5e1", fontSize: "15px", lineHeight: 1.7, maxWidth: "320px" }}>
+                      {gameMode === "duel"
+                        ? "Düello sonuçlarını, istatistiklerini ve maç geçmişini kaydetmek için hesap oluştur."
+                        : "Skorlarını, rozetlerini ve istatistiklerini kaydetmek için hesap oluştur."}
+                    </div>
+                    <button
+                      onClick={goToGuestRegister}
+                      style={{
+                        ...primaryButtonStyle,
+                        marginTop: "4px",
+                        marginRight: 0,
+                        minWidth: "210px",
+                        fontSize: "17px",
+                        padding: "13px 22px",
+                        alignSelf: "center",
+                        borderRadius: "16px",
+                      }}
+                    >
+                      Hesap Oluştur
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
