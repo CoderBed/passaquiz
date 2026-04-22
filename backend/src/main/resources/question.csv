@@ -299,6 +299,7 @@ A, 5, Gümrüklere gelen ticari eşyanın vergi vb. ödeme işleri yapılana kad
 A, 5, Hinduizm felsefesinde bireyin gerçek benliği, en içteki özü veya ebedi ruhu, Atman
 A, 5, 16. yüzyılda İngiltere Kralı VIII. Henry tarafından Papa ile yaşanan ihtilaf sonucu kurulan, Katoliklik ve Protestanlık arasında "orta yol" izleyen Hristiyan mezhebi, Anglikanizm
 A, 5, Çarşılarda veya alışveriş bölgelerinde aynı işi yapan esnafın bir arada bulunduğu bölüm, Arasta
+A, 5, Herhangi bir yaratıcı olmadığından insanlığın evrende bir anlam bulmasına yönelik uğraşlarının boşa bir çaba olduğunu ve önünde sonunda bu anlamsız uğraşının başarısız olacağını savunan düşünce akımı, Absürtlük/Absürdizm
 
 B, 3, Bir bilgisayarda verileri geçici saklayan donanım, Bellek
 B, 4, Dana veya sığırın göğüs eti veya döş bölgesi, Brisket
@@ -508,6 +509,8 @@ B, 3, Bir şeyin adını anmadan niteliklerini üstü kapalı söyleyerek o şey
 B, 4, İçinde tütsü için kullanılan maddeler yakılan kap, Buhurdan/Buhurluks
 B, 5, Japonca "savaşçının yolu" anlamına gelen, samurayların tutum, davranış ve yaşam tarzlarını belirleyen etik ve ahlak kodu, Bushido
 B, 5, Tayland'ın başkenti, Bangkok
+B, 4, Kaldırımların kenarlarında bulunan taşlar, Bordür
+B, 5, Para kullanılmadan, mal veya hizmetlerin karşılıklı olarak takas edilmesi esasına dayanan bir ticaret yöntemi, Barter
 
 C, 2, İlgi uyandıran, elverişli, Cazip
 C, 2, Genellikle dükkânlarda malların sergilendiği camlı bölme, Camekan
@@ -934,6 +937,8 @@ D, 5, Ayakkabı topuğuna veya ayakkabı burnuna aşınmayı önlemek için çak
 D, 5, Nişastayı dekstrin ve glikoz durumuna getiren, tükürükte ve pankreasın salgısında bulunan bir enzim, Diyastaz
 D, 5, I. Dünya Savaşı sonrasında başlayıp 1991'e kadar süren Soğuk Savaş döneminde, Avrupa'yı ideolojik, siyasi ve fiziksel olarak Sovyetler Birliği ve Batı bloku olarak ikiye bölen hayali ve gerçek sınıra verilen isim, Demir Perde
 D, 3, Midenin arkasında, diyaframın altında, sol böbreğin üstünde, yassı, uzunca, akyuvar üreten ve yıpranmış alyuvarları toplayan, damarlı, gevşek bir dokudan oluşmuş organ, Dalak
+D, 3, Anayasa veya uluslararası gelenekler gereğince, kişilere tanınan ilişilmez olma durumu, Dokunulmazlık
+D, 5, Dünyada soğuk savaş döneminden sonra stratejik silahların geliştirilmesiyle başlayan siyasal gerginliğin ortadan kaldırılması siyaseti, Detant
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -1058,6 +1063,9 @@ E, 4, İnsanın, makinenin ve çevrenin bir arada uyumlu ve verimli bir biçimde
 E, 3, İnsanların yaşayabilmek için üretme, ürettiklerini bölüşme biçimlerinin ve bu faaliyetlerden doğan ilişkilerin bütünü, Ekonomi
 E, 5, İçe ait bilginin belirli bir insan topluluğunun dışında kimseye bildirilmemesi, yalnızca sınırlı, dar bir çevreye aktarılması gerektiğini savunan anlayış, Ezoterizm
 E, 4, Avrupa Birliği'nin eğitim, gençlik ve spor alanlarında hibe desteği sağladığı, öğrencilerin ve personelin yurtdışında eğitim/staj yapmasına olanak tanıyan kapsamlı bir değişim programı, Erasmus/Erasmus+
+E, 5, Olgulara bütünsel olarak ve doğa merkezli bakış açısıyla yaklaşan bir düşünce akımı, Ekolojizm
+E, 3, Canlıların hem kendi aralarındaki hem de çevreleriyle olan ilişkilerini tek tek veya birlikte inceleyen bilim dalı, Ekoloji
+E, 5, Tarih öncesi tanrı, tanrıça, yarı tanrı ve kahramanlarla ilgili olağanüstü olayları konu alan şiir, Epope
 
 F, 2, Evre, safha, Faz
 F, 3, Pürüzsüz göstermek veya renk vermek için cilde sürülen, yarı sıvı veya boyalı krem, Fondöten
@@ -1228,6 +1236,8 @@ F, 5, Dinî ve mesleki birlik, esnaf teşkilatı, Fütüvvet
 F, 5, Özellikle Klasik Dönem Osmanlı iktisat anlayışında hazine gelirlerini en yüksek seviyeye çıkarma ve bu seviyeyi koruma esasına dayanan ekonomik zihniyet, Fiskalizm
 F, 5, Elektrik sığa birimi, Farad
 F, 5, 19. yüzyılda Lizbon'un dar sokaklarında doğan, Portekiz'in hüzün, kader ve derin özlem temalı ulusal müzik türü, Fado
+F, 3, Hukuki sonuç doğuracak bir suç işleyen kimse, Fail
+F, 5, Resim çizerken kullanılan, taflan çubuklarından yapılan kalem, kömür kalemi, Füzen
 
 G, 5, Bir maddenin en küçük tanesi, Granül
 G, 5, Yazılım projelerini tutan popüler versiyon kontrol sistemi, Git
@@ -1345,6 +1355,9 @@ G, 2, Bir ülkeye giren veya bir ülkeden çıkan mal ve eşya üzerinden alına
 G, 3, Sınır kapılarında denetim ve gözetim işlerinin yapıldığı yer, Gümrük
 G, 3, Dik açıları ölçmeye ve çizmeye yarayan dik üçgen biçiminde araç, Gönye
 G, 5, Bir sıvının içindeki alkol derecesi, Grado
+G, 5, Türkiye Büyük Millet Meclisinde başbakana veya bakanlardan birine, milletvekilleri tarafından açılan ve sonunda soruşturma yapılması istenebilen soru, Gensoru
+G, 3, Yasa ve yönetmeliklerin uygulanmasında yol göstermek, herhangi bir konuda aydınlatmak, dikkat çekmek üzere ilgililere gönderilen yazı, Genelge
+G, 3, Göreve yeni başlamış veya görevini sürdüren hükümetin tutumunu değerlendirmek için milletvekillerinin verdiği oy, Güvenoyu
 
 H, 5, Tütün kıyma makinesi, Havan
 H, 2, İşe yaramayacak derecede bozulmuş, zarar görmüş, Hurda
@@ -1543,6 +1556,7 @@ H, 5, Madenlerle yapılan kaynak işlerinde lehimi eritmek için ateşle veya el
 H, 5, Yahudilerin M.Ö. 2. yüzyılda Yunan Selevkos İmparatorluğu'na karşı kazandığı zaferin ve Kudüs Tapınağı'nın yeniden adanmasının anısına kutlanan 8 günlük bir bayram, Hanuka/Hanuka Bayramı
 H, 3, Hızır ve İlyas peygamberlerin her yıl buluştuklarına inanılan 6 Mayıs gününde kutlanılan geleneksel bayram, Hıdırellez
 H, 5, Hindistan'da her yıl Mart ayında dolunay zamanı kutlanan, baharın gelişini, iyiliğin kötülüğe karşı zaferini ve aşkı simgeleyen geleneksel bir Hindu festivali, Holi
+H, 4, Asya'da bulunan ve Everest ile K2 gibi dünyanın en yüksek zirvelerine ev sahipliği yapan, Pakistan, Hindistan, Çin, Nepal ve Bhutan boyunca uzanan 2400 km uzunluğundaki devasa sıradağlar, Himalaya/Himalayalar
 
 I, 3, Toprak işlerinde ve yapılarda en basit ve ağır işleri yapan işçi, Irgat
 I, 2, Uzak, Irak
@@ -2329,6 +2343,10 @@ K, 5, Doğaüstü varlıklarla ilişki kurma sanatı, Kabala
 K, 5, Her harfe gizemli bir anlam vererek Kitab-ı Mukaddes metnindeki sırları anlamaya çalışan Yahudi doktrini, Kabala
 K, 4, Piskoposluk makamı olan büyük kilise, Katedral
 K, 5, Hamamları ısıtan, hamamın altında bulunan kapalı ve geniş ocak, Külhan
+K, 5, Binaların temeli ile zemin arasındaki yükseklik, Kot
+K, 1, Sokaklarda, caddelerde yürümek için yapılmış yüksekçe yer, Kaldırım
+K, 5, Yeni bir yapının, yerin veya kuruluşun çalışmaya başlaması, Küşat
+K, 4, Çeşitli uluslardan kimseleri barındıran, içinde bulunduran, Kozmopolit
 
 L, 4, Feshetmek, hükümsüz kılmak, Lağvetmek/Lağvetme
 L, 5, Barcelona futbol kulübünün altyapısına verilen isim, La Masia
@@ -2470,6 +2488,7 @@ L, 5, Kemikleri diğer kemiklere bağlayan, eklemlerin etrafında bulunan sert, 
 L, 5, Herhangi bir konuda bir görüş ve düşünceyi bildiren yazı, Layiha
 L, 4, Futbolda savunmanın gerisinde görev yapan, önündeki savunma oyuncularını kontrol eden, yöneten, onlara yardımcı olan ve serbest hareket edebilen savunma oyuncusu, Libero
 L, 5, Hristiyanlıkta Paskalya Bayramı'ndan önce gelen, 40 gün süren Büyük Perhiz dönemi, Lent
+L, 5, İşverenin işçileri topluca işten uzaklaştırma veya işten çıkarma kararı, Lokavt
 
 M, 5, Hafif makineli tüfek, Mirtalyöz
 M, 5, Dört dizeli bentlerden oluşan divan şiiri, Murabba
@@ -2872,6 +2891,10 @@ M, 5, Hint felsefesinde ruhun ölüm ve yeniden doğuş döngüsünden ebediyen 
 M, 5, Altın suyuna batırılmış olan, Müzehhep
 M, 5, Hazineye ait herhangi bir gelirin belli bir bedel karşılığı keseneğe verilmesi, Mukataa
 M, 3, Argoda görgüsüz, kaba, terbiyesiz ve saldırgan kimse, Maganda
+M, 5, Ülkenin refahını sahip olduğu altın, gümüş vb. değerli madenlere bağlayan, ülkedeki değerli maden yataklarının işletilmesine önem veren ve ihracatı artırıp ithalatı azaltmaya çalışan iktisat öğretisi, Merkantilizm
+M, 5, Bir büyükelçinin temsilci olarak bulunduğu ülke dışına çıkması durumunda veya o ülkeye gelmesinden önce ona vekâlet eden diplomat, Maslahatgüzar
+M, 2, Haksızlığa uğramış kimse, Mağdur
+M, 3, Fırat ve Dicle nehirleri arasında kalan, günümüzde Irak, Türkiye'nin güneydoğusu ve Suriye'yi kapsayan, tarıma elverişli "Medeniyetlerin Beşiği" olarak bilinen bölge, Mezopotamya
 
 N, 4, Inception, The Prestige ve Oppenheimer gibi dünyaca ünlü filmlerin yönetmeni, Christopher ..., Nolan
 N, 3, Gerçekten, hakikaten anlamına gelen bir zarf, Nitekim
@@ -3419,6 +3442,8 @@ P, 4, Orta oyununda Kavuklu ve diğer tipler ile karşılıklı konuşarak oyunu
 P, 5, Genellikle pamuk ipliğinden dokunmuş ince havlu, Peşkir
 P, 5, Güneybatı Avrupa'da, Fransa ile İspanya arasında doğal sınır oluşturan, Atlantik'ten Akdeniz'e uzanan yaklaşık 430-500 km uzunluğundaki sıradağlar, Pirene/Pireneler/Pirene Dağları/Pireneler Dağları
 P, 5, Çin, Japonya vb. Uzak Doğu ülkelerinde kule biçiminde yapılmış tapınak, Pagoda
+P, 5, Bir bölgenin kadastro durumunu gösteren değişik malzemeler üzerine yapılmış parselleme çizgilerinin bütünü, Pafta
+P, 5, Süs için at takımlarına veya başka yerlere takılan metal pul veya çakılan iri başlı çivi, Pafta
 
 R, 2, Zarara uğrama tehlikesi, Risk/Riziko
 R, 2, 1950'lerde ABD'de doğan, elektro gitar, bas gitar ve davul merkezli, güçlü ritimlere sahip popüler bir müzik türü, Rock/Rock Müzik/Rak/Rak Müzik
@@ -3920,6 +3945,12 @@ S, 5, Yağmurdan, güneşten korunmak için binaların kapı önlerine veya geç
 S, 4, Osmanlı Beyliği'nin 1299 yılında kurulduğu, Kayı boyunun Uç Beyliği merkezi ve ilk başkenti olan, günümüzde ise Bilecik sınırlarında yer alan ilçe, Söğüt
 S, 5, Sersemleşmiş, şaşkınlaşmış olan, sözü kolayca anlamayan, Sangı
 S, 2, Karanın deniz, göl, ırmak boyunca uzanan bölümü, Sahil
+S, 2, İçine çeşitli şeyler konulan, tahtadan yapılmış, kapaklı ev eşyası, Sandık
+S, 4, Kamu kesiminde çalışan personelin sosyal güvenlik işlerini yürüten kuruluş, Sandık
+S, 2, Seçimlerde oy pusulalarının atıldığı kutu, Sandık
+S, 4, Kamu kesiminde çalışan personelin kendi kurumunda düşük faiz ve taksitler hâlinde geri ödemek üzere borç para aldığı birim, Sandık
+S, 5, Mahalle tulumbacılarının omuzda taşıdıkları tulumba, Sandık
+S, 2, Seçimde oy verme hakkı olan kimse, Seçmen
 
 Ş, 1, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, 4, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık
@@ -4092,6 +4123,7 @@ S, 2, Karanın deniz, göl, ırmak boyunca uzanan bölümü, Sahil
 Ş, 5, Eski Türk mimarisinde odanın karşı ön cephesinde yer alan üç yanı pencereli çıkma, Şahniş/Şahnişin
 Ş, 2, Yüzüstü yere uzanılıp eller omuz açıklığında yere dayalı bir biçimde, ayak parmakları üzerinde, bel ve dizler bükülmeden dirseklerin yukarı aşağı doğru indirilip kaldırılmasıyla yapılan beden hareketi, Şınav
 Ş, 5, Hükümdarların niteliklerini, üstün başarılarını anlatan, mesnevi biçiminde yazılmış manzume, Şehname
+Ş, 5, Bir taşınmaz malın satılması hâlinde, onu diğer alıcılara nazaran öncelikle satın alabilme, Şufa
 
 T, 5, Batı Afrika kıyılarında esen güçlü hava akımı, Tornado
 T, 4, 78 özel karttan oluşan, geçmiş, şimdi ve potansiyel gelecek hakkında içgörü sağlamak amacıyla kullanılan sembolik bir deste, Tarot
@@ -4431,6 +4463,9 @@ T, 2, Museviliğin temel ilkelerini, Hz. Musa'ya gönderilen Tanrı buyrukların
 T, 5, Resmi günlerde ve toplantılarda devlet büyüklerinin makam ve mevki sıralarına göre kabulü, Teşrifat
 T, 5, Ağaçtan yapılmış gürz, Tomak
 T, 5, Geleneksel Japon tarzı odalarda zemin malzemesi olarak kullanılan minder türü, Tatami
+T, 3, Bir kimsenin bir suçu işlemek niyetiyle harekete geçmesi, fakat elinde olmayan sebeplerle fiilini gerçekleştirememesi durumu, Teşebbüs
+T, 5, Herhangi bir sebebe dayanmaksızın borcu ödememekte direnme, Temerrüt
+T, 1, Ticaret yapan, ticaretle uğraşan kimse, Tüccar/Tacir/Tecimen
 
 U, 4, Afrika kıtasının doğu kesiminde yer alan ve denize kıyısı olmayan bir kara ülkesi, Uganda
 U, 3, Düz arazide veya açık denizde gökle yerin birleşir gibi göründüğü yer, Ufuk/Ufuk Çizgisi
@@ -4629,6 +4664,8 @@ V, 5, lke olarak hem ruhtan hem de organizmadan ayrı bir hayatı kabul eden fiz
 V, 4, Foseptikteki pis suları çekmeye yarayan makine, Vidanjör
 V, 5, Yardımcı konsolos, Viskonsül
 V, 5, Hindistan'ın Uttar Pradeş eyaletinde, Ganj Nehri kıyısında yer alan, Hinduizm'in en kutsal şehri ve Şiva'nın şehri olarak kabul edilen 3.000 yıllık antik bir yerleşim, Varanasi
+V, 4, Altın, gümüş veya başka madenler dövülerek oluşturulan ince, parlak yaprak, Varak
+V, 4, Sürüldüğü yüzeyde parlak, kaygan ve koruyucu bir tabaka meydana getiren, suya dayanıklı cila maddesi, Vernik
 
 Y, 4, Japonya kökenli uluslararası organize suç gruplarının üyelerine verilen isim, Yakuza
 Y, 3, Bir günlük çalışmanın karşılığı olarak verilen ücret, Yevmiye
