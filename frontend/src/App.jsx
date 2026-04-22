@@ -1168,6 +1168,105 @@ function App() {
     finishGame();
   };
 
+  const shuffleArray = (items) => {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+
+  const normalizeDifficultyLevel = (question) => {
+    const rawValue =
+      question?.difficultyLevel ??
+      question?.difficultylevel ??
+      question?.difficulty_level;
+
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const buildBalancedQuestionSet = (allQuestions, totalCount = 28) => {
+    const validQuestions = Array.isArray(allQuestions)
+      ? allQuestions.filter(Boolean)
+      : [];
+
+    if (validQuestions.length <= totalCount) {
+      return validQuestions.slice(0, totalCount);
+    }
+
+    const levelFiveQuestions = [];
+    const otherQuestions = [];
+
+    validQuestions.forEach((question) => {
+      if (normalizeDifficultyLevel(question) === 5) {
+        levelFiveQuestions.push(question);
+      } else {
+        otherQuestions.push(question);
+      }
+    });
+
+    const selectedLevelFive = shuffleArray(levelFiveQuestions).slice(
+      0,
+      Math.min(5, totalCount)
+    );
+
+    const remainingSlots = Math.max(0, totalCount - selectedLevelFive.length);
+    const selectedOthers = shuffleArray(otherQuestions).slice(0, remainingSlots);
+
+    const combined = [...selectedLevelFive, ...selectedOthers];
+
+    if (combined.length < totalCount) {
+      const usedKeys = new Set(
+        combined.map(
+          (question) =>
+            question?.id ??
+            `${question?.letter}-${question?.questionText}-${question?.answer}`
+        )
+      );
+
+      const fallbackPool = shuffleArray(validQuestions).filter((question) => {
+        const key =
+          question?.id ??
+          `${question?.letter}-${question?.questionText}-${question?.answer}`;
+        return !usedKeys.has(key);
+      });
+
+      for (const question of fallbackPool) {
+        if (combined.length >= totalCount) break;
+
+        const level = normalizeDifficultyLevel(question);
+        const currentLevelFiveCount = combined.filter(
+          (item) => normalizeDifficultyLevel(item) === 5
+        ).length;
+
+        if (level === 5 && currentLevelFiveCount >= 5) {
+          continue;
+        }
+
+        combined.push(question);
+      }
+    }
+
+    const selectedKeys = new Set(
+      combined.map(
+        (question) =>
+          question?.id ??
+          `${question?.letter}-${question?.questionText}-${question?.answer}`
+      )
+    );
+
+    const orderedCombined = validQuestions.filter((question) => {
+      const key =
+        question?.id ??
+        `${question?.letter}-${question?.questionText}-${question?.answer}`;
+      return selectedKeys.has(key);
+    });
+
+    return orderedCombined.slice(0, totalCount);
+  };
+
   const startGame = async (modeOverride = null) => {
     const effectiveMode = modeOverride || gameMode;
 
@@ -1198,8 +1297,16 @@ function App() {
     const loadedQuestions = await loadQuestions(effectiveMode);
     if (!loadedQuestions) return;
 
+    const balancedQuestions =
+      effectiveMode === "duel"
+        ? loadedQuestions
+        : buildBalancedQuestionSet(loadedQuestions, 28);
+
+    setQuestions(balancedQuestions);
+    setQuestionStatuses(balancedQuestions.map(() => "pending"));
+
     if (effectiveMode !== "daily") {
-      saveCurrentGameQuestionHistory(loadedQuestions);
+      saveCurrentGameQuestionHistory(balancedQuestions);
     }
 
     setCurrentIndex(0);
@@ -1215,7 +1322,6 @@ function App() {
     setGameFinished(false);
     setIsPaused(false);
     setTimeLeft(selectedDuration);
-    setQuestionStatuses(loadedQuestions.map(() => "pending"));
     setShowHowToPlay(false);
     setShowLeaderboard(false);
     setShowProfileMenu(false);
