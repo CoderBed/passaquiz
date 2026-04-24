@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toPng } from "html-to-image";
 
 function DuelLobby({ currentUser, onBack, onStartDuel }) {
   const [roomCode, setRoomCode] = useState("");
@@ -575,6 +576,7 @@ function App() {
   const duelEmojiPickerRef = useRef(null);
   const duelOpponentPresentRef = useRef(false);
   const finishedDuelSnapshotRef = useRef(null);
+  const shareCardRef = useRef(null);
 
   const currentUser = {
     id: authUserId,
@@ -1951,6 +1953,52 @@ function App() {
     setMaxCorrectStreak(0);
 
     await startGame();
+  };
+
+  const downloadShareCard = async () => {
+    if (!shareCardRef.current) return;
+
+    try {
+      const dataUrl = await toPng(shareCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+      });
+
+      const safeMode =
+        gameMode === "duel"
+          ? "duello"
+          : gameMode === "daily"
+            ? "gunluk"
+            : "klasik";
+
+      const rawUserName =
+        authUserName ||
+        authUserEmail ||
+        currentUser?.name ||
+        currentUser?.email ||
+        "kullanici";
+
+      const safeUserName = String(rawUserName)
+        .trim()
+        .toLocaleLowerCase("tr-TR")
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9çğıöşü-]/gi, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "") || "kullanici";
+
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+      const link = document.createElement("a");
+      link.download = `passaquiz-${safeMode}-${safeUserName}-${dateStr}.png`;
+      link.href = dataUrl;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Paylaşım kartı oluşturulamadı:", error);
+    }
   };
 
   const goToGuestRegister = async () => {
@@ -3730,6 +3778,258 @@ function App() {
                   </div>
                 )}
               </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "24px",
+                }}
+              >
+                <button
+                  onClick={downloadShareCard}
+                  style={{
+                    marginTop: 0,
+                    marginRight: 0,
+                    minWidth: "210px",
+                    height: "58px",
+                    padding: "0 22px",
+                    border: "1px solid rgba(148, 163, 184, 0.28)",
+                    borderRadius: "18px",
+                    cursor: "pointer",
+                    color: "#e2e8f0",
+                    background: "linear-gradient(135deg, rgba(71, 85, 105, 0.95), rgba(51, 65, 85, 0.9))",
+                    boxShadow: "0 14px 30px rgba(2, 6, 23, 0.28)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "10px",
+                    fontSize: "16px",
+                    fontWeight: "800",
+                    letterSpacing: "0.2px",
+                    transition: "transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 18px 34px rgba(2, 6, 23, 0.34)";
+                    e.currentTarget.style.filter = "brightness(1.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 14px 30px rgba(2, 6, 23, 0.28)";
+                    e.currentTarget.style.filter = "brightness(1)";
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 3V14"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M7.5 10.5L12 15L16.5 10.5"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5 19H19"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span>Sonucu İndir</span>
+                </button>
+              </div>
+
+              <div
+                style={{
+                  position: "fixed",
+                  left: "-99999px",
+                  top: 0,
+                  pointerEvents: "none",
+                  opacity: 0,
+                }}
+              >
+                <div
+                  ref={shareCardRef}
+                  style={{
+                    width: "720px",
+                    padding: "36px 40px",
+                    borderRadius: "28px",
+                    background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
+                    color: "#f8fafc",
+                    fontFamily: "Arial, sans-serif",
+                    boxSizing: "border-box",
+                    boxShadow: "0 30px 80px rgba(2, 6, 23, 0.45)",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    textAlign: "center",
+                  }}
+                >
+                  <img
+                    src="/passaquiz.png"
+                    alt="PassaQuiz Logo"
+                    style={{
+                      width: "240px",
+                      display: "block",
+                      margin: "0 auto 18px",
+                    }}
+                  />
+
+                 <div
+                   style={{
+                     width: "100%",
+                     display: "flex",
+                     justifyContent: "center",
+                     margin: "0 0 18px 0",
+                   }}
+                 >
+                   <div
+                     style={{
+                       display: "inline-flex",
+                       alignItems: "center",
+                       justifyContent: "center",
+                       padding: "10px 18px",
+                       borderRadius: "16px",
+                       background: "linear-gradient(135deg, rgba(22, 163, 74, 0.24), rgba(21, 128, 61, 0.16))",
+                       border: "1px solid rgba(74, 222, 128, 0.24)",
+                       boxShadow: "0 14px 30px rgba(21, 128, 61, 0.14)",
+                     }}
+                   >
+                     <span
+                       style={{
+                         color: "#bbf7d0",
+                         fontSize: "15px",
+                         fontWeight: "800",
+                         letterSpacing: "1.2px",
+                         textTransform: "uppercase",
+                         lineHeight: 1,
+                       }}
+                     >
+                       Günlük Oyun Sonucu
+                     </span>
+                   </div>
+                 </div>
+
+                  <div
+                    style={{
+                      fontSize: "64px",
+                      fontWeight: "800",
+                      color: "#60a5fa",
+                      lineHeight: 1,
+                      marginBottom: "18px",
+                    }}
+                  >
+                    {dailyResult?.score ?? score}
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#cbd5e1",
+                      fontSize: "20px",
+                      fontWeight: "600",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    Toplam Puan
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: "14px",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Süre
+                      </div>
+                      <div style={{ color: "#f8fafc", fontSize: "26px", fontWeight: "800" }}>
+                        {formatElapsedTime(dailyResult?.elapsedTime || 0)}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Doğru
+                      </div>
+                      <div style={{ color: "#22c55e", fontSize: "26px", fontWeight: "800" }}>
+                        {dailyResult?.correctCount ?? 0}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Yanlış
+                      </div>
+                      <div style={{ color: "#ef4444", fontSize: "26px", fontWeight: "800" }}>
+                        {dailyResult?.wrongCount ?? 0}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Pas
+                      </div>
+                      <div style={{ color: "#f59e0b", fontSize: "26px", fontWeight: "800" }}>
+                        {dailyResult?.passedCount ?? 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#94a3b8",
+                      fontSize: "15px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    PassaQuiz ile oluşturuldu
+                  </div>
+                </div>
+              </div>
+
               {shouldShowGuestRegisterCTA && (
                 <div
                   style={{
@@ -7893,6 +8193,73 @@ function App() {
                     Tekrar Oyna
                   </button>
                 )}
+                {gameMode !== "daily" && (
+                  <button
+                    onClick={downloadShareCard}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "210px",
+                      height: "58px",
+                      padding: "0 22px",
+                      border: "1px solid rgba(148, 163, 184, 0.28)",
+                      borderRadius: "18px",
+                      cursor: "pointer",
+                      color: "#eff6ff",
+                      background: "linear-gradient(135deg, rgba(100, 116, 139, 0.95), rgba(71, 85, 105, 0.9))",
+                      boxShadow: "0 14px 30px rgba(2, 6, 23, 0.35)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      fontSize: "16px",
+                      fontWeight: "800",
+                      letterSpacing: "0.2px",
+                      transition: "transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 18px 34px rgba(2, 6, 23, 0.45)";
+                      e.currentTarget.style.filter = "brightness(1.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 14px 30px rgba(2, 6, 23, 0.35)";
+                      e.currentTarget.style.filter = "brightness(1)";
+                    }}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M12 3V14"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M7.5 10.5L12 15L16.5 10.5"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M5 19H19"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <span>Sonucu İndir</span>
+                  </button>
+                )}
 
                 {shouldShowGuestRegisterCTA && gameMode !== "daily" && (
                   <div
@@ -7942,6 +8309,265 @@ function App() {
                     </button>
                   </div>
                 )}
+              </div>
+              <div
+                style={{
+                  position: "fixed",
+                  left: "-99999px",
+                  top: 0,
+                  pointerEvents: "none",
+                  opacity: 0,
+                }}
+              >
+                <div
+                  ref={shareCardRef}
+                  style={{
+                    width: "720px",
+                    padding: "36px 40px",
+                    borderRadius: "28px",
+                    background: "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)",
+                    color: "#f8fafc",
+                    fontFamily: "Arial, sans-serif",
+                    boxSizing: "border-box",
+                    boxShadow: "0 30px 80px rgba(2, 6, 23, 0.45)",
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    textAlign: "center",
+                  }}
+                >
+                  <img
+                    src="/passaquiz.png"
+                    alt="PassaQuiz Logo"
+                    style={{ width: "240px", margin: "0 auto 18px", display: "block" }}
+                  />
+
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "fit-content",
+                      margin: "0 auto 18px",
+                      padding: "10px 18px",
+                      borderRadius: "16px",
+                      background:
+                        gameMode === "duel"
+                          ? "linear-gradient(135deg, rgba(91, 33, 182, 0.30), rgba(49, 46, 129, 0.24))"
+                          : gameMode === "daily"
+                            ? "linear-gradient(135deg, rgba(22, 163, 74, 0.24), rgba(21, 128, 61, 0.16))"
+                            : "linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(30, 64, 175, 0.14))",
+                      border:
+                        gameMode === "duel"
+                          ? "1px solid rgba(167, 139, 250, 0.30)"
+                          : gameMode === "daily"
+                            ? "1px solid rgba(74, 222, 128, 0.24)"
+                            : "1px solid rgba(147, 197, 253, 0.24)",
+                      boxShadow:
+                        gameMode === "duel"
+                          ? "0 14px 30px rgba(76, 29, 149, 0.18)"
+                          : gameMode === "daily"
+                            ? "0 14px 30px rgba(21, 128, 61, 0.14)"
+                            : "0 14px 30px rgba(30, 64, 175, 0.14)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        color:
+                          gameMode === "duel"
+                            ? "#ddd6fe"
+                            : gameMode === "daily"
+                              ? "#bbf7d0"
+                              : "#bfdbfe",
+                        fontSize: "15px",
+                        fontWeight: "800",
+                        letterSpacing: "1.2px",
+                        textTransform: "uppercase",
+                        lineHeight: 1,
+                      }}
+                    >
+                      {gameMode === "duel"
+                        ? "Düello Sonucu"
+                        : gameMode === "daily"
+                          ? "Günlük Oyun Sonucu"
+                          : "Klasik Oyun Sonucu"}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: gameMode === "duel" ? "56px" : "64px",
+                      fontWeight: "800",
+                      color: "#60a5fa",
+                      lineHeight: 1,
+                      marginBottom: gameMode === "duel" ? "14px" : "18px",
+                    }}
+                  >
+                    {gameMode === "duel"
+                      ? `${score} - ${duelOpponentScore ?? 0}`
+                      : score}
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#cbd5e1",
+                      fontSize: "20px",
+                      fontWeight: "600",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    Toplam Puan
+                  </div>
+
+                  {gameMode === "duel" && (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                        gap: "14px",
+                        marginBottom: "24px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: "18px 16px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.72)",
+                          border: "1px solid rgba(148, 163, 184, 0.14)",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div style={{ color: "#94a3b8", fontSize: "13px", marginBottom: "8px" }}>
+                          Sen
+                        </div>
+                        <div style={{ color: "#f8fafc", fontSize: "22px", fontWeight: "800", marginBottom: "6px" }}>
+                          {authUserName || authUserEmail || "Oyuncu"}
+                        </div>
+                        <div style={{ color: "#60a5fa", fontSize: "28px", fontWeight: "800" }}>
+                          {score}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: "18px 16px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.72)",
+                          border: "1px solid rgba(148, 163, 184, 0.14)",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div style={{ color: "#94a3b8", fontSize: "13px", marginBottom: "8px" }}>
+                          Rakip
+                        </div>
+                        <div style={{ color: "#f8fafc", fontSize: "22px", fontWeight: "800", marginBottom: "6px" }}>
+                          {duelOpponentName || duelRoomData?.player1?.name || duelRoomData?.player2?.name || "Rakip"}
+                        </div>
+                        <div style={{ color: "#a78bfa", fontSize: "28px", fontWeight: "800" }}>
+                          {duelOpponentScore ?? 0}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                      gap: "14px",
+                      marginBottom: "24px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Süre
+                      </div>
+                      <div style={{ color: "#f8fafc", fontSize: "26px", fontWeight: "800" }}>
+                        {formatElapsedTime(elapsedTime)}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Doğru
+                      </div>
+                      <div style={{ color: "#22c55e", fontSize: "26px", fontWeight: "800" }}>
+                        {correctCount}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Yanlış
+                      </div>
+                      <div style={{ color: "#ef4444", fontSize: "26px", fontWeight: "800" }}>
+                        {wrongCount}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "18px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(15, 23, 42, 0.72)",
+                        border: "1px solid rgba(148, 163, 184, 0.14)",
+                      }}
+                    >
+                      <div style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "8px" }}>
+                        Pas
+                      </div>
+                      <div style={{ color: "#f59e0b", fontSize: "26px", fontWeight: "800" }}>
+                        {passedCount}
+                      </div>
+                    </div>
+                  </div>
+
+                  {gameMode === "duel" && duelWinnerMessage && (
+                    <div
+                      style={{
+                        marginBottom: "20px",
+                        padding: "18px 20px",
+                        borderRadius: "20px",
+                        background: "linear-gradient(135deg, rgba(91, 33, 182, 0.32), rgba(30, 41, 59, 0.86))",
+                        border: "1px solid rgba(167, 139, 250, 0.24)",
+                        color: "#f5f3ff",
+                        fontSize: "20px",
+                        fontWeight: "800",
+                      }}
+                    >
+                      Kazanan: {duelWinnerMessage}
+                    </div>
+                  )}
+
+                  <div
+                    style={{
+                      color: "#94a3b8",
+                      fontSize: "15px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    PassaQuiz ile oluşturuldu
+                  </div>
+                </div>
               </div>
             </div>
           </div>
