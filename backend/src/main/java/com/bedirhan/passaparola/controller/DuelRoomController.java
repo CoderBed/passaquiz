@@ -64,6 +64,14 @@ public class DuelRoomController {
         );
     }
 
+    @PostMapping("/rooms/{roomCode}/rematch-request")
+    public ResponseEntity<DuelRoom> requestRematch(
+            @PathVariable String roomCode,
+            @RequestParam Long playerId
+    ) {
+        return ResponseEntity.ok(duelRoomService.requestRematch(roomCode, playerId));
+    }
+
     @PostMapping("/rooms/{roomCode}/finish")
     public ResponseEntity<DuelRoom> finishGame(
             @PathVariable String roomCode,

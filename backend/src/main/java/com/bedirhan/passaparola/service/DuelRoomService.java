@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Objects;
+import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,80 @@ public class DuelRoomService {
 
     public DuelRoomService(QuestionRepository questionRepository) {
         this.questionRepository = questionRepository;
+    }
+
+    private List<Question> createDuelQuestionSet() {
+        List<String> alphabetOrder = Arrays.asList(
+                "A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L", "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z"
+        );
+
+        List<Question> questions = new ArrayList<>(questionRepository.findAll());
+        Collections.shuffle(questions);
+
+        LinkedHashMap<String, Question> oneQuestionPerLetter = new LinkedHashMap<>();
+        int levelFiveCount = 0;
+
+        for (Question question : questions) {
+            String letter = question.getLetter() == null
+                    ? ""
+                    : question.getLetter().toUpperCase(new java.util.Locale("tr", "TR"));
+
+            if (oneQuestionPerLetter.containsKey(letter)) {
+                continue;
+            }
+
+            Integer difficultyLevel = question.getDifficultyLevel();
+            if (difficultyLevel != null && difficultyLevel == 5 && levelFiveCount >= 5) {
+                continue;
+            }
+
+            oneQuestionPerLetter.put(letter, question);
+            if (difficultyLevel != null && difficultyLevel == 5) {
+                levelFiveCount++;
+            }
+        }
+
+        return oneQuestionPerLetter.values().stream()
+                .sorted(Comparator.comparingInt(q -> {
+                    String letter = q.getLetter() == null
+                            ? ""
+                            : q.getLetter().toUpperCase(new java.util.Locale("tr", "TR"));
+                    int index = alphabetOrder.indexOf(letter);
+                    return index >= 0 ? index : Integer.MAX_VALUE;
+                }))
+                .toList();
+    }
+
+    private void resetRoomForRematch(DuelRoom room) {
+        room.setStatus(DuelStatus.STARTED);
+        room.setGameStartAt(LocalDateTime.now().plusSeconds(10));
+        room.setQuestions(createDuelQuestionSet());
+        room.setCurrentIndex(0);
+
+        room.setPlayer1Ready(true);
+        room.setPlayer2Ready(true);
+
+        room.setPlayer1Score(0);
+        room.setPlayer2Score(0);
+
+        room.setPlayer1ElapsedTime(0);
+        room.setPlayer2ElapsedTime(0);
+
+        room.setPlayer1CorrectCount(0);
+        room.setPlayer2CorrectCount(0);
+
+        room.setPlayer1WrongCount(0);
+        room.setPlayer2WrongCount(0);
+
+        room.setPlayer1PassedCount(0);
+        room.setPlayer2PassedCount(0);
+
+        room.setPlayer1Finished(false);
+        room.setPlayer2Finished(false);
+
+        room.setPlayer1RematchRequested(false);
+        room.setPlayer2RematchRequested(false);
+        room.increaseRematchRound();
     }
 
     public DuelRoom createRoom(CreateDuelRoomRequest request) {
@@ -95,40 +170,16 @@ public class DuelRoomService {
             room.setStatus(DuelStatus.STARTED);
             room.setGameStartAt(LocalDateTime.now().plusSeconds(10));
 
-            List<String> alphabetOrder = Arrays.asList(
-                    "A", "B", "C", "Ç", "D", "E", "F", "G", "Ğ", "H", "I", "İ", "J", "K", "L", "M", "N", "O", "Ö", "P", "R", "S", "Ş", "T", "U", "Ü", "V", "Y", "Z"
-            );
+            room.setQuestions(createDuelQuestionSet());
 
-            List<Question> questions = questionRepository.findAll();
-            Collections.shuffle(questions);
-
-            LinkedHashMap<String, Question> oneQuestionPerLetter = new LinkedHashMap<>();
-            for (Question question : questions) {
-                String letter = question.getLetter() == null
-                        ? ""
-                        : question.getLetter().toUpperCase(new java.util.Locale("tr", "TR"));
-
-                if (!oneQuestionPerLetter.containsKey(letter)) {
-                    oneQuestionPerLetter.put(letter, question);
-                }
-            }
-
-            List<Question> selected = oneQuestionPerLetter.values().stream()
-                    .sorted(Comparator.comparingInt(q -> {
-                        String letter = q.getLetter() == null
-                                ? ""
-                                : q.getLetter().toUpperCase(new java.util.Locale("tr", "TR"));
-                        int index = alphabetOrder.indexOf(letter);
-                        return index >= 0 ? index : Integer.MAX_VALUE;
-                    }))
-                    .toList();
-
-            room.setQuestions(selected);
             room.setCurrentIndex(0);
             room.setPlayer1Score(0);
             room.setPlayer2Score(0);
             room.setPlayer1Finished(false);
             room.setPlayer2Finished(false);
+
+            room.setPlayer1RematchRequested(false);
+            room.setPlayer2RematchRequested(false);
         }
 
         return room;
@@ -196,6 +247,36 @@ public class DuelRoomService {
         return room;
     }
 
+    public DuelRoom requestRematch(String roomCode, Long playerId) {
+        DuelRoom room = rooms.get(roomCode);
+
+        if (room == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
+        }
+
+        if (playerId == null) {
+            throw new RuntimeException("Oyuncu bilgisi eksik.");
+        }
+
+        if (room.getStatus() != DuelStatus.FINISHED) {
+            throw new RuntimeException("Rövanş isteği sadece oyun bittikten sonra gönderilebilir.");
+        }
+
+        if (Objects.equals(room.getPlayer1Id(), playerId)) {
+            room.setPlayer1RematchRequested(true);
+        } else if (Objects.equals(room.getPlayer2Id(), playerId)) {
+            room.setPlayer2RematchRequested(true);
+        } else {
+            throw new RuntimeException("Oyuncu bu odada değil.");
+        }
+
+        if (room.isPlayer1RematchRequested() && room.isPlayer2RematchRequested()) {
+            resetRoomForRematch(room);
+        }
+
+        return room;
+    }
+
     public DuelRoom leaveRoom(String roomCode, Long playerId) {
         DuelRoom room = rooms.get(roomCode);
 
@@ -222,6 +303,7 @@ public class DuelRoomService {
                 room.setPlayer1WrongCount(room.getPlayer2WrongCount());
                 room.setPlayer1PassedCount(room.getPlayer2PassedCount());
                 room.setPlayer1Finished(room.isPlayer2Finished());
+                room.setPlayer1RematchRequested(room.isPlayer2RematchRequested());
 
                 room.setPlayer2Id(null);
                 room.setPlayer2Name(null);
@@ -232,6 +314,7 @@ public class DuelRoomService {
                 room.setPlayer2WrongCount(0);
                 room.setPlayer2PassedCount(0);
                 room.setPlayer2Finished(false);
+                room.setPlayer2RematchRequested(false);
 
                 room.setStatus(DuelStatus.WAITING);
                 room.setGameStartAt(null);
@@ -252,6 +335,7 @@ public class DuelRoomService {
             room.setPlayer2WrongCount(0);
             room.setPlayer2PassedCount(0);
             room.setPlayer2Finished(false);
+            room.setPlayer2RematchRequested(false);
             room.setStatus(DuelStatus.WAITING);
             room.setGameStartAt(null);
             return room;

@@ -577,6 +577,8 @@ function App() {
   const duelOpponentPresentRef = useRef(false);
   const finishedDuelSnapshotRef = useRef(null);
   const shareCardRef = useRef(null);
+  const [duelRematchLoading, setDuelRematchLoading] = useState(false);
+  const [duelRematchMessage, setDuelRematchMessage] = useState("");
 
   const currentUser = {
     id: authUserId,
@@ -593,10 +595,6 @@ function App() {
   const isDuelEmojiOnCooldown = duelEmojiCooldownRemaining > 0;
 
   const isDuelPlayer1 = duelRoomData?.player1Id === currentUser?.id;
-
-  const duelOpponentName = isDuelPlayer1
-    ? duelRoomData?.player2Name || "Rakip"
-    : duelRoomData?.player1Name || "Rakip";
 
   const profileFileInputRef = useRef(null);
 
@@ -858,6 +856,8 @@ function App() {
     setDuelWaitingForOpponent(false);
     setCurrentCorrectStreak(0);
     setMaxCorrectStreak(0);
+    setDuelRematchLoading(false);
+    setDuelRematchMessage("");
     setGameStarted(true);
   };
 
@@ -1856,6 +1856,48 @@ function App() {
     }
   };
 
+  const requestDuelRematch = async () => {
+    if (!activeDuelRoomCode || !currentUser?.id || duelRematchLoading) return;
+
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    setDuelRematchLoading(true);
+    setDuelRematchMessage("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/duel/rooms/${activeDuelRoomCode}/rematch-request?playerId=${currentUser.id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Rövanş isteği gönderilemedi.");
+      }
+
+      const data = await response.json();
+      setDuelRoomData(data);
+
+      if (data?.status === "STARTED") {
+        setDuelRematchMessage("Rövanş başlıyor...");
+        startDuelGame(data);
+        return;
+      }
+
+      setDuelRematchMessage("Rövanş isteği gönderildi. Rakibin kabul etmesi bekleniyor.");
+    } catch (error) {
+      console.error("Rövanş isteği gönderilemedi:", error);
+      setDuelRematchMessage("Rövanş isteği gönderilemedi.");
+    } finally {
+      setDuelRematchLoading(false);
+    }
+  };
+
   const returnToMainMenu = async () => {
     console.log("returnToMainMenu çalıştı", {
       gameMode,
@@ -2472,29 +2514,72 @@ function App() {
       ? finishedDuelSnapshotRef.current
       : duelRoomData;
 
-  const duelOpponentScore = isDuelPlayer1
-    ? effectiveDuelRoomData?.player2Score
-    : effectiveDuelRoomData?.player1Score;
+  const effectiveIsDuelPlayer1 =
+    String(effectiveDuelRoomData?.player1Id ?? "") === String(activePlayerId ?? currentUser?.id ?? "");
 
-  const duelMyRecordedScore = isDuelPlayer1
+  const duelOpponentName = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player2Name || effectiveDuelRoomData?.player2?.name || "Rakip"
+    : effectiveDuelRoomData?.player1Name || effectiveDuelRoomData?.player1?.name || "Rakip";
+
+  const duelMyRecordedScore = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player1Score
     : effectiveDuelRoomData?.player2Score;
 
-  const duelOpponentElapsedTime = isDuelPlayer1
+  const duelOpponentScore = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player2Score
+    : effectiveDuelRoomData?.player1Score;
+
+  const duelMyElapsedTime = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player1ElapsedTime
+    : effectiveDuelRoomData?.player2ElapsedTime;
+
+  const duelOpponentElapsedTime = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player2ElapsedTime
     : effectiveDuelRoomData?.player1ElapsedTime;
 
-  const duelOpponentCorrectCount = isDuelPlayer1
+  const duelMyCorrectCount = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player1CorrectCount
+    : effectiveDuelRoomData?.player2CorrectCount;
+
+  const duelOpponentCorrectCount = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player2CorrectCount
     : effectiveDuelRoomData?.player1CorrectCount;
 
-  const duelOpponentWrongCount = isDuelPlayer1
+  const duelMyWrongCount = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player1WrongCount
+    : effectiveDuelRoomData?.player2WrongCount;
+
+  const duelOpponentWrongCount = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player2WrongCount
     : effectiveDuelRoomData?.player1WrongCount;
 
-  const duelOpponentPassedCount = isDuelPlayer1
+  const duelMyPassedCount = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player1PassedCount
+    : effectiveDuelRoomData?.player2PassedCount;
+
+  const duelOpponentPassedCount = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player2PassedCount
     : effectiveDuelRoomData?.player1PassedCount;
+
+  const duelMyDisplayScore = gameMode === "duel" && gameFinished
+    ? Number(duelMyRecordedScore ?? score)
+    : score;
+
+  const duelMyDisplayElapsedTime = gameMode === "duel" && gameFinished
+    ? Number(duelMyElapsedTime ?? elapsedTime)
+    : elapsedTime;
+
+  const duelMyDisplayCorrectCount = gameMode === "duel" && gameFinished
+    ? Number(duelMyCorrectCount ?? correctCount)
+    : correctCount;
+
+  const duelMyDisplayWrongCount = gameMode === "duel" && gameFinished
+    ? Number(duelMyWrongCount ?? wrongCount)
+    : wrongCount;
+
+  const duelMyDisplayPassedCount = gameMode === "duel" && gameFinished
+    ? Number(duelMyPassedCount ?? passedCount)
+    : passedCount;
 
   const duelWinnerInfo = (() => {
     if (gameMode !== "duel" || !effectiveDuelRoomData) {
@@ -2659,6 +2744,49 @@ function App() {
       if (intervalId) clearInterval(intervalId);
     };
   }, [gameMode, duelRoomCode, activePlayerId, gameFinished, duelRoomData]);
+
+  useEffect(() => {
+    if (gameMode !== "duel") return;
+    if (!gameFinished) return;
+    if (!activeDuelRoomCode) return;
+    if (!isAuthenticated) return;
+
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    let isStopped = false;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/duel/rooms/${activeDuelRoomCode}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (isStopped) return;
+
+        setDuelRoomData(data);
+
+        if (data?.status === "STARTED") {
+          setDuelRematchMessage("Rövanş başlıyor...");
+          startDuelGame(data);
+        }
+      } catch (error) {
+        if (!isStopped) {
+          console.error("Rövanş durumu alınamadı:", error);
+        }
+      }
+    }, 1500);
+
+    return () => {
+      isStopped = true;
+      clearInterval(intervalId);
+    };
+  }, [gameMode, gameFinished, activeDuelRoomCode, isAuthenticated]);
 
   useEffect(() => {
     if (gameMode !== "duel") {
@@ -7991,11 +8119,11 @@ function App() {
                   )}
 
                   {[
-                    { label: "Toplam puan", value: score, color: "#2563eb" },
-                    { label: "Oyun süresi", value: formatElapsedTime(elapsedTime), color: "#52525b" },
-                    { label: "Doğru sayısı", value: correctCount, color: "#16a34a" },
-                    { label: "Yanlış sayısı", value: wrongCount, color: "#dc2626" },
-                    { label: "Pas sayısı", value: passedCount, color: "#d97706" },
+                    { label: "Toplam puan", value: gameMode === "duel" ? duelMyDisplayScore : score, color: "#2563eb" },
+                    { label: "Oyun süresi", value: formatElapsedTime(gameMode === "duel" ? duelMyDisplayElapsedTime : elapsedTime), color: "#52525b" },
+                    { label: "Doğru sayısı", value: gameMode === "duel" ? duelMyDisplayCorrectCount : correctCount, color: "#16a34a" },
+                    { label: "Yanlış sayısı", value: gameMode === "duel" ? duelMyDisplayWrongCount : wrongCount, color: "#dc2626" },
+                    { label: "Pas sayısı", value: gameMode === "duel" ? duelMyDisplayPassedCount : passedCount, color: "#d97706" },
                   ].map((item) => (
                     <div
                       key={item.label}
@@ -8193,6 +8321,51 @@ function App() {
                     Tekrar Oyna
                   </button>
                 )}
+                {gameMode === "duel" && (
+                  <button
+                    onClick={requestDuelRematch}
+                    disabled={duelRematchLoading}
+                    style={{
+                      marginTop: 0,
+                      marginRight: 0,
+                      minWidth: "210px",
+                      height: "58px",
+                      padding: "0 22px",
+                      border: "1px solid rgba(167, 139, 250, 0.30)",
+                      borderRadius: "18px",
+                      cursor: duelRematchLoading ? "not-allowed" : "pointer",
+                      color: "#f5f3ff",
+                      background: "linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 0.9))",
+                      boxShadow: "0 14px 30px rgba(91, 33, 182, 0.28)",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      fontSize: "16px",
+                      fontWeight: "800",
+                      letterSpacing: "0.2px",
+                      opacity: duelRematchLoading ? 0.72 : 1,
+                      transition: "transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (duelRematchLoading) return;
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                      e.currentTarget.style.boxShadow = "0 18px 34px rgba(91, 33, 182, 0.34)";
+                      e.currentTarget.style.filter = "brightness(1.05)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "0 14px 30px rgba(91, 33, 182, 0.28)";
+                      e.currentTarget.style.filter = "brightness(1)";
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path d="M4 7H14C17.3137 7 20 9.68629 20 13C20 16.3137 17.3137 19 14 19H8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M8 3L4 7L8 11" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span>{duelRematchLoading ? "Gönderiliyor..." : "Rövanş İste"}</span>
+                  </button>
+                )}
                 {gameMode !== "daily" && (
                   <button
                     onClick={downloadShareCard}
@@ -8310,6 +8483,19 @@ function App() {
                   </div>
                 )}
               </div>
+              {gameMode === "duel" && duelRematchMessage && (
+                <div
+                  style={{
+                    marginTop: "14px",
+                    color: duelRematchMessage.includes("gönderilemedi") ? "#fca5a5" : "#c4b5fd",
+                    fontSize: "15px",
+                    fontWeight: "700",
+                    textAlign: "center",
+                  }}
+                >
+                  {duelRematchMessage}
+                </div>
+              )}
               <div
                 style={{
                   position: "fixed",

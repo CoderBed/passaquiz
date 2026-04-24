@@ -27,6 +27,10 @@ public class DuelRoom {
     private boolean player1Finished;
     private boolean player2Finished;
 
+    private boolean player1RematchRequested;
+    private boolean player2RematchRequested;
+    private int rematchRound;
+
     private int player1ElapsedTime;
     private int player2ElapsedTime;
 
@@ -50,6 +54,9 @@ public class DuelRoom {
         this.player2Score = 0;
         this.player1Finished = false;
         this.player2Finished = false;
+        this.player1RematchRequested = false;
+        this.player2RematchRequested = false;
+        this.rematchRound = 0;
         this.player1ElapsedTime = 0;
         this.player2ElapsedTime = 0;
         this.player1CorrectCount = 0;
@@ -194,6 +201,34 @@ public class DuelRoom {
 
     public void setPlayer2Finished(boolean player2Finished) {
         this.player2Finished = player2Finished;
+    }
+
+    public boolean isPlayer1RematchRequested() {
+        return player1RematchRequested;
+    }
+
+    public void setPlayer1RematchRequested(boolean player1RematchRequested) {
+        this.player1RematchRequested = player1RematchRequested;
+    }
+
+    public boolean isPlayer2RematchRequested() {
+        return player2RematchRequested;
+    }
+
+    public void setPlayer2RematchRequested(boolean player2RematchRequested) {
+        this.player2RematchRequested = player2RematchRequested;
+    }
+
+    public int getRematchRound() {
+        return rematchRound;
+    }
+
+    public void setRematchRound(int rematchRound) {
+        this.rematchRound = rematchRound;
+    }
+
+    public void increaseRematchRound() {
+        this.rematchRound++;
     }
 
     public int getPlayer1ElapsedTime() {
