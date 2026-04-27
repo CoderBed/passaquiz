@@ -262,7 +262,7 @@ A, 3, Yan yana sıralanmış deliklerden her biri üflendiğinde ayrı notada se
 A, 2, Lades oyununa katılanlardan biri ötekine bir şey verirken karşıdakinin "unutmadım" anlamında söylediği söz, Aklımda
 A, 1, İslam dinine göre namaz kılmak, Kur’an okumak, Kâbe’yi tavaf etmek gibi ibadetleri yerine getirebilmek için niyet ederek el, ağız, burun, yüz, kol ve ayakları yıkamak; baş, kulaklar ve boynun iki yanını mesh etmek yoluyla arınma, Abdest
 A, 3, Yeryüzü parçası, toprak, Arazi
-A, 4, müzikte bir eserin yeniden yorumlanması veya düzenlenmesi, Aranjman
+A, 4, Müzikte bir eserin yeniden yorumlanması veya düzenlenmesi, Aranjman
 A, 4, Isı ve elektriği iletmeyen, mat görünümlü, kırılgan ve şekil verilemeyen elementler grubu, Ametal/Ametaller
 A, 2, Bir işin yolunda gitmemesi durumu, terslik, Aksilik
 A, 3, Huysuz, hırçın, ters, geçimsiz, Aksi
@@ -306,6 +306,20 @@ A, 5, Eğrelti otlarında, bütün kara yosunlarında, bazı su yosunlarında ve
 A, 5, Toplumdaki kuralların, normların ve değerlerin belirsizleştiği, çöktüğü veya etkisini yitirdiği "kuralsızlık" durumu, Anomi
 A, 3, Sayı atışından veya gol vuruşundan önce verilen son pas, Asist
 A, 4, Yükseköğretim kurumlarında yapılan araştırma, inceleme ve deneylerde yardımcı olan ve yetkili organlarca verilen görevleri yapan öğretim yardımcısı, Asistan
+A, 4, Geminin yük koymaya ayrılmış yeri, Ambar
+A, 5, Kum, çakıl vb. yapı malzemesini ölçmekte kullanılan ve her yanı çoğunlukla 75 santimetre olan küp ölçek, Ambar
+A, 3, İçine erzak ve eşya konan büyük yerli sandık veya bir binanın bu işe ayrılan bölümü, Ambar
+A, 2, Fotoğraf, pul vb.ni dizip saklamaya yarayan bir defter türü, Albüm
+A, 4, Herhangi bir konu ile ilgili kısa açıklamalar verilerek resimler basılmış olan kitap, Albüm
+A, 1, Nicelik, nitelik, güç, süre, sayı bakımından eksik, çok karşıtı, Az
+A, 3, Kötü amaçlı yazılımları engellemek, tespit etmek ve devre dışı bırakmak amacıyla kullanılan bilgisayar programı, Antivirüs
+A, 5, Bilinç kaybı olmaksızın ilaçla ağrı hissinin ortadan kaldırılması, Analjezi
+A, 2, Toplumun ahlak kurallarına aykırı olan, utanılacak durum veya davranış, Ayıp
+A, 5, Balık avlamakta veya yük taşımakta kullanılan, tek veya iki direkli ve açık güverteli, büyük kayık, Alamana/Alamanata
+A, 2, İçkiye düşkün, Ayyaş
+A, 2, Yaptığı bir kusurdan dolayı birisine söylenen kırıcı söz, Azar
+A, 1, Çarşı, pazar, mağaza vb. yerlerden ihtiyaç duyulan şeyleri satın alma işi, Alışveriş
+A, 3, Sağduyuya, göreneğe, olağana aykırı, yadırganan, Acayip
 
 B, 3, Bir bilgisayarda verileri geçici saklayan donanım, Bellek
 B, 4, Dana veya sığırın göğüs eti veya döş bölgesi, Brisket
@@ -520,6 +534,15 @@ B, 5, Para kullanılmadan, mal veya hizmetlerin karşılıklı olarak takas edil
 B, 5, Kemerler üzerine oturtulmuş kubbe ile kemerlerin arasını kapatan üçgen biçimindeki kubbe parçalarından her biri, Bingi
 B, 3, Sadece yük taşımakta veya araba çekmekte kullanılan at, Beygir
 B, 4, Patlamalı motorlarda yakıtı tutuşturmaya yarayan araç, Buji
+B, 5, Sömürge ülkelerinde yerlilerin, sömürgeciler için kullandığı söz, Beyaz Adam
+B, 3, Amerika Birleşik Devletleri başkanının Washington D.C.'de bulunan resmi ikametgâhı, çalışma ofisi ve Amerikan siyasi gücünün sembolü, Beyaz Saray
+B, 1, Yapılarda, içinde yıkanılan bölüm, Banyo
+B, 3, Vücudun bir bölümünü veya bütününü, fiziksel veya kimyasal bir etki altında bir süre bulundurma işlemi, Banyo
+B, 4, Fotoğrafçılıkta ve filmcilikte duyarlı yüzeylerin işlenmesinde belirli bir işlemin gerektirdiği maddeyi erimiş olarak içinde bulunduran sıvı, Banyo
+B, 2, Bir yerden başka bir yere sıvı, gaz vb. aktarmaya yarayan, içi boş, uçları açık, uzun ve dar silindir, Boru
+B, 3, Üfleyerek çalınan, perdesiz çalgı, Boru/Borazan
+B, 1, Ak, kara ve siyah karşıtı, Beyaz
+B, 4, Tereyağı, sıvı yağ, tuz ve unun birlikte çırpılıp kavrulmasıyla yapılan sıcak sos, Beşamel/Beşamel Sos
 
 C, 2, İlgi uyandıran, elverişli, Cazip
 C, 2, Genellikle dükkânlarda malların sergilendiği camlı bölme, Camekan
@@ -574,6 +597,11 @@ C, 2, Yabancı ülkelerden kaçırılıp özgürlükten yoksun bırakılan, alı
 C, 1, Para ve malını esirgemeden veren, Cömert
 C, 1, Elindeki parayı harcamaya kıyamayan, eli sıkı, Cimri
 C, 2, Birbirine bağlanmak istenen ağaç veya demir parçalarının üzerinde hazırlanmış olan deliklerden geçirilerek ucuna somun takılıp sıkıştırılan iri başlı vida, Cıvata
+C, 2, Bir şeyin veya yapının ön tarafta bulunan bölümü, Cephe
+C, 3, Belli bir düşünce, istek çevresinde meydana getirilen mücadele birliği, Cephe
+C, 1, Üzerinde savaşın sürdüğü bölge, Cephe
+C, 4, Sıcaklıkları farklı iki hava kütlesinin karşılaştıkları yer, Cephe
+C, 3, Ortak eğilimleri nedeniyle bir araya gelerek birlik oluşturan insan topluluğu, Camia
 
 Ç, 2, Çeşitli dükkânların bulunduğu, üstü açık veya kapalı alış veriş yeri, Çarşı
 Ç, 3, Beşiktaş'ın ünlü taraftar grubu, Çarşı
@@ -952,6 +980,19 @@ D, 5, Genellikle birbirine menteşeyle tutturulmuş, katlanabilir iki parçalı 
 D, 3, Motorlu taşıtlarda kavrama yöntemi ile kenetlenmiş iki mili birbirinden ayıran ve çekici mili hareket düzeninde tutarak çekilen milin durmasını ve bu işlem sonunda aracın hareketini sağlayan düzenek, Debriyaj
 D, 1, Eşi ölmüş veya eşinden boşanmış kadın veya erkek, Dul
 D, 5, Optik sistemlerin yakınsaklık birimi, Diyoptri
+D, 2, Ağız boşluğunun tavanı, Damak
+D, 3, Madeni para basılan yer, Darphane
+D, 3, Bir bilgisayarda bulunan fiziksel birimler, Donanım
+D, 5, Portede sol anahtarının önüne yazılan, tonalite veya makama ait değiştirici işaretlere verilen ad, Donanım
+D, 2, Sevilen, güvenilen, gönüldaş, iyi anlaşılan kimse, Dost
+D, 3, Erkek veya kadının evlilik dışı ilişki kurduğu kimse, Dost
+D, 1, İplik, ip, halat vb. bükülebilir şeyleri kıvırıp kendi üzerine veya birbirine dolayarak yapılan boğum, Düğüm/Düğmük
+D, 4, Edebî eserlerde çapraşık olguların çözümlenmeden önce toplandığı en büyük merak unsuru, Düğüm
+D, 4, Mecaz anlamda anlaşılamayan, çözülemeyen karışık durum, Düğüm
+D, 3, Bir kimseye herhangi bir okulu veya öğrenim programını başarıyla tamamladığını, bir derece veya ünvanı kullanmaya hak kazandığını, bir iş, sanat veya meslek dalında çalışabilme yetkisi elde ettiğini belirtmek için bir öğretim kurumu tarafından düzenlenip verilen resmi belge, Diploma
+D, 1, Genellikle tahtadan yapılmış, bölme veya çekmelerine eşya konulan kapaklı mobilya, Dolap
+D, 5, Orta oyununda sahnede dükkân veya ev olarak kullanılan dekor, Dolap
+D, 5, Sanayide kaba yüzeyleri pürüzsüzleştirmek, pas ve kireç tabakalarını, döküm çapaklarını vb.ni temizlemek için malzemeyi sert parçalarla beraber yuvarlayıp çarptırma işleminin yapıldığı silindir biçiminde alet, Dolap
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -1080,6 +1121,8 @@ E, 5, Olgulara bütünsel olarak ve doğa merkezli bakış açısıyla yaklaşan
 E, 3, Canlıların hem kendi aralarındaki hem de çevreleriyle olan ilişkilerini tek tek veya birlikte inceleyen bilim dalı, Ekoloji
 E, 5, Tarih öncesi tanrı, tanrıça, yarı tanrı ve kahramanlarla ilgili olağanüstü olayları konu alan şiir, Epope
 E, 3, Bir üniversiteye bağlı veya bağımsız bir kuruluş olarak genellikle araştırma yapan ve bazı durumlarda öğretime de yer veren eğitim kurumu, Enstitü
+E, 4, Hastanın herhangi bir vücut kanalına veya boşluğuna özellikle solunum yoluna tüp yerleştirilmesi işlemi, Entübasyon
+E, 5, Hastanın hastanede yatışı sırasında yapılan muayene ve inceleme bulguları ile tedavi ve hastalığın seyrini gösteren özet bilgi, Epikriz
 
 F, 2, Evre, safha, Faz
 F, 3, Pürüzsüz göstermek veya renk vermek için cilde sürülen, yarı sıvı veya boyalı krem, Fondöten
@@ -1255,6 +1298,10 @@ F, 5, Resim çizerken kullanılan, taflan çubuklarından yapılan kalem, kömü
 F, 3, Para ve para ile ilgili araçları, değerleri konu edinen iş alanı, Finans
 F, 5, Çok sesli müzikte üretici bir konunun birbirine benzer biçimde yenilenmesinden oluşan bir beste türü, Füg
 F, 3, Fotoğraf çekiminde ışık yeterli olmadığında bir görüntüyü net almak için kullanılan çok kısa süreli ve güçlü parıltı, Flaş
+F, 3, Savunma ve dış politika alanında dayanışma amacıyla birden fazla devletin bir birlik devleti içinde birleşmesi, Federasyon
+F, 4, Birçok devletin özel yasalara ve bağımsızlığa sahip olarak tek bir devlet durumunda birleşmeleri yöntemi, Federalizm
+F, 2, Söylenmesi istenmeyen veya gerekli görülmeyen bir özel adın yerini tutan kelime, Falan/Filan/Filanca
+F, 5, Geminin demir attığı yer, Fonda
 
 G, 5, Bir maddenin en küçük tanesi, Granül
 G, 5, Yazılım projelerini tutan popüler versiyon kontrol sistemi, Git
@@ -1378,6 +1425,8 @@ G, 3, Yasa ve yönetmeliklerin uygulanmasında yol göstermek, herhangi bir konu
 G, 3, Göreve yeni başlamış veya görevini sürdüren hükümetin tutumunu değerlendirmek için milletvekillerinin verdiği oy, Güvenoyu
 G, 1, Aralarında uyum bulunmayan düzensiz seslerin bütünü, Gürültü
 G, 5, Kamera veya akıllı telefonların hareket halindeyken sarsılmadan, pürüzsüz ve dengeli videolar çekmesini sağlayan motorlu veya mekanik dengeleme sistemi, Gimbal
+G, 4, Duvarlara özel yazı teknikleri kullanılarak yazılan yazı, Grafiti
+G, 2, Bir malı sahibinin izni ve haberi olmadan zorla alma, Gasp
 
 H, 5, Tütün kıyma makinesi, Havan
 H, 2, İşe yaramayacak derecede bozulmuş, zarar görmüş, Hurda
@@ -1580,6 +1629,9 @@ H, 4, Asya'da bulunan ve Everest ile K2 gibi dünyanın en yüksek zirvelerine e
 H, 3, 1 arın yüz katına eşit, 10.000 metrekarelik arazi birimi, Hektar
 H, 5, Yol masrafı olarak ödenen para, Harcırah
 H, 5, Bitkinin yerindeki durumu, dallanması, köklerinin toprak içerisindeki dağılmasını belirten morfolojik görünüş, Habitus
+H, 5, Alyuvarların yapısında bulunan, dokulardan karbondioksidi akciğerlere, akciğerlerden oksijeni dokulara taşıyan, demir içeren ve kana kırmızı rengini veren protein, Hemoglobin
+H, 5, Kan dolaşımındaki hücresel bileşenlerin miktarını, oranlarını ve yapısal özelliklerini ölçen bir laboratuvar testi, Hemogram
+H, 2, Bir iş yapmak için gereken her şeyi tamamlamış olan, Hazır
 
 I, 3, Toprak işlerinde ve yapılarda en basit ve ağır işleri yapan işçi, Irgat
 I, 2, Uzak, Irak
@@ -2376,6 +2428,15 @@ K, 4, Kütüphanedeki kitapları veya belli bir daldaki gereçleri, nitelikleri 
 K, 5, Boru hatlarında sıcaklık değişimlerine bağlı oluşan ısıl genleşme, büzülme, titreşim ve montaj hatalarını absorbe ederek sistemin güvenliğini ve ömrünü artıran esnek, metal veya kauçuk körüklü bağlantı elemanları, Kompansatör
 K, 5, Tekerleğin dingil üzerindeki fren mekanizması, Kampana
 K, 5, Güney Amerika'da yetişen, pişirildiğinde buğday ve pirince benzeyen içerisinde protein, lif ve mineraller barındıran yenilebilir tohum, Kinoa
+K, 3, Silah, kılıç vb. şeylerde tutulacak yer, Kabza
+K, 3, Düğün, balo vb. eğlencelerde, spor karşılaşmalarında serpilen, küçük yuvarlak pul biçiminde kesilmiş renkli kâğıt parçaları, Konfeti
+K, 2, Genellikle su ve sulu şeyler taşımaya, kuyudan veya denizden su çekmeye yarayan üstünden kulplu kap, Kova
+K, 5, Kolay kolay aldanmayacak kadar görmüş geçirmiş kimse, Kaçın Kurası
+K, 4, Yıpranmış, eski, bakımsız olan, Külüstür
+K, 2, Bıyığı, sakalı çıkmayan erkek, Köse
+K, 3, Günlük hayatı kolaylaştıran maddi rahatlık, Konfor
+K, 3, Şarkıların enstrümantal altyapısı üzerine ekrandan sözleri takip ederek mikrofonla şarkı söylenen bir eğlence sistemi, Karaoke
+K, 3, Yakınındaki nesnelerin kaçıp kurtulmasına izin vermeyecek kadar yüksek çekim kuvvetine sahip, çok yoğun bir kütlenin oluşturduğu uzay bölgesi, Kara Delik
 
 L, 4, Feshetmek, hükümsüz kılmak, Lağvetmek/Lağvetme
 L, 5, Barcelona futbol kulübünün altyapısına verilen isim, La Masia
@@ -2518,6 +2579,7 @@ L, 5, Herhangi bir konuda bir görüş ve düşünceyi bildiren yazı, Layiha
 L, 4, Futbolda savunmanın gerisinde görev yapan, önündeki savunma oyuncularını kontrol eden, yöneten, onlara yardımcı olan ve serbest hareket edebilen savunma oyuncusu, Libero
 L, 5, Hristiyanlıkta Paskalya Bayramı'ndan önce gelen, 40 gün süren Büyük Perhiz dönemi, Lent
 L, 5, İşverenin işçileri topluca işten uzaklaştırma veya işten çıkarma kararı, Lokavt
+L, 5, Karın içerisinde gelişen çeşitli durumların teşhis veya tedavisi için kullanılan, karın ön duvarından açılan küçük bir delikten özel cihazla karın içine girilmesi ve buradaki organların görüntülenmesi yoluyla genel anestezi altında yapılan, yarı cerrahi bir yöntem, Laparoskopi
 
 M, 5, Hafif makineli tüfek, Mirtalyöz
 M, 5, Dört dizeli bentlerden oluşan divan şiiri, Murabba
@@ -2928,6 +2990,13 @@ M, 3, Bir malın satışında alıcılar arasında fiyat artırma yarışına da
 M, 3, Bildirişim, haberleşme veya komünikasyon imkânlarının sağlandığı ortam, Medya
 M, 4, Osmanlı döneminden günümüze ulaşan, iki kişiyle ve özel bir tahta üzerinde, taşları çukurlar arasında aktarma esasına dayalı olarak oynanan geleneksel Türk strateji oyunu, Mangala
 M, 5, Kişilerin yetenek ve bireysel üstünlüğüne dayanan yönetim biçimi, Meritokrasi
+M, 2, Çalışanların belirli bir iş yerinde, iş sözleşmeleri veya ilgili mevzuatlar çerçevesinde gerçekleştirdiği günlük çalışma süresi, Mesai
+M, 4, İktisat, kültür, siyaset, din vb. alanlarda hizmet veren, kendine özgü işleyiş kurallarına sahip yapı veya birlik, Müessese
+M, 3, Herhangi bir olaydan veya durumdan ötürü sevinç duyan, kıvançlı, mutlu, Memnun
+M, 5, Bir şart veya kayıtla bağlı olan, Mukayyet
+M, 4, Bir nesnenin, olayın veya bir gerçeğin, niteliklerinin bilinmesi amacıyla, dikkatli ve planlı olarak ele alınıp incelenmesi, Müşahede
+M, 4, Et ve diğer gıda maddelerini pişirmeden önce asidik sıvılar, yağlar ve baharatlardan oluşan bir karışım içinde bekleterek yumuşatma, lezzetlendirme ve aromatik kokular katma işlemi, Marinasyon
+M, 5, Bıçak, orak, tırpan vb.ni bilemeye yarayan, çelikten yapılmış, çubuk biçiminde araç, Masat
 
 N, 4, Inception, The Prestige ve Oppenheimer gibi dünyaca ünlü filmlerin yönetmeni, Christopher ..., Nolan
 N, 3, Gerçekten, hakikaten anlamına gelen bir zarf, Nitekim
@@ -3042,6 +3111,9 @@ N, 2, Mutlu olmaktan doğan ve dışa vurulan sevinç, Neşe
 N, 5, Genellikle bunalım ve beden görevleri üzerinde yakınmalarla beliren, kişiliğin ve uyumun bütününü etkilemeyen, ruhsal kaynaklı sinir hastalığı, Nevroz
 N, 5, Sinir sisteminin uyarıyı iletmekle görevli anatomik ve işlevsel birimi, Nöron
 N, 5, Beyin cerrahisi, Nörosirürji
+N, 5, Üstü toprakla örtülü saman yığını, Noda
+N, 2, Başkalarına karşı saygılı ve kibar davranma, Nezaket/Naziklik
+N, 5, Bir yere doğru bakan ev, oda vb., Nazır
 
 O, 3, Şeffaf zıttı, mat yüzey, Opak
 O, 3, Gereğinden çok yemek yiyen, doymak bilmeyen kimse, Obur
@@ -3129,6 +3201,7 @@ O, 5, Kuşları inceleyen bilim, Ornitoloji
 O, 5, Tank biçiminde veya kamyon, jip vb. bir araçla taşınabilir türleri olan, yüksek ve alçaktan mermi atabilen, orta menzilli, kısa namlulu ateşli silah, Obüs
 O, 5, Elektrik gerilimindeki zamana bağlı değişimleri bir ekran üzerinde grafiksel olarak gösteren gelişmiş bir ölçüm cihazı, Osiloskop
 O, 5, Özellikle ruhlar dünyasıyla ve evrenin bilinmeyen güçleriyle ilgili bilgi dünyasına dayalı çeşitli kuramlar, uygulamalar ve ayinler için kullanılan genel ad, Okültizm
+O, 1, Vücudun, belirli bir görev yapan ve sınırları kesin olarak belirlenmiş bölümü, Organ
 
 Ö, 2, Bir düşünceyi, kuralı, gözlemi veya savı desteklemek ve açıklamak amacıyla ileri sürülen söz, yapılan davranış, Örnek
 Ö, 4, Birden çok kelimeden oluşan, yapı ve anlamındaki bütünlük dolayısıyla cümle içinde tek bir öge gibi işlem gören söz dizisi, Öbek
@@ -3487,6 +3560,13 @@ P, 5, Resim sanatında sanatçının başlangıçta çizdiği ancak daha sonra v
 P, 4, Yüksek bir yerden bakıldığında göz önüne serilen geniş görünüş, Panorama
 P, 3, Bazı ilkel toplumlarda doğaüstü güç ve etkisi olduğuna inanılan canlı veya cansız nesne, Put
 P, 3, Ünlü kimselerin kendilerinden habersizce çekilmiş, onları güç durumda bırakacak özellikteki fotoğrafları, Paparazi
+P, 3, Halı, kilim vb. yaygıların üzerinde oluşan, uçuşabilen toz kümecikleri, Pamuk
+P, 4, Ebegümecigillerden, koza durumundaki meyvesi üç dört veya beş dilim hâlinde açılan, büyümesi sırasında bol su isteyen, otsu veya odunsu tropikal bitki, Pamuk
+P, 1, Ani dehşet duygusu, büyük korku, Panik
+P, 5, tıp alanında bir hastalığın nasıl ilerleyeceğine, ne kadar süreceğine ve tedaviye nasıl yanıt vereceğine dair uzman hekimler tarafından yapılan eğitimli tahmin veya gidişat öngörüsü, Prognoz
+P, 4, Hastane öncesi acil sağlık hizmetlerinde, kaza veya hastalık anında kritik durumdaki hastaya olay yerinde ilk müdahaleyi yapan sağlık profesyoneli, Paramedik
+P, 2, Düzyazıların kendi içinde satır başlarıyla ayrıldıkları bölümler, Paragraf
+P, 2, Duvara asılan büyük boy resim, Poster
 
 R, 2, Zarara uğrama tehlikesi, Risk/Riziko
 R, 2, 1950'lerde ABD'de doğan, elektro gitar, bas gitar ve davul merkezli, güçlü ritimlere sahip popüler bir müzik türü, Rock/Rock Müzik/Rak/Rak Müzik
@@ -3646,6 +3726,8 @@ R, 5, Bir yapının bütün boyutlarını ölçerek plan, kesit ve görünüşü
 R, 5, Binanın avlusunda veya dış cephesinde yer alan, çatısı sütunlarla desteklenmiş, üstü düz dam, tonoz veya kubbelerle örtülü, uzunlamasına, önü açık yer, Revak
 R, 5, 1930'larda Jamaika'da ortaya çıkan; Hristiyanlık, Yahudilik ve Afrika kökenli inançların karışımıyla şekillenen, siyahların onurunu, barışı ve Afrika'ya dönüşü savunan sosyo-politik inanç hareketi, Rastafari/Rastafaryanizm
 R, 5, Gemilerin mizana direğinin gerisindeki yelken, Randa
+R, 1, Üzüntü, sıkıntı ve tedirginliği olmayan, Rahat
+R, 4, Bir akarsu veya deniz kıyısında doldurularak yapılmış, gemilerin indirme bindirme veya yükleme boşaltma yapabileceği yer, Rıhtım
 
 S, 4, Gelip geçici, çabuk sona eren anlamına gelen bir söz, Saman Alevi
 S, 2, Sebze ve meyvelerin yetiştirildiği ve hava şartlarına karşı korunduğu cam ve naylonla kaplı yer, Sera
@@ -3755,7 +3837,7 @@ S, 5, -1’in kare köküne eşit olduğu kabul edilen ve +i veya -i ile göster
 S, 4, 1 gramın yüzde biri, Santigram
 S, 4, Futbol sâhasının tam orta yerini göstermek üzere etrâfına bir dâire çizilmiş olan merkez noktası, orta yuvarlak, Santra
 S, 4, Su, ısı, rüzgâr, nükleer enerji vb. enerjiler kullanılarak elektrik üretilen tesis, Santral
-S, 1, Kalbin ve diğer organların seslerinin iyice duyulmasını sağladığı için hekimlerin hasta muâyenesinde kullandıkları âlet, Stetoskop
+S, 1, Kalbin ve diğer organların seslerinin iyice duyulmasını sağladığı için hekimlerin hasta muâyenesinde kullandıkları alet, Stetoskop
 S, 1, Devletlerin diplomatik ilişkilerini keserek giriştikleri silahlı mücadele, Savaş
 S, 3, Karaciğerin salgıladığı yeşil sarı renkte acı sıvı, öd, Safra
 S, 5, Balonlarda yükselmeyi veya inişi ayarlamak için pilotların attığı ağırlık, Safra
@@ -4001,6 +4083,15 @@ S, 2, Gizli ve kurnazca kötülük yapan, Sinsi
 S, 4, Otomobillerde gerektiğinde kullanılmak üzere genellikle bagajda bulundurulan janta takılı lastik, Stepne
 S, 3, Küçük çocukları uyutmak için beşik yerine kullanılan ve karşılıklı iki yere iple bağlı bulunan asılı yatak, Salıncak
 S, 5, Motor pistonlarına yerleştirilen, yağ ve gaz sızıntısını önlemeye yarayan, iki ucu bitişmemiş, yaylanabilir çelik halka, Segman
+S, 1, Acı, yoksulluk, haksızlık vb. üzücü durumlar karşısında ses çıkarmadan onların geçmesini bekleme erdemi, Sabır
+S, 1, Doğuştan veya sonradan herhangi bir nedenle bedensel, zihinsel, ruhsal, duyusal veya sosyal yeteneklerini çeşitli derecelerde kaybetmiş, toplumsal yaşama uyum sağlama ve günlük gereksinimlerini karşılama güçlükleri çeken kimse, Sakat
+S, 2, Kesilmiş hayvanın yürek, karaciğer, böbrek, işkembe, beyin, vb. iç organlarıyla baş ve ayakları, Sakatat
+S, 3, Her çeşit mikroptan arınmış, Steril/Sterilize
+S, 2, Güneş'e yakınlık bakımından altıncı sırada olan gezegen, Satürn/Sekendiz
+S, 5, Ateşte yanmadığına hatta ateşi söndürdüğüne inanılan efsanevi hayvan, Semender
+S, 3, Kuru buhar banyosu, Sauna
+S, 1, Bir şey öğrenmek için birine yöneltilen ve karşılık gerektiren söz veya yazı, Soru/Sual
+S, 5, Oyun, roman, hikâye, masal vb. anlatı türlerinde kişilerin ve çevrenin tanıtıldığı, konunun, olayın anlatılmaya başlandığı bölüm, Serim
 
 Ş, 1, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, 4, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık
@@ -4517,6 +4608,16 @@ T, 3, Bir kimsenin bir suçu işlemek niyetiyle harekete geçmesi, fakat elinde 
 T, 5, Herhangi bir sebebe dayanmaksızın borcu ödememekte direnme, Temerrüt
 T, 2, Ticaret yapan, ticaretle uğraşan kimse, Tüccar/Tacir/Tecimen
 T, 1, Ulaşım yollarının yayalar ve her türlü taşıt tarafından kullanılması, Trafik
+T, 5, Aşırı bir biçimde son modaya uyarak giyinmiş kadın, Tango
+T, 2, 1880'lerin sonunda Arjantin ve Uruguay'da doğan, tutku, hüzün ve aşkı barındıran doğaçlama temelli, yakın temasa dayalı eşli bir dans ve müzik türü, Tango
+T, 1, Yetişmek, yakalamak veya bulmak amacıyla birinin arkasından gitme, Takip/Takip Etme/Takip Etmek
+T, 1, Belli bir örneğe benzemeye veya benzetmeye çalışma, Taklit/Taklit Etme/Taklit Etmek
+T, 4, Haber veya sözün gerçek olmadığını bildirmek, yalan olduğunu açıklamak, Tekzip/Tekzip Etme/Tekzip Etmek
+T, 3, Rahatı, huzuru kaçmış, Tedirgin
+T, 2, Üzerinde tanıtıcı, belirtici bir yazı, açıklama, işaret veya resim bulunan nesne, Tabela
+T, 5, Hastane, yatılı okul, askerî birlik gibi toplu yemek verilen yerlerde, günlük yemek için çıkarılan erzakın türünü, miktarını gösteren çizelge, Tabela
+T, 5, Hastanelerde her hastanın gündelik yemek ve ilacının yazıldığı kâğıt, Tabela
+T, 2, Merkezde bulunan, bir eksenin çevresinde dönebilen çember, Teker/Tekerlek
 
 U, 4, Afrika kıtasının doğu kesiminde yer alan ve denize kıyısı olmayan bir kara ülkesi, Uganda
 U, 3, Düz arazide veya açık denizde gökle yerin birleşir gibi göründüğü yer, Ufuk/Ufuk Çizgisi
@@ -4561,6 +4662,8 @@ U, 3, Birleşik bir cisim meydana getiren basit cisimlerden her biri, eleman, ö
 U, 4, Bir yasama veya idare işleminin hazırlanması, yapılması veya yürürlüğe konması sırasında uyulması gereken hükümler ve izlenecek yollar, Usul
 U, 5, Klasik Türk müziğinde tempo, Usul
 U, 1, Belli bir işte, belli bir konuda bilgi, görüş ve becerisi çok olan kimse, Uzman
+U, 2, Organ, Uzuv
+U, 3, Bir devlete vatandaşlık bağıyla bağlı olma durumu, tebaa, Uyruk
 
 Ü, 4, Amaç edinilen, ulaşılmak istenen şey, dava, Ülkü
 Ü, 1, Bir devletin egemenliği altında bulunan toprakların tümü, Ülke
@@ -4718,6 +4821,7 @@ V, 5, Hindistan'ın Uttar Pradeş eyaletinde, Ganj Nehri kıyısında yer alan, 
 V, 4, Altın, gümüş veya başka madenler dövülerek oluşturulan ince, parlak yaprak, Varak
 V, 4, Sürüldüğü yüzeyde parlak, kaygan ve koruyucu bir tabaka meydana getiren, suya dayanıklı cila maddesi, Vernik
 V, 2, Bir hece veya kelimenin diğer hece veya kelimelerden daha baskılı söylenişi, Vurgu
+V, 5, Solunumun yapılamadığı veya yetersiz olduğu durumlarda soluk alma işlevini mekanik olarak yerine getiren veya destekleyen aygıt, Ventilatör
 
 Y, 4, Japonya kökenli uluslararası organize suç gruplarının üyelerine verilen isim, Yakuza
 Y, 3, Bir günlük çalışmanın karşılığı olarak verilen ücret, Yevmiye
@@ -4903,3 +5007,5 @@ Z, 1, Acınacak kadar kötü durumda bulunan, Zavallı
 Z, 5, "Altınla yazılmış" veya "altın yaldızlı" anlamına gelen, özellikle Osmanlı sanatında hat eserlerinin altın yaldız kullanılarak yazılması veya süslenmesi tekniği, Zerendud/Zerendut
 Z, 5, Yapılandırılmış, tekrar eden desenler kullanarak odaklanmayı artıran, stresi azaltan ve her yaştan insanın basit çizgilerle soyut sanat eserleri yaratmasını sağlayan meditatif çizim yöntemi, Zentangle
 Z, 5, Antik Mezopotamya'da inşa edilen, basamaklı piramit şeklinde, çok katlı tapınak kulesi, Ziggurat
+Z, 1, İşaret vermek, uyarmak, çağırmak için kullanılan ve bir çan ile bu çana vuran bir tokmaktan oluşan, elle veya başka düzenlerle işletilebilen araç, Zil
+Z, 3, Birbirine çarparak ses çıkartmak için parmaklara veya tefin kasnağındaki deliklere takılan yuvarlak, metal nesne, Zil

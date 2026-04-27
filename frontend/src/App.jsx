@@ -579,6 +579,8 @@ function App() {
   const shareCardRef = useRef(null);
   const [duelRematchLoading, setDuelRematchLoading] = useState(false);
   const [duelRematchMessage, setDuelRematchMessage] = useState("");
+  const [duelRematchCountdownRoom, setDuelRematchCountdownRoom] = useState(null);
+  const [duelRematchCountdownSeconds, setDuelRematchCountdownSeconds] = useState(0);
 
   const currentUser = {
     id: authUserId,
@@ -947,7 +949,14 @@ function App() {
       }
 
       const updateSharedDuelTimer = () => {
-        const elapsedSeconds = Math.floor((Date.now() - startTimestamp) / 1000);
+        const now = Date.now();
+
+        if (now < startTimestamp) {
+          setTimeLeft(selectedDuration);
+          return;
+        }
+
+        const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
         const remainingSeconds = Math.max(selectedDuration - elapsedSeconds, 0);
 
         setTimeLeft(remainingSeconds);
@@ -1021,6 +1030,46 @@ function App() {
       }
     }
   }, [gameMode, duelRoomData, duelSharedStartStorageKey]);
+
+  useEffect(() => {
+    if (!duelRematchCountdownRoom) return;
+
+    const sharedStartAt =
+      duelRematchCountdownRoom?.gameStartAt ||
+      duelRematchCountdownRoom?.startAt ||
+      duelRematchCountdownRoom?.matchStartAt ||
+      null;
+
+    if (!sharedStartAt) return;
+
+    const updateCountdown = () => {
+      const targetTime = new Date(sharedStartAt).getTime();
+      const now = Date.now();
+
+      const remainingMs = targetTime - now;
+      const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+
+      setDuelRematchCountdownSeconds(remainingSeconds);
+
+      if (remainingMs <= 0) {
+        startDuelGame(duelRematchCountdownRoom);
+        setDuelRematchCountdownRoom(null);
+        return true;
+      }
+
+      return false;
+    };
+
+    const finished = updateCountdown();
+    if (finished) return;
+
+    const interval = setInterval(() => {
+      const done = updateCountdown();
+      if (done) clearInterval(interval);
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [duelRematchCountdownRoom]);
 
   useEffect(() => {
     if (!duelSharedStartStorageKey) return;
@@ -1856,6 +1905,25 @@ function App() {
     }
   };
 
+  const beginDuelRematchCountdown = (room) => {
+    if (!room) return;
+
+    const startAt = room?.gameStartAt || room?.startAt || room?.matchStartAt || null;
+    const startTimestamp = startAt ? new Date(startAt).getTime() : Date.now() + 5000;
+
+    const remainingSeconds = Math.max(
+      1,
+      Math.ceil((startTimestamp - Date.now()) / 1000)
+    );
+
+    setDuelRoomData(room);
+    setDuelRematchCountdownRoom(room);
+    setDuelRematchCountdownSeconds(remainingSeconds);
+
+    setDuelWaitingForOpponent(false);
+    setDuelRematchMessage("");
+  };
+
   const requestDuelRematch = async () => {
     if (!activeDuelRoomCode || !currentUser?.id || duelRematchLoading) return;
 
@@ -1883,9 +1951,12 @@ function App() {
       const data = await response.json();
       setDuelRoomData(data);
 
+      if (data?.status === "FINISHED") {
+        finishedDuelSnapshotRef.current = data;
+      }
+
       if (data?.status === "STARTED") {
-        setDuelRematchMessage("Rövanş başlıyor...");
-        startDuelGame(data);
+        beginDuelRematchCountdown(data);
         return;
       }
 
@@ -2581,6 +2652,28 @@ function App() {
     ? Number(duelMyPassedCount ?? passedCount)
     : passedCount;
 
+  const duelMyRematchRequested = effectiveIsDuelPlayer1
+    ? Boolean(effectiveDuelRoomData?.player1RematchRequested)
+    : Boolean(effectiveDuelRoomData?.player2RematchRequested);
+
+  const duelOpponentRematchRequested = effectiveIsDuelPlayer1
+    ? Boolean(effectiveDuelRoomData?.player2RematchRequested)
+    : Boolean(effectiveDuelRoomData?.player1RematchRequested);
+
+  const duelRematchButtonLabel = duelRematchLoading
+    ? "Gönderiliyor..."
+    : duelOpponentRematchRequested && !duelMyRematchRequested
+      ? "Rövanş Teklifini Kabul Et"
+      : duelMyRematchRequested
+        ? "Rövanş İsteği Gönderildi"
+        : "Rövanş İste";
+
+  const duelRematchInfoMessage = duelRematchMessage || (
+    duelOpponentRematchRequested && !duelMyRematchRequested
+      ? "Rakibin sana rövanş isteği gönderdi. Kabul edersen yeni düello başlayacak."
+      : ""
+  );
+
   const duelWinnerInfo = (() => {
     if (gameMode !== "duel" || !effectiveDuelRoomData) {
       return {
@@ -2771,9 +2864,12 @@ function App() {
 
         setDuelRoomData(data);
 
+        if (data?.status === "FINISHED") {
+          finishedDuelSnapshotRef.current = data;
+        }
+
         if (data?.status === "STARTED") {
-          setDuelRematchMessage("Rövanş başlıyor...");
-          startDuelGame(data);
+          beginDuelRematchCountdown(data);
         }
       } catch (error) {
         if (!isStopped) {
@@ -8324,7 +8420,7 @@ function App() {
                 {gameMode === "duel" && (
                   <button
                     onClick={requestDuelRematch}
-                    disabled={duelRematchLoading}
+                    disabled={duelRematchLoading || duelMyRematchRequested}
                     style={{
                       marginTop: 0,
                       marginRight: 0,
@@ -8333,7 +8429,7 @@ function App() {
                       padding: "0 22px",
                       border: "1px solid rgba(167, 139, 250, 0.30)",
                       borderRadius: "18px",
-                      cursor: duelRematchLoading ? "not-allowed" : "pointer",
+                      cursor: duelRematchLoading || duelMyRematchRequested ? "not-allowed" : "pointer",
                       color: "#f5f3ff",
                       background: "linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(91, 33, 182, 0.9))",
                       boxShadow: "0 14px 30px rgba(91, 33, 182, 0.28)",
@@ -8344,11 +8440,11 @@ function App() {
                       fontSize: "16px",
                       fontWeight: "800",
                       letterSpacing: "0.2px",
-                      opacity: duelRematchLoading ? 0.72 : 1,
+                      opacity: duelRematchLoading || duelMyRematchRequested ? 0.72 : 1,
                       transition: "transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease",
                     }}
                     onMouseEnter={(e) => {
-                      if (duelRematchLoading) return;
+                      if (duelRematchLoading || duelMyRematchRequested) return;
                       e.currentTarget.style.transform = "translateY(-1px)";
                       e.currentTarget.style.boxShadow = "0 18px 34px rgba(91, 33, 182, 0.34)";
                       e.currentTarget.style.filter = "brightness(1.05)";
@@ -8363,7 +8459,7 @@ function App() {
                       <path d="M4 7H14C17.3137 7 20 9.68629 20 13C20 16.3137 17.3137 19 14 19H8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M8 3L4 7L8 11" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <span>{duelRematchLoading ? "Gönderiliyor..." : "Rövanş İste"}</span>
+                    <span>{duelRematchButtonLabel}</span>
                   </button>
                 )}
                 {gameMode !== "daily" && (
@@ -8483,17 +8579,53 @@ function App() {
                   </div>
                 )}
               </div>
-              {gameMode === "duel" && duelRematchMessage && (
+              {gameMode === "duel" && duelRematchInfoMessage && (
                 <div
                   style={{
                     marginTop: "14px",
-                    color: duelRematchMessage.includes("gönderilemedi") ? "#fca5a5" : "#c4b5fd",
+                    color: duelRematchInfoMessage.includes("gönderilemedi") ? "#fca5a5" : "#c4b5fd",
                     fontSize: "15px",
                     fontWeight: "700",
                     textAlign: "center",
                   }}
                 >
-                  {duelRematchMessage}
+                  {duelRematchInfoMessage}
+                </div>
+              )}
+              {gameMode === "duel" && duelRematchCountdownRoom && (
+                <div
+                  style={{
+                    margin: "18px auto 0",
+                    width: "100%",
+                    maxWidth: "760px",
+                    padding: "22px 24px",
+                    borderRadius: "22px",
+                    background: "linear-gradient(180deg, rgba(15, 23, 42, 0.78), rgba(30, 41, 59, 0.82))",
+                    border: "1px solid rgba(74, 222, 128, 0.18)",
+                    boxShadow: "0 18px 42px rgba(2, 6, 23, 0.22)",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#4ade80",
+                      fontSize: "24px",
+                      fontWeight: "900",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    Rövanş {duelRematchCountdownSeconds} saniye sonra başlayacak
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#cbd5e1",
+                      fontSize: "16px",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    Geri sayım tamamlanınca iki oyuncu için yeni düello aynı anda başlayacak.
+                  </div>
                 </div>
               )}
               <div
