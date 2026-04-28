@@ -31,6 +31,11 @@ public class DuelRoom {
     private boolean player2RematchRequested;
     private int rematchRound;
 
+    private String player1LastAction;
+    private String player2LastAction;
+    private LocalDateTime player1LastActionAt;
+    private LocalDateTime player2LastActionAt;
+
     private int player1ElapsedTime;
     private int player2ElapsedTime;
 
@@ -57,6 +62,10 @@ public class DuelRoom {
         this.player1RematchRequested = false;
         this.player2RematchRequested = false;
         this.rematchRound = 0;
+        this.player1LastAction = "WAITING";
+        this.player2LastAction = "WAITING";
+        this.player1LastActionAt = null;
+        this.player2LastActionAt = null;
         this.player1ElapsedTime = 0;
         this.player2ElapsedTime = 0;
         this.player1CorrectCount = 0;
@@ -229,6 +238,48 @@ public class DuelRoom {
 
     public void increaseRematchRound() {
         this.rematchRound++;
+    }
+
+    public String getPlayer1LastAction() {
+        return player1LastAction;
+    }
+
+    public void setPlayer1LastAction(String player1LastAction) {
+        this.player1LastAction = player1LastAction;
+    }
+
+    public String getPlayer2LastAction() {
+        return player2LastAction;
+    }
+
+    public void setPlayer2LastAction(String player2LastAction) {
+        this.player2LastAction = player2LastAction;
+    }
+
+    public LocalDateTime getPlayer1LastActionAt() {
+        return player1LastActionAt;
+    }
+
+    public void setPlayer1LastActionAt(LocalDateTime player1LastActionAt) {
+        this.player1LastActionAt = player1LastActionAt;
+    }
+
+    public LocalDateTime getPlayer2LastActionAt() {
+        return player2LastActionAt;
+    }
+
+    public void setPlayer2LastActionAt(LocalDateTime player2LastActionAt) {
+        this.player2LastActionAt = player2LastActionAt;
+    }
+
+    public void updatePlayer1LastAction(String action) {
+        this.player1LastAction = action;
+        this.player1LastActionAt = LocalDateTime.now();
+    }
+
+    public void updatePlayer2LastAction(String action) {
+        this.player2LastAction = action;
+        this.player2LastActionAt = LocalDateTime.now();
     }
 
     public int getPlayer1ElapsedTime() {

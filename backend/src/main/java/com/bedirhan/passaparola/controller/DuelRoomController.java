@@ -3,6 +3,7 @@ package com.bedirhan.passaparola.controller;
 import com.bedirhan.passaparola.dto.CreateDuelRoomRequest;
 import com.bedirhan.passaparola.dto.JoinDuelRoomRequest;
 import com.bedirhan.passaparola.dto.LeaveDuelRoomRequest;
+import com.bedirhan.passaparola.dto.DuelPlayerActionRequest;
 import com.bedirhan.passaparola.dto.ReadyRequest;
 import com.bedirhan.passaparola.dto.FinishDuelGameRequest;
 import com.bedirhan.passaparola.entity.DuelRoom;
@@ -70,6 +71,16 @@ public class DuelRoomController {
             @RequestParam Long playerId
     ) {
         return ResponseEntity.ok(duelRoomService.requestRematch(roomCode, playerId));
+    }
+
+    @PostMapping("/rooms/{roomCode}/action")
+    public ResponseEntity<DuelRoom> updatePlayerAction(
+            @PathVariable String roomCode,
+            @RequestBody DuelPlayerActionRequest request
+    ) {
+        return ResponseEntity.ok(
+                duelRoomService.updatePlayerAction(roomCode, request.getPlayerId(), request.getAction())
+        );
     }
 
     @PostMapping("/rooms/{roomCode}/finish")

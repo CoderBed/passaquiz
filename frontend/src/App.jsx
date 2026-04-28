@@ -577,6 +577,7 @@ function App() {
   const duelOpponentPresentRef = useRef(false);
   const finishedDuelSnapshotRef = useRef(null);
   const shareCardRef = useRef(null);
+  const duelRecentActionTimesRef = useRef([]);
   const [duelRematchLoading, setDuelRematchLoading] = useState(false);
   const [duelRematchMessage, setDuelRematchMessage] = useState("");
   const [duelRematchCountdownRoom, setDuelRematchCountdownRoom] = useState(null);
@@ -830,6 +831,7 @@ function App() {
     resultSavedRef.current = false;
     duelResultSavedRef.current = false;
     lastSavedDuelRoomCodeRef.current = "";
+    duelRecentActionTimesRef.current = [];
     activeGameModeRef.current = "duel";
     setGameMode("duel");
     setAnswerHistory([]);
@@ -1084,7 +1086,26 @@ function App() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [duelSharedStartStorageKey]);
 
-  // Pulse effect for active letter
+  const getDuelLiveActionType = (baseAction) => {
+    if (gameMode !== "duel") return baseAction;
+
+    const now = Date.now();
+    const recentWindowMs = 10000;
+    const fastProgressThreshold = 3;
+
+    const recentActions = duelRecentActionTimesRef.current
+      .filter((timestamp) => now - timestamp <= recentWindowMs);
+
+    const updatedActions = [...recentActions, now];
+    duelRecentActionTimesRef.current = updatedActions;
+
+    if (updatedActions.length >= fastProgressThreshold) {
+      duelRecentActionTimesRef.current = [];
+      return "FAST_PROGRESS";
+    }
+
+    return baseAction;
+  };
   useEffect(() => {
     if (!gameStarted) return;
 
@@ -1138,6 +1159,10 @@ function App() {
     setResultMessage(isCorrect ? "Doğru cevap" : "Yanlış cevap");
     setScore((prevScore) => prevScore + (isCorrect ? 10 : -5));
 
+    if (gameMode === "duel") {
+      sendDuelPlayerAction(getDuelLiveActionType("ANSWERED"));
+    }
+
     if (isCorrect) {
       setCurrentCorrectStreak((prev) => {
         const next = prev + 1;
@@ -1180,6 +1205,11 @@ function App() {
     setPassedQueue((prevQueue) =>
       prevQueue.includes(currentIndex) ? prevQueue : [...prevQueue, currentIndex]
     );
+
+    if (gameMode === "duel") {
+      sendDuelPlayerAction(getDuelLiveActionType("PASSED"));
+    }
+
     setAnswered(true);
   };
 
@@ -1400,6 +1430,7 @@ function App() {
     duelResultSavedRef.current = false;
     finishedDuelSnapshotRef.current = null;
     lastSavedDuelRoomCodeRef.current = "";
+    duelRecentActionTimesRef.current = [];
     activeGameModeRef.current = "classic";
     setAnswerHistory([]);
     setShowAnswerKey(false);
@@ -1450,6 +1481,7 @@ function App() {
     duelResultSavedRef.current = false;
     finishedDuelSnapshotRef.current = null;
     lastSavedDuelRoomCodeRef.current = "";
+    duelRecentActionTimesRef.current = [];
     activeGameModeRef.current = "classic";
     setAnswerHistory([]);
     setShowAnswerKey(false);
@@ -1670,6 +1702,7 @@ function App() {
     duelResultSavedRef.current = false;
     finishedDuelSnapshotRef.current = null;
     lastSavedDuelRoomCodeRef.current = "";
+    duelRecentActionTimesRef.current = [];
     previousScoreRef.current = 0;
 
     resetAuthForm();
@@ -2592,6 +2625,25 @@ function App() {
     ? effectiveDuelRoomData?.player2Name || effectiveDuelRoomData?.player2?.name || "Rakip"
     : effectiveDuelRoomData?.player1Name || effectiveDuelRoomData?.player1?.name || "Rakip";
 
+  const duelOpponentLastAction = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player2LastAction
+    : effectiveDuelRoomData?.player1LastAction;
+
+  const duelOpponentActionText = (() => {
+    switch (duelOpponentLastAction) {
+      case "ANSWERED":
+        return "Rakip cevapladı";
+      case "PASSED":
+        return "Rakip pas geçti";
+      case "FAST_PROGRESS":
+        return "Rakip hızlı ilerliyor";
+      case "FINISHED":
+        return "Rakip oyunu bitirdi";
+      default:
+        return "";
+    }
+  })();
+
   const duelMyRecordedScore = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player1Score
     : effectiveDuelRoomData?.player2Score;
@@ -2986,6 +3038,43 @@ function App() {
       console.error("Düello emojisi gönderilemedi:", error);
     }
   }
+
+  const sendDuelPlayerAction = async (action) => {
+    if (gameMode !== "duel") return;
+    if (!activeDuelRoomCode || !currentUser?.id) return;
+
+    const rawToken = sessionStorage.getItem("token");
+    if (!rawToken) return;
+
+    const authHeader = rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/duel/rooms/${activeDuelRoomCode}/action`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({
+            playerId: currentUser.id,
+            action: action,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Aksiyon gönderilemedi");
+        return;
+      }
+
+      const data = await response.json();
+      setDuelRoomData(data);
+    } catch (error) {
+      console.error("Düello aksiyon gönderme hatası:", error);
+    }
+  };
 
   useEffect(() => {
     if (gameMode !== "duel" || !activeDuelRoomCode || gameFinished || !isAuthenticated) {
@@ -7260,7 +7349,61 @@ function App() {
               </div>
             </div>
           </div>
-        </div>
+
+          {gameMode === "duel" && gameStarted && !gameFinished && !duelWaitingForOpponent && duelOpponentActionText && (
+            <div
+              style={{
+                marginTop: "14px",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  padding: "10px 16px",
+                  borderRadius: "999px",
+                  background: "linear-gradient(135deg, rgba(15, 23, 42, 0.82), rgba(30, 41, 59, 0.86))",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  boxShadow: "0 12px 26px rgba(2, 6, 23, 0.18)",
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  fontWeight: "800",
+                  letterSpacing: "0.2px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <span
+                  style={{
+                    width: "9px",
+                    height: "9px",
+                    borderRadius: "50%",
+                    background:
+                      duelOpponentLastAction === "PASSED"
+                        ? "#f59e0b"
+                        : duelOpponentLastAction === "ANSWERED"
+                          ? "#60a5fa"
+                          : duelOpponentLastAction === "FINISHED"
+                            ? "#22c55e"
+                            : "#94a3b8",
+                    boxShadow:
+                      duelOpponentLastAction === "PASSED"
+                        ? "0 0 12px rgba(245, 158, 11, 0.65)"
+                        : duelOpponentLastAction === "ANSWERED"
+                          ? "0 0 12px rgba(96, 165, 250, 0.65)"
+                          : duelOpponentLastAction === "FINISHED"
+                            ? "0 0 12px rgba(34, 197, 94, 0.65)"
+                            : "0 0 10px rgba(148, 163, 184, 0.45)",
+                    flexShrink: 0,
+                  }}
+                />
+                <span>{duelOpponentActionText}</span>
+              </div>
+            </div>
+          )}
 
         {gameMode === "duel" && !gameFinished && !duelWaitingForOpponent && (
           <div
@@ -9221,6 +9364,7 @@ function App() {
         ) : null}
       </div>
     </div>
+  </div>
   );
 }
 

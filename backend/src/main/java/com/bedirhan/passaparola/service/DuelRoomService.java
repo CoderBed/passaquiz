@@ -106,6 +106,8 @@ public class DuelRoomService {
 
         room.setPlayer1RematchRequested(false);
         room.setPlayer2RematchRequested(false);
+        room.updatePlayer1LastAction("PLAYING");
+        room.updatePlayer2LastAction("PLAYING");
         room.increaseRematchRound();
     }
 
@@ -180,6 +182,8 @@ public class DuelRoomService {
 
             room.setPlayer1RematchRequested(false);
             room.setPlayer2RematchRequested(false);
+            room.updatePlayer1LastAction("PLAYING");
+            room.updatePlayer2LastAction("PLAYING");
         }
 
         return room;
@@ -229,6 +233,7 @@ public class DuelRoomService {
             room.setPlayer1WrongCount(request.getWrongCount());
             room.setPlayer1PassedCount(request.getPassedCount());
             room.setPlayer1Finished(true);
+            room.updatePlayer1LastAction("FINISHED");
         } else if (room.getPlayer2Id() != null && room.getPlayer2Id().equals(request.getPlayerId())) {
             room.setPlayer2Score(request.getScore());
             room.setPlayer2ElapsedTime(request.getElapsedTime());
@@ -236,6 +241,7 @@ public class DuelRoomService {
             room.setPlayer2WrongCount(request.getWrongCount());
             room.setPlayer2PassedCount(request.getPassedCount());
             room.setPlayer2Finished(true);
+            room.updatePlayer2LastAction("FINISHED");
         } else {
             throw new RuntimeException("Oyuncu bu odada değil.");
         }
@@ -277,6 +283,42 @@ public class DuelRoomService {
         return room;
     }
 
+    public DuelRoom updatePlayerAction(String roomCode, Long playerId, String action) {
+        DuelRoom room = rooms.get(roomCode);
+
+        if (room == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Oda bulunamadı.");
+        }
+
+        if (playerId == null) {
+            throw new RuntimeException("Oyuncu bilgisi eksik.");
+        }
+
+        if (action == null || action.isBlank()) {
+            throw new RuntimeException("Aksiyon bilgisi eksik.");
+        }
+
+        String safeAction = action.trim().toUpperCase();
+
+        if (!safeAction.equals("PLAYING")
+                && !safeAction.equals("ANSWERED")
+                && !safeAction.equals("PASSED")
+                && !safeAction.equals("FAST_PROGRESS")
+                && !safeAction.equals("FINISHED")) {
+            throw new RuntimeException("Geçersiz aksiyon bilgisi.");
+        }
+
+        if (Objects.equals(room.getPlayer1Id(), playerId)) {
+            room.updatePlayer1LastAction(safeAction);
+        } else if (Objects.equals(room.getPlayer2Id(), playerId)) {
+            room.updatePlayer2LastAction(safeAction);
+        } else {
+            throw new RuntimeException("Oyuncu bu odada değil.");
+        }
+
+        return room;
+    }
+
     public DuelRoom leaveRoom(String roomCode, Long playerId) {
         DuelRoom room = rooms.get(roomCode);
 
@@ -304,6 +346,8 @@ public class DuelRoomService {
                 room.setPlayer1PassedCount(room.getPlayer2PassedCount());
                 room.setPlayer1Finished(room.isPlayer2Finished());
                 room.setPlayer1RematchRequested(room.isPlayer2RematchRequested());
+                room.setPlayer1LastAction(room.getPlayer2LastAction());
+                room.setPlayer1LastActionAt(room.getPlayer2LastActionAt());
 
                 room.setPlayer2Id(null);
                 room.setPlayer2Name(null);
@@ -315,6 +359,8 @@ public class DuelRoomService {
                 room.setPlayer2PassedCount(0);
                 room.setPlayer2Finished(false);
                 room.setPlayer2RematchRequested(false);
+                room.setPlayer2LastAction("WAITING");
+                room.setPlayer2LastActionAt(null);
 
                 room.setStatus(DuelStatus.WAITING);
                 room.setGameStartAt(null);
@@ -336,6 +382,8 @@ public class DuelRoomService {
             room.setPlayer2PassedCount(0);
             room.setPlayer2Finished(false);
             room.setPlayer2RematchRequested(false);
+            room.setPlayer2LastAction("WAITING");
+            room.setPlayer2LastActionAt(null);
             room.setStatus(DuelStatus.WAITING);
             room.setGameStartAt(null);
             return room;
