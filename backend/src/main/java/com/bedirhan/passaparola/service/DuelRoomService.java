@@ -77,6 +77,39 @@ public class DuelRoomService {
                 .toList();
     }
 
+    private void recordSeriesWinIfNeeded(DuelRoom room) {
+        if (room == null) {
+            return;
+        }
+
+        if (!room.isPlayer1Finished() || !room.isPlayer2Finished()) {
+            return;
+        }
+
+        if (room.getLastSeriesRecordedRound() == room.getRematchRound()) {
+            return;
+        }
+
+        int player1Score = room.getPlayer1Score();
+        int player2Score = room.getPlayer2Score();
+        int player1ElapsedTime = room.getPlayer1ElapsedTime();
+        int player2ElapsedTime = room.getPlayer2ElapsedTime();
+
+        boolean player1Won = player1Score > player2Score
+                || (player1Score == player2Score && player1ElapsedTime < player2ElapsedTime);
+
+        boolean player2Won = player2Score > player1Score
+                || (player2Score == player1Score && player2ElapsedTime < player1ElapsedTime);
+
+        if (player1Won) {
+            room.increasePlayer1SeriesWins();
+        } else if (player2Won) {
+            room.increasePlayer2SeriesWins();
+        }
+
+        room.setLastSeriesRecordedRound(room.getRematchRound());
+    }
+
     private void resetRoomForRematch(DuelRoom room) {
         room.setStatus(DuelStatus.STARTED);
         room.setGameStartAt(LocalDateTime.now().plusSeconds(10));
@@ -247,6 +280,7 @@ public class DuelRoomService {
         }
 
         if (room.isPlayer1Finished() && room.isPlayer2Finished()) {
+            recordSeriesWinIfNeeded(room);
             room.setStatus(DuelStatus.FINISHED);
         }
 
@@ -340,6 +374,8 @@ public class DuelRoomService {
                 room.setPlayer1Name(room.getPlayer2Name());
                 room.setPlayer1Ready(false);
                 room.setPlayer1Score(room.getPlayer2Score());
+                room.setPlayer1SeriesWins(room.getPlayer2SeriesWins());
+                room.setLastSeriesRecordedRound(-1);
                 room.setPlayer1ElapsedTime(room.getPlayer2ElapsedTime());
                 room.setPlayer1CorrectCount(room.getPlayer2CorrectCount());
                 room.setPlayer1WrongCount(room.getPlayer2WrongCount());
@@ -353,6 +389,7 @@ public class DuelRoomService {
                 room.setPlayer2Name(null);
                 room.setPlayer2Ready(false);
                 room.setPlayer2Score(0);
+                room.setPlayer2SeriesWins(0);
                 room.setPlayer2ElapsedTime(0);
                 room.setPlayer2CorrectCount(0);
                 room.setPlayer2WrongCount(0);
@@ -376,6 +413,7 @@ public class DuelRoomService {
             room.setPlayer2Name(null);
             room.setPlayer2Ready(false);
             room.setPlayer2Score(0);
+            room.setPlayer2SeriesWins(0);
             room.setPlayer2ElapsedTime(0);
             room.setPlayer2CorrectCount(0);
             room.setPlayer2WrongCount(0);

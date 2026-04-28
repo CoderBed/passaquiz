@@ -582,6 +582,9 @@ function App() {
   const [duelRematchMessage, setDuelRematchMessage] = useState("");
   const [duelRematchCountdownRoom, setDuelRematchCountdownRoom] = useState(null);
   const [duelRematchCountdownSeconds, setDuelRematchCountdownSeconds] = useState(0);
+  const [duelLiveStatusText, setDuelLiveStatusText] = useState("");
+  const [duelLiveStatusAction, setDuelLiveStatusAction] = useState("");
+  const [duelLiveStatusVisible, setDuelLiveStatusVisible] = useState(false);
 
   const currentUser = {
     id: authUserId,
@@ -1090,7 +1093,7 @@ function App() {
     if (gameMode !== "duel") return baseAction;
 
     const now = Date.now();
-    const recentWindowMs = 10000;
+    const recentWindowMs = 12000;
     const fastProgressThreshold = 3;
 
     const recentActions = duelRecentActionTimesRef.current
@@ -2625,6 +2628,32 @@ function App() {
     ? effectiveDuelRoomData?.player2Name || effectiveDuelRoomData?.player2?.name || "Rakip"
     : effectiveDuelRoomData?.player1Name || effectiveDuelRoomData?.player1?.name || "Rakip";
 
+  const duelMyName = effectiveIsDuelPlayer1
+    ? effectiveDuelRoomData?.player1Name || effectiveDuelRoomData?.player1?.name || authUserName || authUserEmail || "Sen"
+    : effectiveDuelRoomData?.player2Name || effectiveDuelRoomData?.player2?.name || authUserName || authUserEmail || "Sen";
+
+  const duelSeriesRoomData = duelRoomData || effectiveDuelRoomData;
+
+  const duelSeriesIsPlayer1 =
+    String(duelSeriesRoomData?.player1Id ?? "") === String(activePlayerId ?? currentUser?.id ?? "");
+
+  const duelSeriesMyName = duelSeriesIsPlayer1
+    ? duelSeriesRoomData?.player1Name || duelSeriesRoomData?.player1?.name || duelMyName
+    : duelSeriesRoomData?.player2Name || duelSeriesRoomData?.player2?.name || duelMyName;
+
+  const duelSeriesOpponentName = duelSeriesIsPlayer1
+    ? duelSeriesRoomData?.player2Name || duelSeriesRoomData?.player2?.name || duelOpponentName
+    : duelSeriesRoomData?.player1Name || duelSeriesRoomData?.player1?.name || duelOpponentName;
+
+  const duelMySeriesWins = duelSeriesIsPlayer1
+    ? Number(duelSeriesRoomData?.player1SeriesWins ?? 0)
+    : Number(duelSeriesRoomData?.player2SeriesWins ?? 0);
+
+  const duelOpponentSeriesWins = duelSeriesIsPlayer1
+    ? Number(duelSeriesRoomData?.player2SeriesWins ?? 0)
+    : Number(duelSeriesRoomData?.player1SeriesWins ?? 0);
+
+  const duelSeriesScoreText = `${duelSeriesMyName} ${duelMySeriesWins} - ${duelOpponentSeriesWins} ${duelSeriesOpponentName}`;
   const duelOpponentLastAction = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player2LastAction
     : effectiveDuelRoomData?.player1LastAction;
@@ -2643,6 +2672,39 @@ function App() {
         return "";
     }
   })();
+
+  useEffect(() => {
+    if (gameMode !== "duel" || !gameStarted || gameFinished || duelWaitingForOpponent) {
+      setDuelLiveStatusVisible(false);
+      setDuelLiveStatusText("");
+      setDuelLiveStatusAction("");
+      return;
+    }
+
+    if (!duelOpponentActionText) {
+      setDuelLiveStatusVisible(false);
+      setDuelLiveStatusText("");
+      setDuelLiveStatusAction("");
+      return;
+    }
+
+    setDuelLiveStatusText(duelOpponentActionText);
+    setDuelLiveStatusAction(duelOpponentLastAction || "");
+    setDuelLiveStatusVisible(true);
+
+    const timeoutId = setTimeout(() => {
+      setDuelLiveStatusVisible(false);
+    }, 3600);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    duelOpponentActionText,
+    duelOpponentLastAction,
+    gameMode,
+    gameStarted,
+    gameFinished,
+    duelWaitingForOpponent,
+  ]);
 
   const duelMyRecordedScore = effectiveIsDuelPlayer1
     ? effectiveDuelRoomData?.player1Score
@@ -7350,7 +7412,48 @@ function App() {
             </div>
           </div>
 
-          {gameMode === "duel" && gameStarted && !gameFinished && !duelWaitingForOpponent && duelOpponentActionText && (
+          {gameMode === "duel" && duelSeriesRoomData && gameStarted && !duelWaitingForOpponent && (
+            <div
+              style={{
+                marginTop: "10px",
+                display: "flex",
+                justifyContent: "flex-start",
+                paddingLeft: "6px",
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  padding: "10px 18px",
+                  borderRadius: "999px",
+                  background: "linear-gradient(135deg, rgba(30, 41, 59, 0.84), rgba(15, 23, 42, 0.88))",
+                  border: "1px solid rgba(147, 197, 253, 0.20)",
+                  boxShadow: "0 12px 26px rgba(2, 6, 23, 0.18)",
+                  color: "#dbeafe",
+                  fontSize: "14px",
+                  fontWeight: "900",
+                  letterSpacing: "0.2px",
+                  textAlign: "left",
+                  marginLeft: "4px",
+                }}
+              >
+                <span>🏆 Seri Skoru: {duelSeriesScoreText}</span>
+              </div>
+            </div>
+          )}
+
+          {gameMode === "duel" && (
+            <style>
+              {`@keyframes duelLiveStatusPop {
+                0% { opacity: 0; transform: translateY(-6px) scale(0.96); }
+                100% { opacity: 1; transform: translateY(0) scale(1); }
+              }`}
+            </style>
+          )}
+          {gameMode === "duel" && gameStarted && !gameFinished && !duelWaitingForOpponent && duelLiveStatusVisible && duelLiveStatusText && (
             <div
               style={{
                 marginTop: "14px",
@@ -7374,6 +7477,7 @@ function App() {
                   fontWeight: "800",
                   letterSpacing: "0.2px",
                   transition: "all 0.2s ease",
+                  animation: "duelLiveStatusPop 0.26s ease both",
                 }}
               >
                 <span
@@ -7382,25 +7486,25 @@ function App() {
                     height: "9px",
                     borderRadius: "50%",
                     background:
-                      duelOpponentLastAction === "PASSED"
+                      duelLiveStatusAction === "PASSED"
                         ? "#f59e0b"
-                        : duelOpponentLastAction === "ANSWERED"
+                        : duelLiveStatusAction === "ANSWERED"
                           ? "#60a5fa"
-                          : duelOpponentLastAction === "FINISHED"
+                          : duelLiveStatusAction === "FINISHED"
                             ? "#22c55e"
                             : "#94a3b8",
                     boxShadow:
-                      duelOpponentLastAction === "PASSED"
+                      duelLiveStatusAction === "PASSED"
                         ? "0 0 12px rgba(245, 158, 11, 0.65)"
-                        : duelOpponentLastAction === "ANSWERED"
+                        : duelLiveStatusAction === "ANSWERED"
                           ? "0 0 12px rgba(96, 165, 250, 0.65)"
-                          : duelOpponentLastAction === "FINISHED"
+                          : duelLiveStatusAction === "FINISHED"
                             ? "0 0 12px rgba(34, 197, 94, 0.65)"
                             : "0 0 10px rgba(148, 163, 184, 0.45)",
                     flexShrink: 0,
                   }}
                 />
-                <span>{duelOpponentActionText}</span>
+                <span>{duelLiveStatusText}</span>
               </div>
             </div>
           )}
@@ -8179,6 +8283,53 @@ function App() {
                 Oyun Sonu İstatistiği
               </h2>
 
+              {/* DUEL SERIES SCORE CARD ON RESULT SCREEN */}
+              {gameMode === "duel" && duelSeriesRoomData && (
+                <div
+                  style={{
+                    margin: "0 auto 18px",
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "10px",
+                      width: "auto",
+                      maxWidth: "none",
+                      minWidth: "fit-content",
+                      boxSizing: "border-box",
+                      padding: "10px 18px",
+                      whiteSpace: "normal",
+                      borderRadius: "999px",
+                      background: "linear-gradient(135deg, rgba(30, 41, 59, 0.84), rgba(15, 23, 42, 0.88))",
+                      border: "1px solid rgba(147, 197, 253, 0.20)",
+                      boxShadow: "0 12px 26px rgba(2, 6, 23, 0.18)",
+                      color: "#dbeafe",
+                      fontSize: "14px",
+                      fontWeight: "900",
+                      letterSpacing: "0.2px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline",
+                        overflow: "visible",
+                        textOverflow: "clip",
+                        whiteSpace: "normal",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      🏆 Seri Skoru: {duelSeriesScoreText}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div
                 style={{
                   display: "grid",
@@ -8877,6 +9028,44 @@ function App() {
                   >
                     Toplam Puan
                   </div>
+
+                  {gameMode === "duel" && duelSeriesRoomData && (
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        width: "fit-content",
+                        maxWidth: "none",
+                        minWidth: "fit-content",
+                        margin: "0 auto 24px",
+                        boxSizing: "border-box",
+                        padding: "10px 18px",
+                        whiteSpace: "nowrap",
+                        borderRadius: "999px",
+                        background: "linear-gradient(135deg, rgba(30, 41, 59, 0.84), rgba(15, 23, 42, 0.88))",
+                        border: "1px solid rgba(147, 197, 253, 0.20)",
+                        color: "#dbeafe",
+                        fontSize: "15px",
+                        fontWeight: "900",
+                        letterSpacing: "0.2px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          overflow: "visible",
+                          textOverflow: "clip",
+                          whiteSpace: "nowrap",
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        🏆 Seri Skoru: {duelSeriesScoreText}
+                      </span>
+                    </div>
+                  )}
 
                   {gameMode === "duel" && (
                     <div

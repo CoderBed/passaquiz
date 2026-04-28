@@ -1156,6 +1156,7 @@ E, 4, Sadece bir bölgede yetişen veya yaşayan bitki, hayvan, Endemik
 E, 3, Bir sosyal grubun ırk, dil veya kültür kimliği, Etniklik/Etnisite
 E, 5, Büyük çivi, Ekser
 E, 1, Doğru veya düz olmayan, düzgünlüğünü yitirmiş, çarpık olan, Eğri
+E, 1, Süt çocuklarını oyalamak için ağızlarına verilen kauçuk meme, Emzik
 
 F, 2, Evre, safha, Faz
 F, 3, Pürüzsüz göstermek veya renk vermek için cilde sürülen, yarı sıvı veya boyalı krem, Fondöten
@@ -2504,6 +2505,11 @@ K, 1, Sırtı ve kolları dayayacak yerleri olan büyük sandalye, tek kişilik 
 K, 4, Gömlek, örtü vb. şeyleri kolalamakta kullanılan özel nişasta, Kola
 K, 3, Nitelik ve durumları birbirine tam olarak aykırı olan, Karşıt/Kontrast
 K, 5, Demirli betonla yapılmış yapı, Karkas
+K, 3, Bir şeyin çıktığı, dayandığı temel, biçim, neden veya yer, Köken
+K, 5, Tulumbacı hortumlarının uç kısmındaki sarı maden sap, Köken
+K, 4, Kavun, karpuz, kabak vb. bitkilerin toprak üstünde yayılan dalları, Köken
+K, 5, Gevenin gövde veya kökünün üzerine bıçakla özel olarak yapılan çizgilerden akan zamk, Kitre/Kereste
+K, 5, Taşınmak için gemiye teslim edilen bir mala karşılık olarak verilen alındı, Konşimento
 
 L, 4, Feshetmek, hükümsüz kılmak, Lağvetmek/Lağvetme
 L, 5, Barcelona futbol kulübünün altyapısına verilen isim, La Masia
@@ -3666,6 +3672,8 @@ P, 5, Tahta üzerine sürüldüğünde koruyucu, parlak bir katman oluşturan po
 P, 5, Birçok doğal maden sülfürü ve özellikle demir ve bakır sülfürü, Pirit
 P, 5, Bir şeyin yıkılmaması için konulan eğik veya düz ağaç, Payanda
 P, 4, Hastalık meydana getiren, hastalığa sebep olan, Patojen
+P, 5, Günümüzden yaklaşık 225 milyon yıl önce sona erdiği varsayılan, en eski fosillerin oluştuğu, kıtaların tek parça olduğu jeolojik zaman, Paleozoik
+P, 5, Yosun sporlarının çimlenmesinden oluşan iplik biçimindeki organ, Protonema
 
 R, 2, Zarara uğrama tehlikesi, Risk/Riziko
 R, 2, 1950'lerde ABD'de doğan, elektro gitar, bas gitar ve davul merkezli, güçlü ritimlere sahip popüler bir müzik türü, Rock/Rock Müzik/Rak/Rak Müzik
@@ -4208,6 +4216,7 @@ S, 5, Kanda bulunan antikor ve antijenleri inceleyen, enfeksiyon hastalıkların
 S, 5, Doğal olarak hayvan ve bitki kalıntılarının üzerinde yaşayan ve onların çürümesine yol açan bitki ve organizmalar, Saprofit
 S, 5, Tahta vb.nin üzerindeki ufak pürüzleri giderip onu dümdüz bir duruma getirmeye yarayan ince çelik lama, Sistire
 S, 5, Sovyetler Birliği'nde devlet eliyle yönetilen tarım işletmesi, Sovhoz
+S, 1, Bir dilin kelimelerinin bütününü veya belli bir kısmını, deyimlerini alfabe sırasına, bâzan da konu veya kavramlarına göre anlamlandıran, açıklayan veya başka dillerdeki karşılıklarını veren eser, Sözlük
 
 Ş, 1, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, 4, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık

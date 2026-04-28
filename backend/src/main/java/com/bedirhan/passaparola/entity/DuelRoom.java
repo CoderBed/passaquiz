@@ -23,6 +23,9 @@ public class DuelRoom {
 
     private int player1Score;
     private int player2Score;
+    private int player1SeriesWins;
+    private int player2SeriesWins;
+    private int lastSeriesRecordedRound;
 
     private boolean player1Finished;
     private boolean player2Finished;
@@ -57,6 +60,9 @@ public class DuelRoom {
         this.currentIndex = 0;
         this.player1Score = 0;
         this.player2Score = 0;
+        this.player1SeriesWins = 0;
+        this.player2SeriesWins = 0;
+        this.lastSeriesRecordedRound = -1;
         this.player1Finished = false;
         this.player2Finished = false;
         this.player1RematchRequested = false;
@@ -194,6 +200,38 @@ public class DuelRoom {
 
     public void setPlayer2Score(int player2Score) {
         this.player2Score = player2Score;
+    }
+
+    public int getPlayer1SeriesWins() {
+        return player1SeriesWins;
+    }
+
+    public void setPlayer1SeriesWins(int player1SeriesWins) {
+        this.player1SeriesWins = player1SeriesWins;
+    }
+
+    public int getPlayer2SeriesWins() {
+        return player2SeriesWins;
+    }
+
+    public void setPlayer2SeriesWins(int player2SeriesWins) {
+        this.player2SeriesWins = player2SeriesWins;
+    }
+
+    public void increasePlayer1SeriesWins() {
+        this.player1SeriesWins++;
+    }
+
+    public void increasePlayer2SeriesWins() {
+        this.player2SeriesWins++;
+    }
+
+    public int getLastSeriesRecordedRound() {
+        return lastSeriesRecordedRound;
+    }
+
+    public void setLastSeriesRecordedRound(int lastSeriesRecordedRound) {
+        this.lastSeriesRecordedRound = lastSeriesRecordedRound;
     }
 
     public boolean isPlayer1Finished() {
