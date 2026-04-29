@@ -26,7 +26,7 @@ public class ProfileStatsService {
         long totalGames = myGames.size();
 
         int highestScore = myGames.stream()
-                .mapToInt(game -> game.getScore())
+                .mapToInt(GameResult::getScore)
                 .max()
                 .orElse(0);
 
@@ -34,7 +34,7 @@ public class ProfileStatsService {
                 ? 0
                 : (int) Math.round(
                 myGames.stream()
-                        .mapToInt(game -> game.getScore())
+                        .mapToInt(GameResult::getScore)
                         .average()
                         .orElse(0)
         );
@@ -92,30 +92,41 @@ public class ProfileStatsService {
                 .max(Integer::compareTo)
                 .orElse(0);
 
+        java.util.List<java.time.LocalDate> dailyPlayDates = myGames.stream()
+                .filter(game -> "daily".equalsIgnoreCase(game.getGameMode()))
+                .filter(game -> game.getPlayedAt() != null)
+                .map(game -> game.getPlayedAt().toLocalDate())
+                .distinct()
+                .sorted(java.util.Comparator.reverseOrder())
+                .toList();
+
         int dailyStreak = 0;
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDate expectedDate = null;
 
-        java.time.LocalDate lastDate = null;
-
-        for (GameResult game : myGames) {
-            if (!"daily".equalsIgnoreCase(game.getGameMode()) || game.getPlayedAt() == null) {
+        for (java.time.LocalDate gameDate : dailyPlayDates) {
+            if (expectedDate == null) {
+                // İlk gün kontrolü: bugün oynadıysa veya en fazla dün oynadıysa başlat
+                if (gameDate.equals(today)) {
+                    dailyStreak = 1;
+                    expectedDate = today.minusDays(1);
+                } else if (gameDate.equals(today.minusDays(1))) {
+                    dailyStreak = 1;
+                    expectedDate = today.minusDays(2);
+                } else {
+                    // Bugün ve dün yoksa seri sıfır
+                    dailyStreak = 0;
+                }
                 continue;
             }
 
-            java.time.LocalDate gameDate = game.getPlayedAt().toLocalDate();
-
-            if (lastDate == null) {
-                dailyStreak = 1;
-                lastDate = gameDate;
-                continue;
+            if (dailyStreak == 0) {
+                break;
             }
 
-            if (gameDate.equals(lastDate)) {
-                continue;
-            }
-
-            if (gameDate.equals(lastDate.minusDays(1))) {
+            if (gameDate.equals(expectedDate)) {
                 dailyStreak++;
-                lastDate = gameDate;
+                expectedDate = expectedDate.minusDays(1);
             } else {
                 break;
             }
@@ -160,7 +171,6 @@ public class ProfileStatsService {
             }
         }
 
-
         ProfileStatsResponse response = new ProfileStatsResponse(
                 totalGames,
                 highestScore,
@@ -191,7 +201,9 @@ public class ProfileStatsService {
         response.setDuel10BadgeEarned(duelMatchCount >= 10);
         response.setDuelWinStreak(duelWinStreak);
         response.setSameOpponentWinCount(sameOpponentWinCount);
-        response.setLoginStreak(user.getLoginStreak() == null ? 0 : user.getLoginStreak());
+        int storedLoginStreak = user.getLoginStreak() == null ? 0 : user.getLoginStreak();
+        int badgeLoginStreak = Math.max(0, storedLoginStreak - 1);
+        response.setLoginStreak(badgeLoginStreak);
 
         java.util.Set<String> uniqueOpponents = new java.util.HashSet<>();
         for (GameResult game : myGames) {

@@ -5191,13 +5191,13 @@ function App() {
                     },
                     {
                       title: "1 hafta boyunca günlük oyun oyna",
-                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7),
-                      progress: `${Math.min(profileStats?.dailyStreak ?? 0, 7)}/7`,
+                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 7 || profileStats?.weeklyDailyBadgeEarned || profileStats?.daily7BadgeEarned),
+                      progress: `${Math.min(Number(profileStats?.dailyStreak ?? 0), 7)}/7`,
                     },
                     {
                       title: "1 ay boyunca günlük oyun oyna",
-                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 30),
-                      progress: `${Math.min(profileStats?.dailyStreak ?? 0, 30)}/30`,
+                      earned: Boolean((profileStats?.dailyStreak ?? 0) >= 30 || profileStats?.monthlyDailyBadgeEarned || profileStats?.daily30BadgeEarned),
+                      progress: `${Math.min(Number(profileStats?.dailyStreak ?? 0), 30)}/30`,
                     },
                     {
                       title: "Üst üste 5 soruyu doğru cevapla",
@@ -5220,11 +5220,6 @@ function App() {
                       progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
                     },
                     {
-                      title: "Toplam 100 doğru cevap ver",
-                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 100),
-                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 100)}/100`,
-                    },
-                    {
                       title: "Toplam 500 doğru cevap ver",
                       earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
                       progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 500)}/500`,
@@ -5233,6 +5228,16 @@ function App() {
                       title: "Toplam 1000 doğru cevap ver",
                       earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 1000),
                       progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 1000)}/1000`,
+                    },
+                    {
+                      title: "Toplam 5000 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 5000),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 5000)}/5000`,
+                    },
+                    {
+                      title: "Toplam 5000 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 5000),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 5000)}/5000`,
                     },
                     {
                       title: "Arkadaşlarınla 5 düello maçı oyna",
@@ -6678,11 +6683,6 @@ function App() {
                                           progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
                                         },
                     {
-                      title: "Toplam 100 doğru cevap ver",
-                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 100),
-                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 100)}/100`,
-                    },
-                    {
                       title: "Toplam 500 doğru cevap ver",
                       earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
                       progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 500)}/500`,
@@ -6691,6 +6691,11 @@ function App() {
                       title: "Toplam 1000 doğru cevap ver",
                       earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 1000),
                       progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 1000)}/1000`,
+                    },
+                    {
+                      title: "Toplam 5000 doğru cevap ver",
+                      earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 5000),
+                      progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 5000)}/5000`,
                     },
                     {
                       title: "Arkadaşlarınla 5 düello maçı oyna",
@@ -7298,7 +7303,7 @@ function App() {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", justifyContent: "flex-start" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap", justifyContent: "flex-start", marginBottom: "6px" }}>
               <div style={timeLeft <= 30 ? dangerTimerBoxStyle : timerBoxStyle}>
                 <div
                   style={{
@@ -7415,7 +7420,7 @@ function App() {
           {gameMode === "duel" && duelSeriesRoomData && gameStarted && !duelWaitingForOpponent && (
             <div
               style={{
-                marginTop: "10px",
+                marginTop: "18px",
                 display: "flex",
                 justifyContent: "flex-start",
                 paddingLeft: "6px",
@@ -7998,12 +8003,7 @@ function App() {
                                         title: "Pas kullanmadan oyunu bitir",
                                         earned: Boolean((profileStats?.noPassGameCount ?? 0) >= 1),
                                         progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
-                                      },
-                                  {
-                                                        title: "Toplam 100 doğru cevap ver",
-                                                        earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 100),
-                                                        progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 100)}/100`,
-                                                      },
+                                     },
                                                       {
                                                         title: "Toplam 500 doğru cevap ver",
                                                         earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
@@ -8014,6 +8014,11 @@ function App() {
                                                         earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 1000),
                                                         progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 1000)}/1000`,
                                                       },
+                                                      {
+                                                                            title: "Toplam 5000 doğru cevap ver",
+                                                                            earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 5000),
+                                                                            progress: `${Math.min(profileStats?.totalCorrectAnswers ?? 0, 5000)}/5000`,
+                                                                          },
                   {
                     title: "Arkadaşlarınla 5 düello maçı oyna",
                     earned: profileStats?.duel5BadgeEarned,
@@ -8118,7 +8123,7 @@ function App() {
         {gameMode === "duel" && (
           <div
             style={{
-              marginTop: "6px",
+              marginTop: "20px",
               marginBottom: duelWaitingForOpponent && !gameFinished ? "22px" : "10px",
               padding: duelWaitingForOpponent && !gameFinished ? "18px 20px" : "0px",
               borderRadius: duelWaitingForOpponent && !gameFinished ? "18px" : "0",
@@ -8141,113 +8146,115 @@ function App() {
           </div>
         )}
         {!duelWaitingForOpponent && (
-          <div
-            style={{
-              position: "relative",
-              width: `${circleSize}px`,
-              height: `${circleSize}px`,
-              margin: "10px auto 40px",
-            }}
-          >
+          <>
             <div
               style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                width: "190px",
-                height: "190px",
-                transform: "translate(-50%, -50%)",
-                borderRadius: "50%",
-                background: "radial-gradient(circle at top, rgba(59, 130, 246, 0.24), rgba(15, 23, 42, 0.92))",
-                border: "2px solid rgba(96, 165, 250, 0.45)",
-                boxShadow: "0 18px 45px rgba(15, 23, 42, 0.45)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                padding: "12px",
-                boxSizing: "border-box",
+                position: "relative",
+                width: `${circleSize}px`,
+                height: `${circleSize}px`,
+                margin: "10px auto 40px",
               }}
             >
-              <div>
-                {gameFinished ? (
-                  <div
-                    style={{
-                      color: "#f8fafc",
-                      fontSize: "34px",
-                      fontWeight: "800",
-                      textAlign: "center",
-                      lineHeight: "1.2",
-                    }}
-                  >
-                      Oyun<br/>Bitti!
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ fontSize: "18px", color: "#cbd5e1", marginBottom: "16px" }}>Aktif Harf</div>
-                    <div style={{ fontSize: "56px", fontWeight: "bold", color: "#f8fafc", textShadow: "0 6px 18px rgba(96, 165, 250, 0.35)" }}>
-                      {(question.letter || "").toLocaleUpperCase("tr-TR")}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {letters.map((l, i) => (
               <div
-                key={i}
                 style={{
                   position: "absolute",
-                  top: `calc(50% + ${l.y}px - 24px)`,
-                  left: `calc(50% + ${l.x}px - 24px)`,
-                  width: "48px",
-                  height: "48px",
+                  top: "50%",
+                  left: "50%",
+                  width: "190px",
+                  height: "190px",
+                  transform: "translate(-50%, -50%)",
                   borderRadius: "50%",
+                  background: "radial-gradient(circle at top, rgba(59, 130, 246, 0.24), rgba(15, 23, 42, 0.92))",
+                  border: "2px solid rgba(96, 165, 250, 0.45)",
+                  boxShadow: "0 18px 45px rgba(15, 23, 42, 0.45)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "20px",
-                  fontWeight: "800",
-                  letterSpacing: "0.3px",
-                  background:
-                    l.status === "active"
-                      ? "radial-gradient(circle at 30% 25%, #93c5fd, #3b82f6 48%, #1d4ed8 100%)"
-                      : l.status === "correct"
-                        ? "radial-gradient(circle at 30% 25%, #86efac, #22c55e 48%, #15803d 100%)"
-                        : l.status === "wrong"
-                          ? "radial-gradient(circle at 30% 25%, #fca5a5, #ef4444 48%, #b91c1c 100%)"
-                          : l.status === "passed"
-                            ? "radial-gradient(circle at 30% 25%, #fde68a, #f59e0b 48%, #c2410c 100%)"
-                            : "radial-gradient(circle at 30% 25%, #94a3b8, #475569 55%, #1e293b 100%)",
-                  color: "#f8fafc",
-                  border: l.status === "active"
-                    ? "1px solid rgba(191, 219, 254, 0.95)"
-                    : "1px solid rgba(255, 255, 255, 0.14)",
-                  boxShadow:
-                    l.status === "active"
-                      ? activePulse
-                        ? "0 0 0 5px rgba(96, 165, 250, 0.28), 0 22px 36px rgba(37, 99, 235, 0.40)"
-                        : "0 0 0 3px rgba(96, 165, 250, 0.22), 0 18px 32px rgba(37, 99, 235, 0.34), inset 0 1px 1px rgba(255,255,255,0.35)"
-                      : l.status === "correct"
-                        ? "0 14px 26px rgba(22, 163, 74, 0.24), inset 0 1px 1px rgba(255,255,255,0.28)"
-                        : l.status === "wrong"
-                          ? "0 14px 26px rgba(220, 38, 38, 0.24), inset 0 1px 1px rgba(255,255,255,0.24)"
-                          : l.status === "passed"
-                            ? "0 14px 26px rgba(234, 88, 12, 0.22), inset 0 1px 1px rgba(255,255,255,0.24)"
-                            : "0 14px 26px rgba(2, 6, 23, 0.32), inset 0 1px 1px rgba(255,255,255,0.18)",
-                  transform:
-                    l.status === "active"
-                      ? activePulse
-                        ? "scale(1.18)"
-                        : "scale(1.08)"
-                      : "scale(1)",
-                  transition: "all 180ms ease",
+                  textAlign: "center",
+                  padding: "12px",
+                  boxSizing: "border-box",
                 }}
               >
-                {l.letter}
+                <div>
+                  {gameFinished ? (
+                    <div
+                      style={{
+                        color: "#f8fafc",
+                        fontSize: "34px",
+                        fontWeight: "800",
+                        textAlign: "center",
+                        lineHeight: "1.2",
+                      }}
+                    >
+                        Oyun<br/>Bitti!
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: "18px", color: "#cbd5e1", marginBottom: "16px" }}>Aktif Harf</div>
+                      <div style={{ fontSize: "56px", fontWeight: "bold", color: "#f8fafc", textShadow: "0 6px 18px rgba(96, 165, 250, 0.35)" }}>
+                        {(question.letter || "").toLocaleUpperCase("tr-TR")}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
+
+              {letters.map((l, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: "absolute",
+                    top: `calc(50% + ${l.y}px - 24px)`,
+                    left: `calc(50% + ${l.x}px - 24px)`,
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "20px",
+                    fontWeight: "800",
+                    letterSpacing: "0.3px",
+                    background:
+                      l.status === "active"
+                        ? "radial-gradient(circle at 30% 25%, #93c5fd, #3b82f6 48%, #1d4ed8 100%)"
+                        : l.status === "correct"
+                          ? "radial-gradient(circle at 30% 25%, #86efac, #22c55e 48%, #15803d 100%)"
+                          : l.status === "wrong"
+                            ? "radial-gradient(circle at 30% 25%, #fca5a5, #ef4444 48%, #b91c1c 100%)"
+                            : l.status === "passed"
+                              ? "radial-gradient(circle at 30% 25%, #fde68a, #f59e0b 48%, #c2410c 100%)"
+                              : "radial-gradient(circle at 30% 25%, #94a3b8, #475569 55%, #1e293b 100%)",
+                    color: "#f8fafc",
+                    border: l.status === "active"
+                      ? "1px solid rgba(191, 219, 254, 0.95)"
+                      : "1px solid rgba(255, 255, 255, 0.14)",
+                    boxShadow:
+                      l.status === "active"
+                        ? activePulse
+                          ? "0 0 0 5px rgba(96, 165, 250, 0.28), 0 22px 36px rgba(37, 99, 235, 0.40)"
+                          : "0 0 0 3px rgba(96, 165, 250, 0.22), 0 18px 32px rgba(37, 99, 235, 0.34), inset 0 1px 1px rgba(255,255,255,0.35)"
+                        : l.status === "correct"
+                          ? "0 14px 26px rgba(22, 163, 74, 0.24), inset 0 1px 1px rgba(255,255,255,0.28)"
+                          : l.status === "wrong"
+                            ? "0 14px 26px rgba(220, 38, 38, 0.24), inset 0 1px 1px rgba(255,255,255,0.24)"
+                            : l.status === "passed"
+                              ? "0 14px 26px rgba(234, 88, 12, 0.22), inset 0 1px 1px rgba(255,255,255,0.24)"
+                              : "0 14px 26px rgba(2, 6, 23, 0.32), inset 0 1px 1px rgba(255,255,255,0.18)",
+                    transform:
+                      l.status === "active"
+                        ? activePulse
+                          ? "scale(1.18)"
+                          : "scale(1.08)"
+                        : "scale(1)",
+                    transition: "all 180ms ease",
+                  }}
+                >
+                  {l.letter}
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {gameFinished ? (
@@ -8687,13 +8694,22 @@ function App() {
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "center",
-                  alignItems: "stretch",
-                  gap: "18px",
-                  flexWrap: "wrap",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "20px",
                   marginTop: "26px",
                 }}
               >
+                {/* BUTTON ROW */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "18px",
+                    flexWrap: "wrap",
+                  }}
+                >
                 {gameMode !== "daily" && gameMode !== "duel" && (
                   <button
                     onClick={replayClassicGame}
@@ -8824,11 +8840,13 @@ function App() {
                   </button>
                 )}
 
+                {/* END BUTTON ROW */}
+                </div>
                 {shouldShowGuestRegisterCTA && gameMode !== "daily" && (
                   <div
                     style={{
                       width: "100%",
-                      maxWidth: "420px",
+                      maxWidth: "520px",
                       boxSizing: "border-box",
                       display: "flex",
                       flexDirection: "column",
@@ -8841,13 +8859,12 @@ function App() {
                       border: "1px solid rgba(96, 165, 250, 0.18)",
                       boxShadow: "0 18px 40px rgba(2, 6, 23, 0.28)",
                       textAlign: "center",
-                      marginLeft: "auto",
-                      marginRight: "auto",
+                      alignSelf: "center",
                     }}
                   >
                     <div style={{ color: "#f8fafc", fontSize: "18px", fontWeight: "800", lineHeight: 1.45 }}>
                       {gameMode === "duel"
-                        ? "Düello sonucunu kaybetmek ister misin?"
+                        ? "Düello sonucunu kaydetmek ister misin?"
                         : "İlerlemeni kaydetmek ister misin?"}
                     </div>
                     <div style={{ color: "#cbd5e1", fontSize: "15px", lineHeight: 1.7, maxWidth: "320px" }}>

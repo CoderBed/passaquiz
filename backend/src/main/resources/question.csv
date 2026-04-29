@@ -327,6 +327,14 @@ A, 5, Burgu ile delinerek açılan ve suyu yükseğe fışkırtan kuyu, Artezyen
 A, 5, Eski Yunan şehirlerinde, en önemli yapıların ve tapınakların bulunduğu iç kale, Akropol
 A, 5, Sigorta risklerine ve istatistiklere dayanan, Aktüeryal
 A, 5, Bir deniz yolculuğunda geminin veya yükünün gördüğü zarar, Avarya
+A, 5, Yürüyüş durumunda bulunan bir askerî birliğin güvenliğini sağlamak için arkadan gelmek üzere bırakılan kıta, Artçı
+A, 5, Geçmiş bir sanat veya edebiyat çığırını sürdüren sanatçı veya hareket, Artçı
+A, 2, Asıl depremden sonra meydana gelen şiddet ve büyüklük bakımından daha küçük olan deprem, Artçı/Artçı Deprem/Artçı Sarsıntı/Artçı Şok
+A, 5, Trafiği yoğun olan ana yol, Arter
+A, 5, Gösterildiği zaman ödenmesi gereken poliçelere yazılan “görünce, görüldüğünde” anlamında terim, Avisto
+A, 4, 100 m² değerinde yüzey ölçü birimi, Ar
+A, 2, İnsanın ruh dünyasında oluşan çekinme duygusu, Ar/Arlılık
+A, 5, Sıcak iklimlerde yetişen maranta adlı kamıştan ve başka bitkilerin kökünden çıkarılan, çocuk maması yapmaya yarayan un, Ararot
 
 B, 3, Bir bilgisayarda verileri geçici saklayan donanım, Bellek
 B, 4, Dana veya sığırın göğüs eti veya döş bölgesi, Brisket
@@ -564,6 +572,8 @@ B, 5, İçi, ortadaki yüksek, yanlardakiler daha alçak olmak üzere iki sıra 
 B, 5, Dikdörtgen biçiminde, uç kısmında yarım çembere benzeyen bir çıkıntısı olan Roma mahkemesi, Bazilika
 B, 5, Doğuştan başlayarak belirli zaman aralıklarıyla yinelenen ve insan davranışlarını doğrudan etkileyen fiziksel ve duygusal gelgitlerin tümü, Biyoritim
 B, 5, Keskin bir koku, alev ve koyu duman çıkararak yanan, karbon ve hidrojen bakımından çok zengin doğal yakıt maddelerinin genel adı, Bitüm
+B, 1, Elle kolun, ayakla bacağın birleştiği bölüm, Bilek
+B, 2, Dokuzar kişilik iki takım arasında oynanan, sahada savunma yapan takımdan bir oyuncusu atıcı olmak üzere dokuz oyuncunun, hücum eden takımdan ise vurucu olmak üzere sadece bir oyuncunun bulunduğu, vurucuların sopayla atıcıdan gelen topa vurarak sayı yapmasına dayalı oyun, Beyzbol
 
 C, 2, İlgi uyandıran, elverişli, Cazip
 C, 2, Genellikle dükkânlarda malların sergilendiği camlı bölme, Camekan
@@ -775,6 +785,8 @@ C, 5, Osmanlı sanatında yazma eserlerin, levhaların veya minyatürlerin kenar
 Ç, 5, Eyerin veya palanın üzerine örtülen kilim, halı vb. örtü, Çultar
 Ç, 5, Döviz kurlarını belirlemek için esas alınan ölçü, Çıpa
 Ç, 5, Orta kuşak yarı nemli step bölgelerinde, gür çayır bitki örtüsü altında oluşan, humusça çok zengin, koyu renkli, dünyanın en verimli yerli toprak türü, Çernezyom
+Ç, 5, Saman taşımak için kağnılara ve arabalara konulan ince dallardan örülmüş büyük sepet, Çeten/Çiten
+Ç, 5, Buzağı veya kuzu için yapılmış özel ağıl, Çeten/Çiten
 
 D, 2, Sıkı düzen, düzence, düzen bağı, inzibat, zapturapt, Disiplin
 D, 2, Tırtıllı veya lastik tekerlekli yol yapım makinesi, Dozer
@@ -1022,6 +1034,11 @@ D, 1, Yer kabuğunun çukur bölümlerini kaplayan, birbiriyle bağlantılı, tu
 D, 4, Sayı ile ilgili, sayı temeline dayanan, Dijital
 D, 5, Bir ortak avaryada deniz kazasından sonra gemi, yük ve navlunla ilgili kimselerin uğradıkları zararların ve bunlar tarafından yapılan masrafların nasıl, kimler tarafından ve ne oranda karşılanacağını belirlemek için yapılan işlem, Dispeç
 D, 5, Deniz sigortası dilinde, ilgili tarafların ortak avaryada kendilerine düşen yükümlülükleri, paylarının önemi ölçüsünde ayrıntılı olarak belirten belge, Dispeç
+D, 5, Bağlarda, tomurcuk, yaprak ve salkım yiyerek yaşayan, sarımsı gece kelebeği, Dürmece
+D, 2, Esnafın perakende satış yaptığı, küçük zanaat sahiplerinin çalıştıkları yer, Dükkan
+D, 2, İnsan ve hayvan vücudunu kaplayan tüy, kıl veya pulla kaplı tabaka, Deri
+D, 3, İşlenerek kullanılır duruma getirilmiş hayvan postu, Deri
+D, 1, Yapılış kusuru, imalat hatası, Defo
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -1674,6 +1691,8 @@ H, 5, Kan dolaşımındaki hücresel bileşenlerin miktarını, oranlarını ve 
 H, 2, Bir iş yapmak için gereken her şeyi tamamlamış olan, Hazır
 H, 5, Bilimsel çalışmalar amacıyla kurutulmuş, preslenmiş ve özel etiket bilgileriyle kartonlar üzerine monte edilmiş bitki örneklerinin düzenli bir şekilde saklandığı koleksiyon, Herbaryum
 H, 5, Türk tezhip sanatında varak altının jelatin eriyiğiyle ezilerek hazırlanmasıyla elde edilen altın yaldızın, fırça ile degrade şekilde uygulanmasıyla yapılan süsleme tekniği, Halkari
+H, 5, Dokumacılıkta kullanılan unlu veya çirişli sıvı, Haşıl
+H, 5, Osmanlı ordusunda savaş silahı olarak kullanılan, ucu piramit şeklinde demir temrenli bir nevi balta, Halelbar
 
 I, 3, Toprak işlerinde ve yapılarda en basit ve ağır işleri yapan işçi, Irgat
 I, 2, Uzak, Irak
@@ -2510,6 +2529,9 @@ K, 5, Tulumbacı hortumlarının uç kısmındaki sarı maden sap, Köken
 K, 4, Kavun, karpuz, kabak vb. bitkilerin toprak üstünde yayılan dalları, Köken
 K, 5, Gevenin gövde veya kökünün üzerine bıçakla özel olarak yapılan çizgilerden akan zamk, Kitre/Kereste
 K, 5, Taşınmak için gemiye teslim edilen bir mala karşılık olarak verilen alındı, Konşimento
+K, 3, Geçici, düşüncesizce, değişken istek, Kapris
+K, 5, Argoda yolsuzca veya zorla elde edilen mal, Kaparoz
+K, 2, Şiirde dizelerin sonunda tekrarlanan ve aynı ahengi veren heceler veya aynı görevde olmayan ancak benzeşen sesler, Kafiye
 
 L, 4, Feshetmek, hükümsüz kılmak, Lağvetmek/Lağvetme
 L, 5, Barcelona futbol kulübünün altyapısına verilen isim, La Masia
@@ -3089,6 +3111,7 @@ M, 3, Bir şeyin olmasına, yapılmasına sebep olan, yol açan kimse veya şey,
 M, 2, Mıknatısla ilgili, kendinde mıknatıs özellikleri bulunan, Manyetik
 M, 4, Telkin ve hipnozla bir kimseyi etkileme, Manyetizma
 M, 5, Zoolojinin memeli hayvan türlerini inceleyen alt dalı, Mammaloji
+M, 3, Vergi vermekle yükümlü olan kimse veya kuruluş, Mükellef
 
 N, 4, Inception, The Prestige ve Oppenheimer gibi dünyaca ünlü filmlerin yönetmeni, Christopher ..., Nolan
 N, 3, Gerçekten, hakikaten anlamına gelen bir zarf, Nitekim
@@ -3210,6 +3233,7 @@ N, 5, Bir yere doğru bakan ev, oda vb., Nazır
 N, 3, Aynı cinsten olan şeyler arasındaki ince fark, Nüans
 N, 5, İnsanın yaradılış özelliği, Natura
 N, 2, "Sonunda" anlamına gelen bir zarf, Nihayet
+N, 4, Yüzün rengi, bet beniz, Nevir
 
 O, 3, Şeffaf zıttı, mat yüzey, Opak
 O, 3, Gereğinden çok yemek yiyen, doymak bilmeyen kimse, Obur
@@ -3301,6 +3325,8 @@ O, 1, Vücudun, belirli bir görev yapan ve sınırları kesin olarak belirlenmi
 O, 5, Yelkenleri rüzgârın estiği yöne çevirmekte kullanılan, her iki taraftan yelkenin ortasına bağlanan ip, Orsa
 O, 5, Geminin rüzgâr alan yanı, Orsa
 O, 5, Parlamento tarafından görevlendirilen, vatandaşları resmî makamların keyfî ve yasa dışı davranışlarına karşı korumakla görevli kişi veya kurum, Ombudsman
+O, 2, Yenecek duruma gelmiş meyve, Olgun
+O, 3, Bilgi, görgü ve hoşgörüsü gereği kadar gelişmiş, ağırbaşlı kimse, Olgun
 
 Ö, 2, Bir düşünceyi, kuralı, gözlemi veya savı desteklemek ve açıklamak amacıyla ileri sürülen söz, yapılan davranış, Örnek
 Ö, 4, Birden çok kelimeden oluşan, yapı ve anlamındaki bütünlük dolayısıyla cümle içinde tek bir öge gibi işlem gören söz dizisi, Öbek
@@ -3674,6 +3700,7 @@ P, 5, Bir şeyin yıkılmaması için konulan eğik veya düz ağaç, Payanda
 P, 4, Hastalık meydana getiren, hastalığa sebep olan, Patojen
 P, 5, Günümüzden yaklaşık 225 milyon yıl önce sona erdiği varsayılan, en eski fosillerin oluştuğu, kıtaların tek parça olduğu jeolojik zaman, Paleozoik
 P, 5, Yosun sporlarının çimlenmesinden oluşan iplik biçimindeki organ, Protonema
+P, 5, Tekstil ve konfeksiyon sektöründe giysilerin cepleri, fermuar uçları, kemer köprüleri gibi yüksek gerilime maruz kalan bölgelerini güçlendirmek için kullanılan kısa, sık ve yoğun zikzak dikiş tekniği, Ponteriz
 
 R, 2, Zarara uğrama tehlikesi, Risk/Riziko
 R, 2, 1950'lerde ABD'de doğan, elektro gitar, bas gitar ve davul merkezli, güçlü ritimlere sahip popüler bir müzik türü, Rock/Rock Müzik/Rak/Rak Müzik
@@ -3839,6 +3866,7 @@ R, 5, Gövdesi Hindistan cevizi kabuğundan yapılmış uzun saplı saz, Rebap
 R, 5, Müzikte belirli bir bölümün veya eserin başından itibaren tekrar çalınması gerektiğini gösteren notasyon işareti, Röpriz
 R, 5, Bir tasarımı gözden geçirerek yeniden düzenleme, Restitüsyon
 R, 5, Bir olayın kendi sebepleri üzerindeki tepkisi, Rücu
+R, 5, İki sıra düz ve iki sıra ters olmak üzere örülen kumaş, Ribana
 
 S, 4, Gelip geçici, çabuk sona eren anlamına gelen bir söz, Saman Alevi
 S, 2, Sebze ve meyvelerin yetiştirildiği ve hava şartlarına karşı korunduğu cam ve naylonla kaplı yer, Sera
@@ -4217,6 +4245,8 @@ S, 5, Doğal olarak hayvan ve bitki kalıntılarının üzerinde yaşayan ve onl
 S, 5, Tahta vb.nin üzerindeki ufak pürüzleri giderip onu dümdüz bir duruma getirmeye yarayan ince çelik lama, Sistire
 S, 5, Sovyetler Birliği'nde devlet eliyle yönetilen tarım işletmesi, Sovhoz
 S, 1, Bir dilin kelimelerinin bütününü veya belli bir kısmını, deyimlerini alfabe sırasına, bâzan da konu veya kavramlarına göre anlamlandıran, açıklayan veya başka dillerdeki karşılıklarını veren eser, Sözlük
+S, 2, Üstündeki yazı veya çizgiler silinmiş, bozulmuş, aşınmış olan, Silik
+S, 2, Kendini gösteremeyen, dikkati çekmeyen veya önemli ve belirli olmayan, Silik
 
 Ş, 1, Pişmiş baklava gibi hamurlu tatlılara konulmak üzere kaynatılarak hazırlanmış şekerli su, Şerbet
 Ş, 4, Kuzey ve Orta Asya'da Türkler, diğer kıtalarda da başka topluluklar arasında günümüze kadar süregelen doğaya tapma, doğaüstü ruhlara inanma temeline dayalı din, Şamanizm/Şamanlık
@@ -4750,6 +4780,7 @@ T, 5, Sürtünme olaylarını inceleyen bilim dalı, Triboloji
 T, 4, Yaprakların gözeneklerinden buhar biçiminde su kaybetmeleri, Terleme
 T, 3, Bir antlaşmada taraflardan birinin sorumluluğu üzerine alması, Teminat
 T, 5, Padişah fermanlarına çekilen tuğra, Tevki
+T, 2, Ramazan ayı boyunca, yatsı namazından sonra kılınan namaz, Teravih/Teravih Namazı
 
 U, 4, Afrika kıtasının doğu kesiminde yer alan ve denize kıyısı olmayan bir kara ülkesi, Uganda
 U, 3, Düz arazide veya açık denizde gökle yerin birleşir gibi göründüğü yer, Ufuk/Ufuk Çizgisi
@@ -4796,6 +4827,7 @@ U, 5, Klasik Türk müziğinde tempo, Usul
 U, 1, Belli bir işte, belli bir konuda bilgi, görüş ve becerisi çok olan kimse, Uzman
 U, 2, Organ, Uzuv
 U, 3, Bir devlete vatandaşlık bağıyla bağlı olma durumu, tebaa, Uyruk
+U, 2, Kafiye, Uyak
 
 Ü, 4, Amaç edinilen, ulaşılmak istenen şey, dava, Ülkü
 Ü, 1, Bir devletin egemenliği altında bulunan toprakların tümü, Ülke
