@@ -511,6 +511,9 @@ function App() {
   const [resultMessage, setResultMessage] = useState("");
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState(false);
+  const [challengeCode, setChallengeCode] = useState("");
+  const [challengeLoading, setChallengeLoading] = useState(false);
+  const [challengeToast, setChallengeToast] = useState("");
   const [questionStatuses, setQuestionStatuses] = useState([]);
   const [passedQueue, setPassedQueue] = useState([]);
   const [isReviewingPassed, setIsReviewingPassed] = useState(false);
@@ -881,6 +884,15 @@ function App() {
 
     setDailyResult(loadDailyResultFromStorage());
   }, [authUserEmail]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const challengeFromUrl = params.get("challenge");
+
+    if (challengeFromUrl) {
+      setChallengeCode(challengeFromUrl.trim().toUpperCase());
+    }
+  }, []);
 
   useEffect(() => {
     if ((gameMode === "daily" && !gameStarted) || gameFinished) {
@@ -1455,6 +1467,8 @@ function App() {
     setQuestionStatuses([]);
     setTimeLeft(selectedDuration);
     setShowProfileMenu(false);
+    setChallengeCode("");
+    setChallengeToast("");
 
     if (gameMode === "duel") {
       if (duelSharedStartStorageKey) {
@@ -2028,6 +2042,8 @@ function App() {
     setDuelWaitingForOpponent(false);
     setDuelSharedStartTime(null);
     setGameStarted(false);
+    setChallengeCode("");
+    setChallengeToast("");
   };
 
   const finishGame = async () => {
@@ -2102,6 +2118,179 @@ function App() {
     setMaxCorrectStreak(0);
 
     await startGame();
+  };
+
+  const createChallenge = async () => {
+    if (challengeLoading) return;
+
+    try {
+      setChallengeLoading(true);
+      setChallengeCode("");
+
+      const toSafeText = (value) => {
+        if (value === null || typeof value === "undefined") return "";
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+          return String(value);
+        }
+        return "";
+      };
+
+      const toSafeNumber = (value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
+
+      const safeQuestionSet = questions.map((question) => ({
+        id: toSafeNumber(question?.id),
+        letter: toSafeText(question?.letter),
+        questionText: toSafeText(question?.questionText),
+        answer: toSafeText(question?.answer),
+        difficultyLevel: toSafeNumber(question?.difficultyLevel ?? question?.difficulty_level),
+      }));
+
+      const payload = {
+        userName: toSafeText(authUserName || authUserEmail || "Oyuncu") || "Oyuncu",
+        score: toSafeNumber(score) ?? 0,
+        durationSeconds: toSafeNumber(elapsedTime) ?? 0,
+        correctCount: toSafeNumber(correctCount) ?? 0,
+        wrongCount: toSafeNumber(wrongCount) ?? 0,
+        passedCount: toSafeNumber(passedCount) ?? 0,
+        gameMode: toSafeText(gameMode) || "classic",
+        questionSetJson: JSON.stringify(safeQuestionSet),
+      };
+
+      const res = await fetch("http://localhost:8080/api/challenge/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const rawResponse = await res.text();
+      const data = rawResponse ? JSON.parse(rawResponse) : null;
+
+      if (!res.ok) {
+        console.error("Meydan okuma oluşturulamadı:", res.status, rawResponse);
+        alert("Meydan okuma oluşturulamadı");
+        return;
+      }
+
+      const code = data?.challengeCode;
+
+      if (!code) {
+        alert("Meydan okuma kodu alınamadı.");
+        return;
+      }
+
+      setChallengeCode(code);
+
+      const challengeLink = `${window.location.origin}${window.location.pathname}?challenge=${encodeURIComponent(code)}`;
+
+      try {
+        await navigator.clipboard.writeText(challengeLink);
+        setChallengeToast("Meydan okuma linki kopyalandı");
+      } catch {
+        setChallengeToast(`Meydan okuma linki oluşturuldu: ${code}`);
+      }
+
+      setTimeout(() => {
+        setChallengeToast("");
+      }, 2600);
+    } catch (err) {
+      console.error("Meydan okuma oluşturma hatası:", err);
+      alert("Hata oluştu");
+    } finally {
+      setChallengeLoading(false);
+    }
+  };
+
+  const startChallengeByCode = async () => {
+    const rawChallengeValue = String(challengeCode || "").trim();
+
+    if (!rawChallengeValue) {
+      alert("Kod gir");
+      return;
+    }
+
+    let resolvedChallengeCode = rawChallengeValue.toUpperCase();
+
+    try {
+      const parsedUrl = new URL(rawChallengeValue, window.location.origin);
+      const codeFromUrl =
+        parsedUrl.searchParams.get("challenge") ||
+        parsedUrl.searchParams.get("CHALLENGE");
+
+      if (codeFromUrl) {
+        resolvedChallengeCode = codeFromUrl.trim().toUpperCase();
+      }
+    } catch {
+      // Girilen değer link değilse direkt kod olarak kullanılır.
+    }
+
+    resolvedChallengeCode = resolvedChallengeCode
+      .replace(/^.*[?&]challenge=/i, "")
+      .split("&")[0]
+      .trim()
+      .toUpperCase();
+
+    if (!resolvedChallengeCode) {
+      alert("Geçerli bir meydan okuma kodu gir");
+      return;
+    }
+
+    try {
+      setChallengeLoading(true);
+
+      const res = await fetch(
+        `http://localhost:8080/api/challenge/${encodeURIComponent(resolvedChallengeCode)}`
+      );
+
+      const data = await res.json();
+
+      if (!res.ok || !data) {
+        alert("Kod bulunamadı");
+        return;
+      }
+
+      // 🔥 KRİTİK: soruları parse et
+      const parsedQuestions = JSON.parse(data.questionSetJson || "[]");
+
+      if (!parsedQuestions.length) {
+        alert("Soru seti boş");
+        return;
+      }
+
+      // 🔥 OYUNU BAŞLAT
+      activeGameModeRef.current = "challenge";
+      setGameMode("challenge");
+
+      setQuestions(parsedQuestions);
+      setQuestionStatuses(parsedQuestions.map(() => "pending"));
+
+      setCurrentIndex(0);
+      setUserAnswer("");
+      setResultMessage("");
+      setScore(0);
+
+      setAnswered(false);
+      setPassedQueue([]);
+      setIsReviewingPassed(false);
+
+      setGameFinished(false);
+      setIsPaused(false);
+
+      setTimeLeft(selectedDuration);
+
+      setGameStarted(true);
+      setChallengeCode("");
+
+    } catch (err) {
+      console.error(err);
+      alert("Hata oluştu");
+    } finally {
+      setChallengeLoading(false);
+    }
   };
 
   const downloadShareCard = async () => {
@@ -6193,72 +6382,119 @@ function App() {
               </button>
             )
           ) : (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "18px",
-                marginTop: "24px",
-                flexWrap: "wrap",
-              }}
-            >
-              <button
-                onClick={startGame}
+            <>
+              <div
                 style={{
-                  padding: "18px 28px",
-                  fontSize: "20px",
-                  border: "none",
-                  borderRadius: "20px",
-                  cursor: "pointer",
-                  color: "white",
-                  background: "linear-gradient(135deg, #22c55e, #16a34a)",
-                  boxShadow: "0 14px 32px rgba(34, 197, 94, 0.35)",
-                  minWidth: "220px",
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "18px",
+                  marginTop: "24px",
+                  flexWrap: "wrap",
                 }}
               >
-                Klasik Oyun
-              </button>
+                <button
+                  onClick={startGame}
+                  style={{
+                    padding: "18px 28px",
+                    fontSize: "20px",
+                    border: "none",
+                    borderRadius: "20px",
+                    cursor: "pointer",
+                    color: "white",
+                    background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                    boxShadow: "0 14px 32px rgba(34, 197, 94, 0.35)",
+                    minWidth: "220px",
+                  }}
+                >
+                  Klasik Oyun
+                </button>
 
-              <button
-                onClick={() => {
-                  if (dailyResult) {
-                    setGameMode("daily");
-                  } else {
-                    startGame("daily");
-                  }
-                }}
-                style={{
-                  padding: "18px 28px",
-                  fontSize: "20px",
-                  border: "none",
-                  borderRadius: "20px",
-                  cursor: "pointer",
-                  color: "white",
-                  background: "linear-gradient(135deg, #f59e0b, #ef4444)",
-                  boxShadow: "0 14px 32px rgba(239, 68, 68, 0.35)",
-                  minWidth: "220px",
-                }}
-              >
-                Günlük Oyun
-              </button>
+                <button
+                  onClick={() => {
+                    if (dailyResult) {
+                      setGameMode("daily");
+                    } else {
+                      startGame("daily");
+                    }
+                  }}
+                  style={{
+                    padding: "18px 28px",
+                    fontSize: "20px",
+                    border: "none",
+                    borderRadius: "20px",
+                    cursor: "pointer",
+                    color: "white",
+                    background: "linear-gradient(135deg, #f59e0b, #ef4444)",
+                    boxShadow: "0 14px 32px rgba(239, 68, 68, 0.35)",
+                    minWidth: "220px",
+                  }}
+                >
+                  Günlük Oyun
+                </button>
 
-              <button
-                onClick={() => setGameMode("duel")}
+                <button
+                  onClick={() => setGameMode("duel")}
+                  style={{
+                    padding: "18px 28px",
+                    fontSize: "20px",
+                    border: "none",
+                    borderRadius: "20px",
+                    cursor: "pointer",
+                    color: "white",
+                    background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
+                    boxShadow: "0 14px 32px rgba(139, 92, 246, 0.35)",
+                    minWidth: "220px",
+                  }}
+                >
+                  Düello
+                </button>
+              </div>
+
+              <div
                 style={{
-                  padding: "18px 28px",
-                  fontSize: "20px",
-                  border: "none",
-                  borderRadius: "20px",
-                  cursor: "pointer",
-                  color: "white",
-                  background: "linear-gradient(135deg, #8b5cf6, #6d28d9)",
-                  boxShadow: "0 14px 32px rgba(139, 92, 246, 0.35)",
-                  minWidth: "220px",
+                  marginTop: "24px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap",
                 }}
               >
-                Düello
-              </button>
-            </div>
+                <input
+                  value={challengeCode}
+                  onChange={(e) => setChallengeCode(e.target.value)}
+                  placeholder="Meydan okuma kodu veya linki gir"
+                  style={{
+                    padding: "12px",
+                    borderRadius: "12px",
+                    border: "1px solid rgba(148,163,184,0.3)",
+                    fontWeight: "700",
+                    letterSpacing: "1px",
+                    minWidth: "220px",
+                    background: "rgba(15,23,42,0.7)",
+                    color: "#e2e8f0",
+                  }}
+                />
+
+                <button
+                  onClick={startChallengeByCode}
+                  disabled={challengeLoading}
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                    color: "white",
+                    fontWeight: "800",
+                    cursor: challengeLoading ? "not-allowed" : "pointer",
+                    opacity: challengeLoading ? 0.7 : 1,
+                    boxShadow: "0 10px 24px rgba(37,99,235,0.35)",
+                  }}
+                >
+                  {challengeLoading ? "Açılıyor..." : "Meydan Okumayı Başlat"}
+                </button>
+              </div>
+            </>
           )}
           {showLeaderboard && (
             <div
@@ -8838,6 +9074,87 @@ function App() {
                     </svg>
                     <span>Sonucu İndir</span>
                   </button>
+                )}
+
+                {/* Meydan okuma linki oluştur */}
+                {gameMode !== "daily" && (
+                  <div
+                    onClick={createChallenge}
+                    title="Meydan okuma linki oluştur"
+                    style={{
+                      width: "58px",
+                      height: "58px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: challengeLoading ? "not-allowed" : "pointer",
+                      opacity: challengeLoading ? 0.48 : 1,
+                      color: "#e0f2fe",
+                      borderRadius: "18px",
+                      position: "relative",
+                      transition: "transform 0.14s ease, filter 0.18s ease, box-shadow 0.18s ease, color 0.18s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (challengeLoading) return;
+                      e.currentTarget.style.transform = "scale(1.08)";
+                      e.currentTarget.style.filter = "brightness(1.12)";
+                      e.currentTarget.style.boxShadow = "0 0 22px rgba(96, 165, 250, 0.34)";
+                      e.currentTarget.style.color = "#bfdbfe";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.filter = "brightness(1)";
+                      e.currentTarget.style.boxShadow = "none";
+                      e.currentTarget.style.color = "#e0f2fe";
+                    }}
+                    onMouseDown={(e) => {
+                      if (challengeLoading) return;
+                      e.currentTarget.style.transform = "scale(0.94)";
+                    }}
+                    onMouseUp={(e) => {
+                      if (challengeLoading) return;
+                      e.currentTarget.style.transform = "scale(1.08)";
+                    }}
+                  >
+                    <svg
+                      width="30"
+                      height="30"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M18 8a3 3 0 1 0-2.83-4H15a3 3 0 0 0 .17 1L8.91 8.09a3 3 0 0 0-1.82-.59 3 3 0 1 0 2.83 4H10a3 3 0 0 0-.17-1l6.26-3.09A3 3 0 0 0 18 8ZM6 14a3 3 0 0 0 1.82-.59l6.26 3.09a3 3 0 0 0-.17 1H14a3 3 0 1 0 2.83-4 3 3 0 0 0-1.82.59l-6.26-3.09A3 3 0 0 0 6 14Z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    {challengeToast && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "64px",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          whiteSpace: "nowrap",
+                          padding: "9px 13px",
+                          borderRadius: "999px",
+                          background: "rgba(15, 23, 42, 0.96)",
+                          border: "1px solid rgba(96, 165, 250, 0.28)",
+                          color: "#bfdbfe",
+                          fontSize: "13px",
+                          fontWeight: "800",
+                          boxShadow: "0 12px 26px rgba(2, 6, 23, 0.32)",
+                          pointerEvents: "none",
+                          zIndex: 20,
+                        }}
+                      >
+                        {challengeToast}
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* END BUTTON ROW */}

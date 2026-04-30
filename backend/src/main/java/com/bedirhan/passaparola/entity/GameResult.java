@@ -47,6 +47,16 @@ public class GameResult {
 
     private boolean noPassGame;
 
+    // Challenge feature fields
+    private String challengeCode;
+
+    @Lob
+    private String questionSetJson; // same questions serialized (ids/letters)
+
+    private Integer challengeTargetScore;
+
+    private Integer challengeTargetDuration;
+
     public GameResult() {
     }
 
@@ -207,5 +217,36 @@ public class GameResult {
 
     public void setDurationSeconds(int durationSeconds) {
         this.durationSeconds = durationSeconds;
+    }
+    public String getChallengeCode() {
+        return challengeCode;
+    }
+
+    public void setChallengeCode(String challengeCode) {
+        this.challengeCode = challengeCode;
+    }
+
+    public String getQuestionSetJson() {
+        return questionSetJson;
+    }
+
+    public void setQuestionSetJson(String questionSetJson) {
+        this.questionSetJson = questionSetJson;
+    }
+
+    public Integer getChallengeTargetScore() {
+        return challengeTargetScore;
+    }
+
+    public void setChallengeTargetScore(Integer challengeTargetScore) {
+        this.challengeTargetScore = challengeTargetScore;
+    }
+
+    public Integer getChallengeTargetDuration() {
+        return challengeTargetDuration;
+    }
+
+    public void setChallengeTargetDuration(Integer challengeTargetDuration) {
+        this.challengeTargetDuration = challengeTargetDuration;
     }
 }
