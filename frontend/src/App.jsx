@@ -551,7 +551,7 @@ function DuelLobby({
             >
               <div
                 style={{
-                  color: "#e0f2fe",
+                  color: "#22d3ee",
                   fontSize: "24px",
                   fontWeight: "900",
                   marginBottom: "8px",
@@ -559,7 +559,6 @@ function DuelLobby({
               >
                 Rastgele Rakip Bul
               </div>
-
               <div
                 style={{
                   color: "#cbd5e1",
@@ -675,7 +674,7 @@ function DuelLobby({
 
               <div
                 style={{
-                  color: "#d8b4fe",
+                  color: "#cbd5e1",
                   fontSize: "15px",
                   lineHeight: 1.6,
                   marginBottom: "20px",
@@ -5349,13 +5348,21 @@ function App() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "auto 1fr auto",
+              gridTemplateColumns: "1fr auto 1fr",
               alignItems: "center",
               gap: "16px",
               marginBottom: "18px",
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                gap: "10px",
+              }}
+            >
               <button
                 onClick={handleDuelScreenBack}
                 style={{
@@ -5392,7 +5399,7 @@ function App() {
                   alignItems: "center",
                   justifyContent: "center",
                   boxShadow: "0 10px 22px rgba(2, 6, 23, 0.22)",
-                  marginTop: "10px"
+                  // marginTop removed
                 }}
                 aria-label="Nasıl Oynanır"
                 title="Nasıl Oynanır"
@@ -5444,16 +5451,15 @@ function App() {
               <img
                 src="/passaquiz.png"
                 alt="PassaQuiz Logo"
-                style={{ width: "280px" }}
+                style={{ width: "260px", display: "block" }}
               />
             </div>
 
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                justifyContent: "flex-start",
+                alignItems: "center",
+                justifyContent: "flex-end",
                 gap: "10px",
                 position: "relative",
               }}
