@@ -1,14 +1,53 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 
-function DuelLobby({ currentUser, onBack, onStartDuel }) {
+function DuelLobby({
+  currentUser,
+  onRoomViewChange,
+  onBack,
+  onStartDuel,
+  joinQuickDuel,
+  cancelQuickDuel,
+  quickDuelSearching,
+  quickDuelMatchedRoom,
+  quickDuelCountdownSeconds,
+  quickDuelMessage,
+  challengeCode,
+  setChallengeCode,
+  startChallengeByCode,
+  challengeLoading,
+  challengeStartTouched,
+  setChallengeStartTouched,
+  challengeStartMessage,
+  setChallengeStartMessage,
+}) {
   const [roomCode, setRoomCode] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
   const [roomCodeCopied, setRoomCodeCopied] = useState(false);
+  const [duelTab, setDuelTab] = useState("live");
   const [startCountdown, setStartCountdown] = useState(null);
   const countdownStartedRef = useRef(false);
+  useEffect(() => {
+    onRoomViewChange?.(Boolean(room));
+  }, [room, onRoomViewChange]);
+
+  const handleDuelLobbyBack = () => {
+    if (room) {
+      setRoom(null);
+      setRoomCode("");
+      setJoinCode("");
+      setError("");
+      setRoomCodeCopied(false);
+      setStartCountdown(null);
+      countdownStartedRef.current = false;
+      setDuelTab("live");
+      return;
+    }
+
+    onBack();
+  };
 
   const createRoom = async () => {
     if (!currentUser?.id) {
@@ -259,70 +298,460 @@ function DuelLobby({ currentUser, onBack, onStartDuel }) {
 
       {!room && (
         <>
-          <button
-            onClick={createRoom}
-            style={{
-              padding: "14px 22px",
-              fontSize: "16px",
-              border: "none",
-              borderRadius: "14px",
-              cursor: "pointer",
-              color: "white",
-              background: "linear-gradient(135deg, #22c55e, #16a34a)",
-              boxShadow: "0 12px 26px rgba(22, 163, 74, 0.24)",
-              marginBottom: "22px",
-            }}
-          >
-            Oda Oluştur
-          </button>
-
           <div
             style={{
-              maxWidth: "360px",
-              margin: "0 auto",
-              display: "grid",
+              display: "flex",
+              justifyContent: "center",
               gap: "12px",
+              marginBottom: "26px",
+              flexWrap: "wrap",
             }}
           >
-            <input
-              type="text"
-              placeholder="Oda kodu gir"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              style={{
-                padding: "14px 16px",
-                fontSize: "16px",
-                width: "100%",
-                borderRadius: "14px",
-                border: "1px solid rgba(96, 165, 250, 0.32)",
-                backgroundColor: "rgba(15, 23, 42, 0.78)",
-                color: "#f8fafc",
-                boxSizing: "border-box",
-                outline: "none",
-                textTransform: "uppercase",
-              }}
-            />
+            {[
+              { key: "live", label: "Canlı Düello" },
+              { key: "quick", label: "Rastgele" },
+              { key: "challenge", label: "Meydan Okuma" },
+            ].map((tab) => {
+              const active = duelTab === tab.key;
 
-            <button
-              onClick={joinRoom}
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setDuelTab(tab.key);
+                    setError("");
+
+                    if (tab.key !== "challenge") {
+                      setChallengeCode("");
+                      setChallengeStartTouched(false);
+                      setChallengeStartMessage("");
+                    }
+                  }}
+                  style={{
+                    padding: "12px 18px",
+                    borderRadius: "999px",
+                    border: active
+                      ? "1px solid rgba(96, 165, 250, 0.38)"
+                      : "1px solid rgba(148, 163, 184, 0.16)",
+                    background: active
+                      ? "linear-gradient(135deg, rgba(37,99,235,0.95), rgba(59,130,246,0.95))"
+                      : "rgba(15,23,42,0.55)",
+                    color: "white",
+                    fontWeight: "800",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    boxShadow: active
+                      ? "0 10px 24px rgba(37,99,235,0.28)"
+                      : "none",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+          {duelTab === "live" && (
+            <div
               style={{
-                padding: "14px 22px",
-                fontSize: "16px",
-                border: "none",
-                borderRadius: "14px",
-                cursor: "pointer",
-                color: "white",
-                background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                boxShadow: "0 12px 26px rgba(37, 99, 235, 0.28)",
+                margin: "0 auto",
+                width: "100%",
+                maxWidth: "760px",
+                textAlign: "left",
               }}
             >
-              Odaya Katıl
-            </button>
-          </div>
+              <div
+                style={{
+                  textAlign: "center",
+                  marginBottom: "22px",
+                }}
+              >
+                <div
+                  style={{
+                    color: "#e0f2fe",
+                    fontSize: "24px",
+                    fontWeight: "900",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Canlı Düello
+                </div>
+                <div
+                  style={{
+                    color: "#cbd5e1",
+                    fontSize: "15px",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Arkadaşınla aynı anda oynayacağın özel bir oda kur veya sana gelen oda koduyla katıl.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gap: "18px",
+                  alignItems: "stretch",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "22px",
+                    borderRadius: "24px",
+                    background: "rgba(15, 23, 42, 0.58)",
+                    border: "1px solid rgba(34, 197, 94, 0.18)",
+                    boxShadow: "0 18px 38px rgba(2, 6, 23, 0.26)",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: "230px",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        color: "#bbf7d0",
+                        fontSize: "22px",
+                        fontWeight: "900",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Oda Kur
+                    </div>
+                    <div
+                      style={{
+                        color: "#cbd5e1",
+                        fontSize: "15px",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Sen bir oda oluşturursun, oluşan kodu arkadaşına gönderirsin. Arkadaşın kodla katılınca canlı düello başlar.
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={createRoom}
+                    style={{
+                      marginTop: "18px",
+                      width: "100%",
+                      padding: "15px 18px",
+                      fontSize: "17px",
+                      border: "none",
+                      borderRadius: "17px",
+                      cursor: "pointer",
+                      color: "white",
+                      background: "linear-gradient(135deg, #22c55e, #16a34a)",
+                      boxShadow: "0 12px 26px rgba(22, 163, 74, 0.26)",
+                      fontWeight: "850",
+                    }}
+                  >
+                    Oda Oluştur
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    padding: "22px",
+                    borderRadius: "24px",
+                    background: "rgba(15, 23, 42, 0.58)",
+                    border: "1px solid rgba(96, 165, 250, 0.18)",
+                    boxShadow: "0 18px 38px rgba(2, 6, 23, 0.26)",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: "230px",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        color: "#bfdbfe",
+                        fontSize: "22px",
+                        fontWeight: "900",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      Odaya Katıl
+                    </div>
+                    <div
+                      style={{
+                        color: "#cbd5e1",
+                        fontSize: "15px",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Arkadaşının sana gönderdiği oda kodunu girerek onun açtığı canlı düello odasına katılırsın.
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "12px",
+                      marginTop: "18px",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Oda kodu gir"
+                      value={joinCode}
+                      onChange={(e) => setJoinCode(e.target.value)}
+                      style={{
+                        padding: "14px 16px",
+                        fontSize: "16px",
+                        width: "100%",
+                        borderRadius: "16px",
+                        border: "1px solid rgba(96, 165, 250, 0.32)",
+                        backgroundColor: "rgba(15, 23, 42, 0.78)",
+                        color: "#f8fafc",
+                        boxSizing: "border-box",
+                        outline: "none",
+                        textTransform: "uppercase",
+                      }}
+                    />
+
+                    <button
+                      onClick={joinRoom}
+                      style={{
+                        padding: "15px 18px",
+                        fontSize: "17px",
+                        border: "none",
+                        borderRadius: "17px",
+                        cursor: "pointer",
+                        color: "white",
+                        background: "linear-gradient(135deg, #3b82f6, #2563eb)",
+                        boxShadow: "0 12px 26px rgba(37, 99, 235, 0.28)",
+                        fontWeight: "850",
+                      }}
+                    >
+                      Odaya Katıl
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {duelTab === "quick" && (
+            <div
+              style={{
+                margin: "0 auto",
+                width: "100%",
+                maxWidth: "560px",
+                padding: "24px",
+                borderRadius: "24px",
+                background: "rgba(15, 23, 42, 0.58)",
+                border: "1px solid rgba(96, 165, 250, 0.18)",
+                boxShadow: "0 18px 38px rgba(2, 6, 23, 0.28)",
+                boxSizing: "border-box",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{
+                  color: "#e0f2fe",
+                  fontSize: "24px",
+                  fontWeight: "900",
+                  marginBottom: "8px",
+                }}
+              >
+                Rastgele Rakip Bul
+              </div>
+
+              <div
+                style={{
+                  color: "#cbd5e1",
+                  fontSize: "15px",
+                  lineHeight: 1.6,
+                  marginBottom: "20px",
+                }}
+              >
+                Sistem sana online bir rakip bulur ve eşleşme oluşunca oyun otomatik başlar.
+              </div>
+
+              <button
+                onClick={joinQuickDuel}
+                disabled={quickDuelSearching || Boolean(quickDuelMatchedRoom)}
+                style={{
+                  width: "100%",
+                  padding: "16px 20px",
+                  fontSize: "18px",
+                  border: "none",
+                  borderRadius: "18px",
+                  cursor:
+                    quickDuelSearching || quickDuelMatchedRoom
+                      ? "not-allowed"
+                      : "pointer",
+                  color: "white",
+                  background: "linear-gradient(135deg, #06b6d4, #2563eb)",
+                  boxShadow: "0 14px 28px rgba(37, 99, 235, 0.34)",
+                  fontWeight: "850",
+                  opacity: quickDuelSearching || quickDuelMatchedRoom ? 0.72 : 1,
+                }}
+              >
+                {quickDuelSearching ? "Rakip Aranıyor..." : "Rastgele Rakip Bul"}
+              </button>
+
+              {(quickDuelSearching || quickDuelMatchedRoom) && (
+                <div
+                  style={{
+                    marginTop: "18px",
+                    padding: "16px",
+                    borderRadius: "18px",
+                    background: "rgba(15, 23, 42, 0.72)",
+                    border: "1px solid rgba(96, 165, 250, 0.22)",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#e0f2fe",
+                      fontSize: "16px",
+                      fontWeight: "900",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {quickDuelMatchedRoom ? "Rakip bulundu" : "Rastgele rakip aranıyor..."}
+                  </div>
+
+                  <div style={{ color: "#cbd5e1", fontSize: "14px", lineHeight: 1.5 }}>
+                    {quickDuelMatchedRoom
+                      ? `${quickDuelMatchedRoom?.player1Name || "Oyuncu"} - ${
+                          quickDuelMatchedRoom?.player2Name || "Oyuncu"
+                        } eşleşti. Oyun ${
+                          quickDuelCountdownSeconds || 0
+                        } saniye sonra başlayacak.`
+                      : quickDuelMessage || "Eşleşme bulununca düello otomatik başlayacak."}
+                  </div>
+
+                  <button
+                    onClick={cancelQuickDuel}
+                    style={{
+                      marginTop: "14px",
+                      padding: "10px 16px",
+                      borderRadius: "14px",
+                      border: "1px solid rgba(248, 113, 113, 0.28)",
+                      background:
+                        "linear-gradient(135deg, rgba(127, 29, 29, 0.82), rgba(69, 10, 10, 0.9))",
+                      color: "#fecaca",
+                      fontWeight: "800",
+                      cursor: "pointer",
+                      display: quickDuelSearching ? "inline-block" : "none",
+                    }}
+                  >
+                    Aramayı İptal Et
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {duelTab === "challenge" && (
+            <div
+              style={{
+                margin: "0 auto",
+                width: "100%",
+                maxWidth: "560px",
+                padding: "24px",
+                borderRadius: "24px",
+                background: "rgba(15, 23, 42, 0.58)",
+                border: "1px solid rgba(168, 85, 247, 0.16)",
+                boxShadow: "0 18px 38px rgba(2, 6, 23, 0.28)",
+                boxSizing: "border-box",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{
+                  color: "#f5d0fe",
+                  fontSize: "24px",
+                  fontWeight: "900",
+                  marginBottom: "8px",
+                }}
+              >
+                Meydan Okumaya Katıl
+              </div>
+
+              <div
+                style={{
+                  color: "#d8b4fe",
+                  fontSize: "15px",
+                  lineHeight: 1.6,
+                  marginBottom: "20px",
+                }}
+              >
+                Arkadaşından gelen challenge linkini veya kodunu gir ve aynı soru setini oynayarak skorunu geçmeye çalış.
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: "14px",
+                }}
+              >
+                <input
+                  value={challengeCode}
+                  onChange={(e) => {
+                    setChallengeCode(e.target.value);
+                    setChallengeStartTouched(false);
+                    setChallengeStartMessage("");
+                  }}
+                  placeholder="Meydan okuma kodu veya link"
+                  style={{
+                    padding: "14px 16px",
+                    borderRadius: "16px",
+                    border: "1px solid rgba(168,85,247,0.22)",
+                    fontWeight: "700",
+                    letterSpacing: "0.4px",
+                    background: "rgba(15,23,42,0.7)",
+                    color: "#f3e8ff",
+                    outline: "none",
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                />
+
+                <button
+                  onClick={startChallengeByCode}
+                  disabled={challengeLoading}
+                  style={{
+                    padding: "14px 18px",
+                    borderRadius: "16px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #9333ea, #7c3aed)",
+                    color: "white",
+                    fontWeight: "850",
+                    fontSize: "16px",
+                    cursor: challengeLoading ? "not-allowed" : "pointer",
+                    opacity: challengeLoading ? 0.7 : 1,
+                    boxShadow: "0 12px 26px rgba(124,58,237,0.35)",
+                  }}
+                >
+                  {challengeLoading ? "Açılıyor..." : "Meydan Okumayı Başlat"}
+                </button>
+              </div>
+
+              {challengeStartTouched && challengeStartMessage && (
+                <div
+                  style={{
+                    width: "100%",
+                    marginTop: "12px",
+                    textAlign: "center",
+                    color: "#fca5a5",
+                    fontSize: "13px",
+                    fontWeight: "700",
+                  }}
+                >
+                  {challengeStartMessage}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
-      {error && (
+      {!room && duelTab === "live" && error && (
         <p
           style={{
             marginTop: "18px",
@@ -588,6 +1017,14 @@ function App() {
   const [duelLiveStatusText, setDuelLiveStatusText] = useState("");
   const [duelLiveStatusAction, setDuelLiveStatusAction] = useState("");
   const [duelLiveStatusVisible, setDuelLiveStatusVisible] = useState(false);
+  const [quickDuelSearching, setQuickDuelSearching] = useState(false);
+  const [quickDuelMessage, setQuickDuelMessage] = useState("");
+  const [quickDuelMatchedRoom, setQuickDuelMatchedRoom] = useState(null);
+  const [quickDuelCountdownSeconds, setQuickDuelCountdownSeconds] = useState(0);
+  const [challengeStartMessage, setChallengeStartMessage] = useState("");
+  const [challengeStartTouched, setChallengeStartTouched] = useState(false);
+  const [duelLobbyRoomOpen, setDuelLobbyRoomOpen] = useState(false);
+  const [duelLobbyResetKey, setDuelLobbyResetKey] = useState(0);
 
   const currentUser = {
     id: authUserId,
@@ -1469,6 +1906,8 @@ function App() {
     setShowProfileMenu(false);
     setChallengeCode("");
     setChallengeToast("");
+    setChallengeStartTouched(false);
+    setChallengeStartMessage("");
 
     if (gameMode === "duel") {
       if (duelSharedStartStorageKey) {
@@ -1520,6 +1959,8 @@ function App() {
     setQuestionStatuses(questions.map(() => "pending"));
     setTimeLeft(selectedDuration);
     setShowProfileMenu(false);
+    setChallengeStartTouched(false);
+    setChallengeStartMessage("");
     if (gameMode === "duel" && gameStarted && !gameFinished) {
       await submitDuelProgress(true);
     }
@@ -1706,6 +2147,8 @@ function App() {
     setShowStatsModal(false);
     setShowDuelHistoryModal(false);
     setShowHowToPlay(false);
+    setChallengeStartTouched(false);
+    setChallengeStartMessage("");
     setDailyResult(null);
     setDailyCountdownSeconds(0);
     if (duelSharedStartStorageKey) {
@@ -1955,6 +2398,90 @@ function App() {
     }
   };
 
+  const joinQuickDuel = async () => {
+    const playerId = activePlayerId || authUserId || currentUser?.id;
+    const playerName = authUserName || currentUser?.name || authUserEmail || "Oyuncu";
+
+    if (!playerId || quickDuelSearching) return;
+
+    const rawToken = sessionStorage.getItem("token");
+    const authHeader = rawToken
+      ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`)
+      : null;
+
+    try {
+      setQuickDuelSearching(true);
+      setQuickDuelMessage("Rastgele rakip aranıyor...");
+
+      const response = await fetch("http://localhost:8080/api/duel/quick/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+        body: JSON.stringify({ playerId, playerName }),
+      });
+
+      const raw = await response.text();
+      const data = raw ? JSON.parse(raw) : null;
+
+      if (!response.ok || !data) {
+        throw new Error(raw || "Quick duel isteği başarısız oldu.");
+      }
+
+      if (data?.status === "STARTED" && (data?.roomCode || data?.code)) {
+        setQuickDuelSearching(false);
+        setQuickDuelMessage("Rakip bulundu. Oyun birazdan başlayacak.");
+        setDuelRoomData(data);
+        setDuelRoomCode(data.roomCode || data.code);
+        setDuelWaitingForOpponent(false);
+        setQuickDuelMatchedRoom(data);
+        return;
+      }
+
+      setDuelRoomData(data);
+      setDuelWaitingForOpponent(true);
+      setQuickDuelMessage("Rakip aranıyor... Eşleşme bulununca düello otomatik başlayacak.");
+    } catch (error) {
+      console.error("Quick duel başlatılamadı:", error);
+      setQuickDuelSearching(false);
+      setQuickDuelMessage("Rastgele rakip arama başlatılamadı.");
+    }
+  };
+
+  const cancelQuickDuel = async () => {
+    const playerId = activePlayerId || authUserId || currentUser?.id;
+
+    if (!playerId) {
+      setQuickDuelSearching(false);
+      setQuickDuelMessage("");
+      setDuelWaitingForOpponent(false);
+      return;
+    }
+
+    const rawToken = sessionStorage.getItem("token");
+    const authHeader = rawToken
+      ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`)
+      : null;
+
+    try {
+      await fetch("http://localhost:8080/api/duel/quick/cancel", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authHeader ? { Authorization: authHeader } : {}),
+        },
+        body: JSON.stringify({ playerId }),
+      });
+    } catch (error) {
+      console.error("Quick duel iptal edilemedi:", error);
+    } finally {
+      setQuickDuelSearching(false);
+      setQuickDuelMessage("");
+      setDuelWaitingForOpponent(false);
+    }
+  };
+
   const beginDuelRematchCountdown = (room) => {
     if (!room) return;
 
@@ -2044,6 +2571,18 @@ function App() {
     setGameStarted(false);
     setChallengeCode("");
     setChallengeToast("");
+    setChallengeStartTouched(false);
+    setChallengeStartMessage("");
+  };
+
+  const handleDuelScreenBack = () => {
+    if (duelLobbyRoomOpen) {
+      setDuelLobbyRoomOpen(false);
+      setDuelLobbyResetKey((prev) => prev + 1);
+      return;
+    }
+
+    returnToMainMenu();
   };
 
   const finishGame = async () => {
@@ -2209,7 +2748,8 @@ function App() {
     const rawChallengeValue = String(challengeCode || "").trim();
 
     if (!rawChallengeValue) {
-      alert("Kod gir");
+      setChallengeStartTouched(true);
+      setChallengeStartMessage("Meydan okuma kodu veya linki gir.");
       return;
     }
 
@@ -2235,59 +2775,98 @@ function App() {
       .toUpperCase();
 
     if (!resolvedChallengeCode) {
-      alert("Geçerli bir meydan okuma kodu gir");
+      setChallengeStartTouched(true);
+      setChallengeStartMessage("Geçerli bir meydan okuma kodu veya linki gir.");
       return;
     }
 
     try {
       setChallengeLoading(true);
+      setChallengeStartMessage("");
 
       const res = await fetch(
-        `http://localhost:8080/api/challenge/${encodeURIComponent(resolvedChallengeCode)}`
+        `http://localhost:8080/api/challenge/${encodeURIComponent(resolvedChallengeCode)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
       );
 
-      const data = await res.json();
+      const rawResponse = await res.text();
+      const data = rawResponse ? JSON.parse(rawResponse) : null;
 
       if (!res.ok || !data) {
-        alert("Kod bulunamadı");
+        setChallengeStartTouched(true);
+        setChallengeStartMessage("Meydan okuma bulunamadı.");
         return;
       }
 
-      // 🔥 KRİTİK: soruları parse et
-      const parsedQuestions = JSON.parse(data.questionSetJson || "[]");
+      let parsedQuestions = [];
+      try {
+        parsedQuestions = JSON.parse(data.questionSetJson || "[]");
+      } catch {
+        parsedQuestions = [];
+      }
 
-      if (!parsedQuestions.length) {
-        alert("Soru seti boş");
+      if (!Array.isArray(parsedQuestions) || parsedQuestions.length === 0) {
+        setChallengeStartTouched(true);
+        setChallengeStartMessage("Bu meydan okuma için soru seti bulunamadı.");
         return;
       }
 
-      // 🔥 OYUNU BAŞLAT
+      const normalizedQuestions = parsedQuestions
+        .map((question) => ({
+          id: question?.id ?? null,
+          letter: String(question?.letter || "").toLocaleUpperCase("tr-TR"),
+          questionText: question?.questionText || question?.question || "",
+          answer: question?.answer || "",
+          difficultyLevel: question?.difficultyLevel ?? question?.difficulty_level ?? null,
+        }))
+        .filter((question) => question.letter && question.questionText && question.answer);
+
+      if (normalizedQuestions.length === 0) {
+        setChallengeStartTouched(true);
+        setChallengeStartMessage("Meydan okuma soruları okunamadı.");
+        return;
+      }
+
+      resultSavedRef.current = false;
+      duelResultSavedRef.current = false;
+      finishedDuelSnapshotRef.current = null;
+      lastSavedDuelRoomCodeRef.current = "";
+      duelRecentActionTimesRef.current = [];
       activeGameModeRef.current = "challenge";
+
       setGameMode("challenge");
-
-      setQuestions(parsedQuestions);
-      setQuestionStatuses(parsedQuestions.map(() => "pending"));
-
+      setQuestions(normalizedQuestions);
+      setQuestionStatuses(normalizedQuestions.map(() => "pending"));
+      setAnswerHistory([]);
+      setShowAnswerKey(false);
+      setResultTab("stats");
+      setExpandedAnswerIndex(null);
+      setHoveredResultTab(null);
       setCurrentIndex(0);
       setUserAnswer("");
       setResultMessage("");
       setScore(0);
-
+      setCurrentCorrectStreak(0);
+      setMaxCorrectStreak(0);
       setAnswered(false);
       setPassedQueue([]);
       setIsReviewingPassed(false);
-
       setGameFinished(false);
       setIsPaused(false);
-
       setTimeLeft(selectedDuration);
-
+      setShowHowToPlay(false);
+      setShowLeaderboard(false);
+      setShowProfileMenu(false);
       setGameStarted(true);
       setChallengeCode("");
-
+      setChallengeStartMessage("");
     } catch (err) {
-      console.error(err);
-      alert("Hata oluştu");
+      console.error("Meydan okuma başlatılamadı:", err);
+      setChallengeStartTouched(true);
+      setChallengeStartMessage("Meydan okuma başlatılırken hata oluştu.");
     } finally {
       setChallengeLoading(false);
     }
@@ -3032,6 +3611,108 @@ function App() {
   const duelWinnerName = duelWinnerInfo.winnerName;
   const duelWinnerMessage = duelWinnerInfo.message;
 
+  useEffect(() => {
+    if (!quickDuelSearching) return;
+
+    const playerId = activePlayerId || authUserId || currentUser?.id;
+    const playerName = authUserName || currentUser?.name || authUserEmail || "Oyuncu";
+
+    if (!playerId) return;
+
+    let stopped = false;
+    let intervalId = null;
+
+    const pollQuickDuel = async () => {
+      const rawToken = sessionStorage.getItem("token");
+      const authHeader = rawToken
+        ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`)
+        : null;
+
+      try {
+        const response = await fetch("http://localhost:8080/api/duel/quick/join", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authHeader ? { Authorization: authHeader } : {}),
+          },
+          body: JSON.stringify({ playerId, playerName }),
+        });
+
+        const raw = await response.text();
+        const data = raw ? JSON.parse(raw) : null;
+
+        if (stopped || !response.ok || !data) return;
+
+        if (data?.status === "STARTED" && (data?.roomCode || data?.code)) {
+          stopped = true;
+          if (intervalId) clearInterval(intervalId);
+
+          setQuickDuelSearching(false);
+          setQuickDuelMessage("Rakip bulundu. Oyun birazdan başlayacak.");
+          setDuelRoomData(data);
+          setDuelRoomCode(data.roomCode || data.code);
+          setDuelWaitingForOpponent(false);
+          setQuickDuelMatchedRoom(data);
+          return;
+        }
+
+        setDuelRoomData(data);
+        setDuelWaitingForOpponent(true);
+        setQuickDuelMessage("Rakip aranıyor... Eşleşme bulununca düello otomatik başlayacak.");
+      } catch (error) {
+        if (!stopped) {
+          console.error("Quick duel polling hatası:", error);
+        }
+      }
+    };
+
+    pollQuickDuel();
+    intervalId = setInterval(pollQuickDuel, 1500);
+
+    return () => {
+      stopped = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [quickDuelSearching, activePlayerId, authUserId, currentUser?.id, currentUser?.name, authUserName, authUserEmail]);
+
+  useEffect(() => {
+    if (!quickDuelMatchedRoom) {
+      setQuickDuelCountdownSeconds(0);
+      return;
+    }
+
+    const startAt =
+      quickDuelMatchedRoom?.gameStartAt ||
+      quickDuelMatchedRoom?.startAt ||
+      quickDuelMatchedRoom?.matchStartAt ||
+      null;
+
+    const startTimestamp = startAt
+      ? new Date(startAt).getTime()
+      : Date.now() + 10000;
+
+    const updateCountdown = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((startTimestamp - Date.now()) / 1000)
+      );
+
+      setQuickDuelCountdownSeconds(remaining);
+
+      if (remaining <= 0) {
+        setGameMode("duel");
+        setQuickDuelMatchedRoom(null);
+        setQuickDuelMessage("");
+        startDuelGame(quickDuelMatchedRoom);
+      }
+    };
+
+    updateCountdown();
+
+    const intervalId = setInterval(updateCountdown, 250);
+
+    return () => clearInterval(intervalId);
+  }, [quickDuelMatchedRoom]);
 
   useEffect(() => {
     const hasCompleteFinishedSnapshot =
@@ -4676,7 +5357,7 @@ function App() {
           >
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "10px" }}>
               <button
-                onClick={returnToMainMenu}
+                onClick={handleDuelScreenBack}
                 style={{
                   width: "44px",
                   height: "44px",
@@ -4982,7 +5663,7 @@ function App() {
 
           <h2 style={{ color: "#f8fafc", marginBottom: "10px" }}>Düello Modu</h2>
           <p style={{ color: "#cbd5e1", marginTop: 0, marginBottom: "28px", fontSize: "18px" }}>
-            Oda oluştur, kod paylaş ya da bir oda koduyla rakibine katıl.
+            Canlı oda kur, rastgele rakip bul ya da arkadaşından gelen meydan okuma koduyla rekabete katıl.
           </p>
 
           {showLeaderboard && (
@@ -5533,9 +6214,28 @@ function App() {
 
           <div style={{ display: "grid", gap: "12px" }}>
             <DuelLobby
+              key={duelLobbyResetKey}
               currentUser={currentUser}
-              onBack={() => setGameMode("classic")}
+              onRoomViewChange={setDuelLobbyRoomOpen}
+              onBack={() => {
+                setDuelLobbyRoomOpen(false);
+                setDuelLobbyResetKey((prev) => prev + 1);
+              }}
               onStartDuel={startDuelGame}
+              joinQuickDuel={joinQuickDuel}
+              cancelQuickDuel={cancelQuickDuel}
+              quickDuelSearching={quickDuelSearching}
+              quickDuelMatchedRoom={quickDuelMatchedRoom}
+              quickDuelCountdownSeconds={quickDuelCountdownSeconds}
+              quickDuelMessage={quickDuelMessage}
+              challengeCode={challengeCode}
+              setChallengeCode={setChallengeCode}
+              startChallengeByCode={startChallengeByCode}
+              challengeLoading={challengeLoading}
+              challengeStartTouched={challengeStartTouched}
+              setChallengeStartTouched={setChallengeStartTouched}
+              challengeStartMessage={challengeStartMessage}
+              setChallengeStartMessage={setChallengeStartMessage}
             />
           </div>
           {showDuelHistoryModal && (
@@ -5762,6 +6462,20 @@ function App() {
                     <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Günlük Oyun</div>
                     <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
                       Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde oyun sistatistik ekranı ve cevap anahtarı görüntülenir.
+                    </div>
+                  </div>
+                  {/* Meydan Okuma */}
+                  <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
+                    <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Meydan Okuma</div>
+                    <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
+                      Oyun bittikten sonra kendi oynadığın soru setini bir meydan okuma linki ile arkadaşlarınla paylaşabilirsin. Bu linki alan kişi aynı sorularla oyunu oynar ve senin skorunu geçmeye çalışır. Bu özellik eşzamanlı olmayı gerektirmez, yani arkadaşın daha sonra oyuna girip oynayabilir.
+                    </div>
+                  </div>
+                  {/* Rastgele Rakip Bul */}
+                  <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
+                    <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Rastgele Rakip Bul</div>
+                    <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
+                      Rastgele rakip bul seçeneği ile herhangi bir oda kodu girmeden sistem seni başka bir oyuncu ile otomatik olarak eşleştirir. Eşleşme sağlandığında kısa bir geri sayım başlar ve oyun iki oyuncu için aynı anda başlar.
                     </div>
                   </div>
                 </div>
@@ -6449,51 +7163,6 @@ function App() {
                   Düello
                 </button>
               </div>
-
-              <div
-                style={{
-                  marginTop: "24px",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <input
-                  value={challengeCode}
-                  onChange={(e) => setChallengeCode(e.target.value)}
-                  placeholder="Meydan okuma kodu veya linki gir"
-                  style={{
-                    padding: "12px",
-                    borderRadius: "12px",
-                    border: "1px solid rgba(148,163,184,0.3)",
-                    fontWeight: "700",
-                    letterSpacing: "1px",
-                    minWidth: "220px",
-                    background: "rgba(15,23,42,0.7)",
-                    color: "#e2e8f0",
-                  }}
-                />
-
-                <button
-                  onClick={startChallengeByCode}
-                  disabled={challengeLoading}
-                  style={{
-                    padding: "12px 18px",
-                    borderRadius: "12px",
-                    border: "none",
-                    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-                    color: "white",
-                    fontWeight: "800",
-                    cursor: challengeLoading ? "not-allowed" : "pointer",
-                    opacity: challengeLoading ? 0.7 : 1,
-                    boxShadow: "0 10px 24px rgba(37,99,235,0.35)",
-                  }}
-                >
-                  {challengeLoading ? "Açılıyor..." : "Meydan Okumayı Başlat"}
-                </button>
-              </div>
             </>
           )}
           {showLeaderboard && (
@@ -7109,6 +7778,18 @@ function App() {
                       Günlük oyunda herkes aynı gün içinde aynı soru setiyle oynar. Günlük oyunu bir kez tamamladığında aynı gün tekrar oynayamazsın. Yarın yeni soru setiyle tekrar oynayabilirsin. Günlük oyunu bitirdiğinde oyun sonu istatistik ekranı ve cevap anahtarı görüntülenir.
                     </div>
                   </div>
+                  <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
+                    <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Meydan Okuma</div>
+                    <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
+                      Oyun bittikten sonra kendi oynadığın soru setini bir meydan okuma linki ile arkadaşlarınla paylaşabilirsin. Bu linki alan kişi aynı sorularla oyunu oynar ve senin skorunu geçmeye çalışır. Bu özellik eşzamanlı olmayı gerektirmez, yani arkadaşın daha sonra oyuna girip oynayabilir.
+                    </div>
+                  </div>
+                  <div style={{ background: "rgba(15, 23, 42, 0.68)", border: "1px solid rgba(148, 163, 184, 0.12)", borderRadius: "16px", padding: "16px 18px" }}>
+                    <div style={{ color: "#93c5fd", fontSize: "16px", fontWeight: "700", marginBottom: "8px" }}>Rastgele Rakip Bul</div>
+                    <div style={{ color: "#e2e8f0", lineHeight: 1.7 }}>
+                      Rastgele rakip bul seçeneği ile herhangi bir oda kodu girmeden sistem seni başka bir oyuncu ile otomatik olarak eşleştirir. Eşleşme sağlandığında kısa bir geri sayım başlar ve oyun iki oyuncu için aynı anda başlar.
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "center" }}>
@@ -7681,7 +8362,7 @@ function App() {
                   marginLeft: "4px",
                 }}
               >
-                <span>🏆 Seri Skoru: {duelSeriesScoreText}</span>
+                <span>Seri Skoru: {duelSeriesScoreText}</span>
               </div>
             </div>
           )}
@@ -8567,7 +9248,7 @@ function App() {
                         lineHeight: 1.35,
                       }}
                     >
-                      🏆 Seri Skoru: {duelSeriesScoreText}
+                      Seri Skoru: {duelSeriesScoreText}
                     </span>
                   </div>
                 </div>
@@ -9396,7 +10077,7 @@ function App() {
                           lineHeight: 1.35,
                         }}
                       >
-                        🏆 Seri Skoru: {duelSeriesScoreText}
+                        Seri Skoru: {duelSeriesScoreText}
                       </span>
                     </div>
                   )}

@@ -27,7 +27,21 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class DuelRoomService {
 
+    private static class QuickDuelWaitingPlayer {
+        private final Long playerId;
+        private final String playerName;
+        private final LocalDateTime joinedAt;
+
+        private QuickDuelWaitingPlayer(Long playerId, String playerName) {
+            this.playerId = playerId;
+            this.playerName = playerName;
+            this.joinedAt = LocalDateTime.now();
+        }
+    }
+
     private final Map<String, DuelRoom> rooms = new ConcurrentHashMap<>();
+    private QuickDuelWaitingPlayer quickDuelWaitingPlayer;
+    private final Map<Long, DuelRoom> quickDuelMatchedRooms = new ConcurrentHashMap<>();
 
     private final QuestionRepository questionRepository;
 
@@ -153,6 +167,106 @@ public class DuelRoomService {
 
         rooms.put(room.getRoomCode(), room);
         return room;
+    }
+
+    private DuelRoom findWaitingRoomByPlayerId(Long playerId) {
+        if (playerId == null) {
+            return null;
+        }
+
+        return rooms.values().stream()
+                .filter(room -> room != null)
+                .filter(room -> room.getStatus() == DuelStatus.WAITING)
+                .filter(room -> Objects.equals(room.getPlayer1Id(), playerId) || Objects.equals(room.getPlayer2Id(), playerId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public synchronized DuelRoom joinQuickDuel(Long playerId, String playerName) {
+        if (playerId == null) {
+            throw new RuntimeException("Oyuncu bilgisi eksik.");
+        }
+
+        DuelRoom alreadyMatchedRoom = quickDuelMatchedRooms.remove(playerId);
+        if (alreadyMatchedRoom != null) {
+            return alreadyMatchedRoom;
+        }
+
+        DuelRoom existingWaitingRoom = findWaitingRoomByPlayerId(playerId);
+        if (existingWaitingRoom != null) {
+            return existingWaitingRoom;
+        }
+
+        String safePlayerName = playerName == null || playerName.isBlank()
+                ? "Oyuncu"
+                : playerName.trim();
+
+        if (quickDuelWaitingPlayer != null
+                && quickDuelWaitingPlayer.playerId != null
+                && !Objects.equals(quickDuelWaitingPlayer.playerId, playerId)) {
+
+            QuickDuelWaitingPlayer opponent = quickDuelWaitingPlayer;
+            quickDuelWaitingPlayer = null;
+
+            DuelRoom room = new DuelRoom();
+            room.setPlayer1Id(opponent.playerId);
+            room.setPlayer1Name(opponent.playerName);
+            room.setPlayer1Ready(true);
+
+            room.setPlayer2Id(playerId);
+            room.setPlayer2Name(safePlayerName);
+            room.setPlayer2Ready(true);
+
+            room.setStatus(DuelStatus.STARTED);
+            room.setGameStartAt(LocalDateTime.now().plusSeconds(10));
+            room.setQuestions(createDuelQuestionSet());
+            room.setCurrentIndex(0);
+
+            room.setPlayer1Score(0);
+            room.setPlayer2Score(0);
+            room.setPlayer1ElapsedTime(0);
+            room.setPlayer2ElapsedTime(0);
+            room.setPlayer1CorrectCount(0);
+            room.setPlayer2CorrectCount(0);
+            room.setPlayer1WrongCount(0);
+            room.setPlayer2WrongCount(0);
+            room.setPlayer1PassedCount(0);
+            room.setPlayer2PassedCount(0);
+            room.setPlayer1Finished(false);
+            room.setPlayer2Finished(false);
+            room.setPlayer1RematchRequested(false);
+            room.setPlayer2RematchRequested(false);
+            room.updatePlayer1LastAction("PLAYING");
+            room.updatePlayer2LastAction("PLAYING");
+
+            rooms.put(room.getRoomCode(), room);
+            quickDuelMatchedRooms.put(opponent.playerId, room);
+            quickDuelMatchedRooms.put(playerId, room);
+            return room;
+        }
+
+        if (quickDuelWaitingPlayer == null || !Objects.equals(quickDuelWaitingPlayer.playerId, playerId)) {
+            quickDuelWaitingPlayer = new QuickDuelWaitingPlayer(playerId, safePlayerName);
+        }
+
+        DuelRoom waitingRoom = new DuelRoom();
+        waitingRoom.setPlayer1Id(playerId);
+        waitingRoom.setPlayer1Name(safePlayerName);
+        waitingRoom.setPlayer1Ready(false);
+        waitingRoom.setStatus(DuelStatus.WAITING);
+        return waitingRoom;
+    }
+
+    public synchronized void cancelQuickDuel(Long playerId) {
+        if (playerId == null) {
+            return;
+        }
+
+        quickDuelMatchedRooms.remove(playerId);
+
+        if (quickDuelWaitingPlayer != null && Objects.equals(quickDuelWaitingPlayer.playerId, playerId)) {
+            quickDuelWaitingPlayer = null;
+        }
     }
 
     public DuelRoom joinRoom(JoinDuelRoomRequest request) {
@@ -364,7 +478,19 @@ public class DuelRoomService {
             throw new RuntimeException("Oyuncu bilgisi eksik.");
         }
 
+        cancelQuickDuel(playerId);
+
         if (room.getStatus() == DuelStatus.STARTED) {
+            quickDuelMatchedRooms.remove(playerId);
+
+            if (Objects.equals(room.getPlayer1Id(), playerId)) {
+                room.setPlayer1LastAction("LEFT");
+                room.setPlayer1LastActionAt(LocalDateTime.now());
+            } else if (Objects.equals(room.getPlayer2Id(), playerId)) {
+                room.setPlayer2LastAction("LEFT");
+                room.setPlayer2LastActionAt(LocalDateTime.now());
+            }
+
             return room;
         }
 

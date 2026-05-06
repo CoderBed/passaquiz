@@ -6,6 +6,7 @@ import com.bedirhan.passaparola.dto.LeaveDuelRoomRequest;
 import com.bedirhan.passaparola.dto.DuelPlayerActionRequest;
 import com.bedirhan.passaparola.dto.ReadyRequest;
 import com.bedirhan.passaparola.dto.FinishDuelGameRequest;
+import java.util.Map;
 import com.bedirhan.passaparola.entity.DuelRoom;
 import com.bedirhan.passaparola.service.DuelRoomService;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,37 @@ public class DuelRoomController {
 
     public DuelRoomController(DuelRoomService duelRoomService) {
         this.duelRoomService = duelRoomService;
+    }
+
+    @PostMapping("/quick/join")
+    public ResponseEntity<DuelRoom> joinQuickDuel(@RequestBody Map<String, Object> request) {
+        Long playerId = toLong(request.get("playerId"));
+        String playerName = request.get("playerName") == null ? null : String.valueOf(request.get("playerName"));
+
+        return ResponseEntity.ok(duelRoomService.joinQuickDuel(playerId, playerName));
+    }
+
+    @PostMapping("/quick/cancel")
+    public ResponseEntity<Void> cancelQuickDuel(@RequestBody Map<String, Object> request) {
+        Long playerId = toLong(request.get("playerId"));
+        duelRoomService.cancelQuickDuel(playerId);
+        return ResponseEntity.ok().build();
+    }
+
+    private Long toLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     @PostMapping("/rooms")

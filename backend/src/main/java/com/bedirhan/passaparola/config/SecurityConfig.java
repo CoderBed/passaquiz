@@ -69,6 +69,8 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/duel/**").permitAll()
+                        .requestMatchers("/api/challenge/**").permitAll()
                         .requestMatchers("/api/**", "/hello").permitAll()
                         .anyRequest().authenticated()
                 )
