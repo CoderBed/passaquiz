@@ -4867,6 +4867,7 @@ function App() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      gap: "10px",
                       marginBottom: "14px",
                     }}
                   >
@@ -4891,62 +4892,96 @@ function App() {
                       </svg>
                     </div>
 
-                    <button
-                      onClick={async () => {
-                        try {
-                          await fetch(
-                            "http://localhost:8080/api/notifications/read-all",
-                            {
-                              method: "POST",
-                              headers: {
-                                "X-User-Email": notificationUserEmail,
-                              },
-                            }
-                          );
-
-                          setNotifications((prev) =>
-                            prev.map((item) => ({
-                              ...item,
-                              unread: false,
-                            }))
-                          );
-                        } catch (error) {
-                          console.error("Bildirimler okundu yapılamadı:", error);
-                        }
-                      }}
+                    <div
                       style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "12px",
-                        border: "1px solid rgba(96, 165, 250, 0.18)",
-                        background: "rgba(15, 23, 42, 0.64)",
-                        color: "#93c5fd",
-                        cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        padding: 0,
+                        justifyContent: "flex-end",
+                        gap: "10px",
+                        flexShrink: 0,
                       }}
-                      title="Tümünü okundu olarak işaretle"
-                      aria-label="Tümünü okundu olarak işaretle"
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path
-                          d="M5 12.5l4 4L19 6.5"
-                          stroke="currentColor"
-                          strokeWidth="2.4"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M4 18.5h16"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          opacity="0.55"
-                        />
-                      </svg>
-                    </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await fetch(
+                              "http://localhost:8080/api/notifications/read-all",
+                              {
+                                method: "POST",
+                                headers: {
+                                  "X-User-Email": notificationUserEmail,
+                                },
+                              }
+                            );
+
+                            setNotifications((prev) =>
+                              prev.map((item) => ({
+                                ...item,
+                                unread: false,
+                              }))
+                            );
+                          } catch (error) {
+                            console.error("Bildirimler okundu yapılamadı:", error);
+                          }
+                        }}
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "12px",
+                          border: "1px solid rgba(96, 165, 250, 0.18)",
+                          background: "rgba(15, 23, 42, 0.64)",
+                          color: "#93c5fd",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0,
+                        }}
+                        title="Tümünü okundu olarak işaretle"
+                        aria-label="Tümünü okundu olarak işaretle"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path
+                            d="M5 12.5l4 4L19 6.5"
+                            stroke="currentColor"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M4 18.5h16"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            opacity="0.55"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setShowNotifications(false)}
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "50%",
+                          border: "1px solid rgba(148, 163, 184, 0.25)",
+                          background: "rgba(15, 23, 42, 0.9)",
+                          color: "#cbd5e1",
+                          cursor: "pointer",
+                          fontSize: "20px",
+                          fontWeight: "800",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0,
+                          lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                        title="Bildirimleri kapat"
+                        aria-label="Bildirimleri kapat"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ display: "grid", gap: "10px" }}>
@@ -6177,6 +6212,7 @@ function App() {
                                     display: "flex",
                                     justifyContent: "space-between",
                                     alignItems: "center",
+                                    gap: "10px",
                                     marginBottom: "14px",
                                   }}
                                 >
@@ -6192,6 +6228,7 @@ function App() {
                                       alignItems: "center",
                                       justifyContent: "center",
                                       boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                                      flexShrink: 0,
                                     }}
                                     title="Bildirimler"
                                     aria-label="Bildirimler"
@@ -6201,62 +6238,98 @@ function App() {
                                     </svg>
                                   </div>
 
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        await fetch(
-                                          "http://localhost:8080/api/notifications/read-all",
-                                          {
-                                            method: "POST",
-                                            headers: {
-                                              "X-User-Email": notificationUserEmail,
-                                            },
-                                          }
-                                        );
-
-                                        setNotifications((prev) =>
-                                          prev.map((item) => ({
-                                            ...item,
-                                            unread: false,
-                                          }))
-                                        );
-                                      } catch (error) {
-                                        console.error("Bildirimler okundu yapılamadı:", error);
-                                      }
-                                    }}
+                                  <div
                                     style={{
-                                      width: "36px",
-                                      height: "36px",
-                                      borderRadius: "12px",
-                                      border: "1px solid rgba(96, 165, 250, 0.18)",
-                                      background: "rgba(15, 23, 42, 0.64)",
-                                      color: "#93c5fd",
-                                      cursor: "pointer",
                                       display: "flex",
                                       alignItems: "center",
-                                      justifyContent: "center",
-                                      padding: 0,
+                                      justifyContent: "flex-end",
+                                      gap: "10px",
+                                      flexShrink: 0,
                                     }}
-                                    title="Tümünü okundu olarak işaretle"
-                                    aria-label="Tümünü okundu olarak işaretle"
                                   >
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                      <path
-                                        d="M5 12.5l4 4L19 6.5"
-                                        stroke="currentColor"
-                                        strokeWidth="2.4"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                      <path
-                                        d="M4 18.5h16"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        opacity="0.55"
-                                      />
-                                    </svg>
-                                  </button>
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await fetch(
+                                            "http://localhost:8080/api/notifications/read-all",
+                                            {
+                                              method: "POST",
+                                              headers: {
+                                                "X-User-Email": notificationUserEmail,
+                                              },
+                                            }
+                                          );
+
+                                          setNotifications((prev) =>
+                                            prev.map((item) => ({
+                                              ...item,
+                                              unread: false,
+                                            }))
+                                          );
+                                        } catch (error) {
+                                          console.error("Bildirimler okundu yapılamadı:", error);
+                                        }
+                                      }}
+                                      style={{
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "12px",
+                                        border: "1px solid rgba(96, 165, 250, 0.18)",
+                                        background: "rgba(15, 23, 42, 0.64)",
+                                        color: "#93c5fd",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: 0,
+                                        flexShrink: 0,
+                                      }}
+                                      title="Tümünü okundu olarak işaretle"
+                                      aria-label="Tümünü okundu olarak işaretle"
+                                    >
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <path
+                                          d="M5 12.5l4 4L19 6.5"
+                                          stroke="currentColor"
+                                          strokeWidth="2.4"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M4 18.5h16"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          opacity="0.55"
+                                        />
+                                      </svg>
+                                    </button>
+
+                                    <button
+                                      onClick={() => setShowNotifications(false)}
+                                      style={{
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "50%",
+                                        border: "1px solid rgba(148, 163, 184, 0.25)",
+                                        background: "rgba(15, 23, 42, 0.9)",
+                                        color: "#cbd5e1",
+                                        cursor: "pointer",
+                                        fontSize: "20px",
+                                        fontWeight: "800",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: 0,
+                                        lineHeight: 1,
+                                        flexShrink: 0,
+                                      }}
+                                      title="Bildirimleri kapat"
+                                      aria-label="Bildirimleri kapat"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
                                 </div>
 
                                 <div style={{ display: "grid", gap: "10px" }}>
@@ -7710,6 +7783,7 @@ function App() {
                                                   display: "flex",
                                                   justifyContent: "space-between",
                                                   alignItems: "center",
+                                                  gap: "10px",
                                                   marginBottom: "14px",
                                                 }}
                                               >
@@ -7725,6 +7799,7 @@ function App() {
                                                     alignItems: "center",
                                                     justifyContent: "center",
                                                     boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                                                    flexShrink: 0,
                                                   }}
                                                   title="Bildirimler"
                                                   aria-label="Bildirimler"
@@ -7734,7 +7809,16 @@ function App() {
                                                   </svg>
                                                 </div>
 
-                                                <button
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "flex-end",
+                                                    gap: "10px",
+                                                    flexShrink: 0,
+                                                  }}
+                                                >
+                                                  <button
                                                   onClick={async () => {
                                                     try {
                                                       await fetch(
@@ -7790,6 +7874,32 @@ function App() {
                                                     />
                                                   </svg>
                                                 </button>
+
+                                                  <button
+                                                    onClick={() => setShowNotifications(false)}
+                                                    style={{
+                                                      width: "36px",
+                                                      height: "36px",
+                                                      borderRadius: "50%",
+                                                      border: "1px solid rgba(148, 163, 184, 0.25)",
+                                                      background: "rgba(15, 23, 42, 0.9)",
+                                                      color: "#cbd5e1",
+                                                      cursor: "pointer",
+                                                      fontSize: "20px",
+                                                      fontWeight: "800",
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      justifyContent: "center",
+                                                      padding: 0,
+                                                      lineHeight: 1,
+                                                      flexShrink: 0,
+                                                    }}
+                                                    title="Bildirimleri kapat"
+                                                    aria-label="Bildirimleri kapat"
+                                                  >
+                                                    ×
+                                                  </button>
+                                                </div>
                                               </div>
 
                                               <div style={{ display: "grid", gap: "10px" }}>
@@ -9459,6 +9569,7 @@ function App() {
                                                  display: "flex",
                                                  justifyContent: "space-between",
                                                  alignItems: "center",
+                                                 gap: "10px",
                                                  marginBottom: "14px",
                                                }}
                                              >
@@ -9474,6 +9585,7 @@ function App() {
                                                    alignItems: "center",
                                                    justifyContent: "center",
                                                    boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                                                   flexShrink: 0,
                                                  }}
                                                  title="Bildirimler"
                                                  aria-label="Bildirimler"
@@ -9483,7 +9595,16 @@ function App() {
                                                  </svg>
                                                </div>
 
-                                               <button
+                                               <div
+                                                 style={{
+                                                   display: "flex",
+                                                   alignItems: "center",
+                                                   justifyContent: "flex-end",
+                                                   gap: "10px",
+                                                   flexShrink: 0,
+                                                 }}
+                                               >
+                                                 <button
                                                  onClick={async () => {
                                                    try {
                                                      await fetch(
@@ -9539,8 +9660,33 @@ function App() {
                                                    />
                                                  </svg>
                                                </button>
-                                             </div>
 
+                                                 <button
+                                                   onClick={() => setShowNotifications(false)}
+                                                   style={{
+                                                     width: "36px",
+                                                     height: "36px",
+                                                     borderRadius: "50%",
+                                                     border: "1px solid rgba(148, 163, 184, 0.25)",
+                                                     background: "rgba(15, 23, 42, 0.9)",
+                                                     color: "#cbd5e1",
+                                                     cursor: "pointer",
+                                                     fontSize: "20px",
+                                                     fontWeight: "800",
+                                                     display: "flex",
+                                                     alignItems: "center",
+                                                     justifyContent: "center",
+                                                     padding: 0,
+                                                     lineHeight: 1,
+                                                     flexShrink: 0,
+                                                   }}
+                                                   title="Bildirimleri kapat"
+                                                   aria-label="Bildirimleri kapat"
+                                                 >
+                                                   ×
+                                                 </button>
+                                               </div>
+                                             </div>
                                              <div style={{ display: "grid", gap: "10px" }}>
                                                {notificationsLoading ? (
                                                  <div
