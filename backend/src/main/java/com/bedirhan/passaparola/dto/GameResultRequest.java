@@ -17,6 +17,7 @@ public class GameResultRequest {
     private Integer maxCorrectStreak;
     private boolean perfectGame;
     private boolean noPassGame;
+    private String challengeCode;
 
     public GameResultRequest() {
     }
@@ -139,5 +140,13 @@ public class GameResultRequest {
 
     public void setNoPassGame(boolean noPassGame) {
         this.noPassGame = noPassGame;
+    }
+
+    public String getChallengeCode() {
+        return challengeCode;
+    }
+
+    public void setChallengeCode(String challengeCode) {
+        this.challengeCode = challengeCode;
     }
 }

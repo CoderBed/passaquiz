@@ -26,6 +26,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         return path.startsWith("/api/auth/")
+                || path.startsWith("/api/profile/")
                 || path.startsWith("/api/duel/")
                 || path.startsWith("/api/duel-reactions/")
                 || path.equals("/hello");
@@ -36,6 +37,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+
+        String path = request.getServletPath();
+
+        if (path.startsWith("/api/profile/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
 

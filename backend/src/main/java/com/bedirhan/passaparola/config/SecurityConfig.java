@@ -3,6 +3,7 @@ package com.bedirhan.passaparola.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,6 +26,25 @@ public class SecurityConfig {
         this.jwtAuthFilter = jwtAuthFilter;
     }
 
+
+    @Bean
+    @Order(0)
+    public SecurityFilterChain profileStatsSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/auth/profile-stats", "/api/profile/stats")
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {})
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .anyRequest().permitAll()
+                )
+                .formLogin(form -> form.disable())
+                .httpBasic(httpBasic -> httpBasic.disable());
+
+        return http.build();
+    }
+
     @Bean
     @Order(1)
     public SecurityFilterChain duelSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -34,7 +54,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form.disable())
@@ -52,7 +72,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form.disable())
@@ -63,14 +83,35 @@ public class SecurityConfig {
 
     @Bean
     @Order(3)
+    public SecurityFilterChain profileSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher("/api/profile/**")
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {})
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .anyRequest().permitAll()
+                )
+                .formLogin(form -> form.disable())
+                .httpBasic(httpBasic -> httpBasic.disable());
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(4)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/profile-stats", "/api/profile/stats").permitAll()
                         .requestMatchers("/api/duel/**").permitAll()
                         .requestMatchers("/api/challenge/**").permitAll()
+                        .requestMatchers("/api/profile/**").permitAll()
                         .requestMatchers("/api/**", "/hello").permitAll()
                         .anyRequest().authenticated()
                 )

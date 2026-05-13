@@ -8,6 +8,7 @@ import com.bedirhan.passaparola.repository.GameResultRepository;
 import com.bedirhan.passaparola.entity.User;
 import com.bedirhan.passaparola.repository.UserRepository;
 import com.bedirhan.passaparola.service.DailyGameService;
+import com.bedirhan.passaparola.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,16 +38,19 @@ public class GameController {
     private final GameResultRepository gameResultRepository;
     private final UserRepository userRepository;
     private final DailyGameService dailyGameService;
+    private final NotificationService notificationService;
     private final Random random = new Random();
 
     public GameController(QuestionRepository questionRepository,
                           GameResultRepository gameResultRepository,
                           UserRepository userRepository,
-                          DailyGameService dailyGameService) {
+                          DailyGameService dailyGameService,
+                          NotificationService notificationService) {
         this.questionRepository = questionRepository;
         this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
         this.dailyGameService = dailyGameService;
+        this.notificationService = notificationService;
     }
 
     // Arkadaşına Meydan Oku - Helper Methods
@@ -97,6 +102,170 @@ public class GameController {
         return value == null ? null : String.valueOf(value);
     }
 
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private String resolveRequestEmail(String headerEmail, String authenticationEmail) {
+        String normalizedHeaderEmail = normalizeEmail(headerEmail);
+        if (!normalizedHeaderEmail.isBlank()
+                && !"anonymoususer".equals(normalizedHeaderEmail)
+                && !normalizedHeaderEmail.endsWith("@guest.local")) {
+            return normalizedHeaderEmail;
+        }
+
+        String normalizedAuthEmail = normalizeEmail(authenticationEmail);
+        if (!normalizedAuthEmail.isBlank()
+                && !"anonymoususer".equals(normalizedAuthEmail)
+                && !normalizedAuthEmail.endsWith("@guest.local")) {
+            return normalizedAuthEmail;
+        }
+
+        return normalizedHeaderEmail.isBlank() ? normalizedAuthEmail : normalizedHeaderEmail;
+    }
+
+    private void createDuelResultNotification(User user, GameResultRequest request) {
+        if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
+            return;
+        }
+
+        String opponentName = request.getOpponentName();
+        if (opponentName == null || opponentName.isBlank()) {
+            opponentName = "Rakip";
+        }
+
+        String title;
+        String description;
+
+        if (Boolean.TRUE.equals(request.getWon())) {
+            title = "Düello galibiyeti";
+            description = opponentName + " ile oynadığın düelloyu "
+                    + request.getScore() + " - " + request.getOpponentScore()
+                    + " skoruyla kazandın.";
+        } else if (Boolean.FALSE.equals(request.getWon())) {
+            title = "Düello mağlubiyeti";
+            description = opponentName + " ile oynadığın düelloyu "
+                    + request.getScore() + " - " + request.getOpponentScore()
+                    + " skoruyla kaybettin.";
+        } else {
+            title = "Düello berabere bitti";
+            description = opponentName + " ile oynadığın düello "
+                    + request.getScore() + " - " + request.getOpponentScore()
+                    + " skoruyla berabere tamamlandı.";
+        }
+
+        notificationService.createNotification(
+                user.getEmail(),
+                "duel_result",
+                title,
+                description
+        );
+    }
+
+    private void createChallengeScorePassedNotification(User currentUser, GameResultRequest request) {
+        if (currentUser == null || currentUser.getEmail() == null || currentUser.getEmail().isBlank()) {
+            return;
+        }
+
+        String challengeCode = request.getChallengeCode();
+        if (challengeCode == null || challengeCode.isBlank()) {
+            return;
+        }
+
+        Optional<GameResult> challengeOptional = gameResultRepository.findAll().stream()
+                .filter(result -> result.getChallengeCode() != null)
+                .filter(result -> result.getChallengeTargetScore() != null)
+                .filter(result -> result.getChallengeCode().equalsIgnoreCase(challengeCode.trim()))
+                .findFirst();
+
+        if (challengeOptional.isEmpty()) {
+            return;
+        }
+
+        GameResult challenge = challengeOptional.get();
+        String ownerEmail = challenge.getUserEmail();
+
+        if (ownerEmail == null || ownerEmail.isBlank() || ownerEmail.endsWith("@guest.local")) {
+            return;
+        }
+
+        if (ownerEmail.equalsIgnoreCase(currentUser.getEmail())) {
+            return;
+        }
+
+        Integer targetScore = challenge.getChallengeTargetScore();
+        Integer newScore = request.getScore();
+
+        System.out.println("challenge notification check => code=" + challengeCode
+                + ", ownerEmail=" + ownerEmail
+                + ", currentUser=" + currentUser.getEmail()
+                + ", targetScore=" + targetScore
+                + ", newScore=" + newScore);
+
+        if (targetScore == null || newScore == null) {
+            return;
+        }
+
+        int scoreDifference = Math.abs(newScore - targetScore);
+
+        String challengerName = currentUser.getName();
+        if (challengerName == null || challengerName.isBlank()) {
+            challengerName = currentUser.getEmail();
+        }
+
+        if (newScore.equals(targetScore)) {
+            notificationService.createNotification(
+                    ownerEmail,
+                    "challenge_score_tie",
+                    "Meydan okuma berabere bitti",
+                    challengerName + " ile meydan okuma aynı skorla tamamlandı."
+            );
+
+            notificationService.createNotification(
+                    currentUser.getEmail(),
+                    "challenge_score_tie",
+                    "Meydan okuma berabere bitti",
+                    "Meydan okumayı aynı skorla tamamladın."
+            );
+
+            return;
+        }
+
+        if (newScore < targetScore) {
+            notificationService.createNotification(
+                    ownerEmail,
+                    "challenge_score_defended",
+                    "Meydan okuma skorun geçilemedi",
+                    challengerName + " meydan okuma skorunun " + scoreDifference + " puan gerisinde kaldı."
+            );
+
+            notificationService.createNotification(
+                    currentUser.getEmail(),
+                    "challenge_score_failed",
+                    "Meydan okumayı tamamladın",
+                    "Rakibinin skorunu geçemedin. " + scoreDifference + " puan geride kaldın."
+            );
+
+            return;
+        }
+
+        scoreDifference = newScore - targetScore;
+
+        notificationService.createNotification(
+                ownerEmail,
+                "challenge_score_passed",
+                "Meydan okuma skorun geçildi",
+                challengerName + " meydan okuma skorunu " + scoreDifference + " puan farkla geçti."
+        );
+
+        notificationService.createNotification(
+                currentUser.getEmail(),
+                "challenge_score_win",
+                "Meydan okumayı geçtin",
+                "Meydan okuma skorunu " + scoreDifference + " puan farkla geçtin."
+        );
+    }
+
     // Arkadaşına Meydan Oku - Endpoints
     @PostMapping("/api/challenge/create")
     public ResponseEntity<?> createChallenge(@RequestBody Map<String, Object> request) {
@@ -104,6 +273,7 @@ public class GameController {
         String email = authentication != null ? authentication.getName() : null;
 
         String userEmail = email;
+        String payloadUserEmail = toText(request.get("userEmail"));
         String userName = toText(request.get("userName"));
 
         if (userName == null || userName.isBlank()) {
@@ -117,6 +287,13 @@ public class GameController {
                 userEmail = user.getEmail();
                 userName = user.getName();
             }
+        }
+
+        if ((userEmail == null || userEmail.isBlank() || "anonymousUser".equals(userEmail) || userEmail.endsWith("@guest.local"))
+                && payloadUserEmail != null
+                && !payloadUserEmail.isBlank()
+                && !payloadUserEmail.endsWith("@guest.local")) {
+            userEmail = payloadUserEmail;
         }
 
         String questionSetJson = toText(request.get("questionSetJson"));
@@ -228,11 +405,15 @@ public class GameController {
     }
 
     @PostMapping("/api/game/result")
-    public ResponseEntity<?> saveResult(@RequestBody GameResultRequest request) {
+    public ResponseEntity<?> saveResult(
+            @RequestBody GameResultRequest request,
+            @RequestHeader(value = "X-User-Email", required = false) String headerEmail
+    ) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication != null ? authentication.getName() : null;
+        String authenticationEmail = authentication != null ? authentication.getName() : null;
+        String email = resolveRequestEmail(headerEmail, authenticationEmail);
 
-        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+        if (email == null || email.isBlank() || "anonymoususer".equalsIgnoreCase(email)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
         }
 
@@ -241,6 +422,11 @@ public class GameController {
         }
 
         Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            userOptional = userRepository.findAll().stream()
+                    .filter(user -> normalizeEmail(user.getEmail()).equals(email))
+                    .findFirst();
+        }
         if (userOptional.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Kullanıcı bulunamadı: " + email);
@@ -256,6 +442,7 @@ public class GameController {
         System.out.println("request.getGameMode() = " + request.getGameMode());
         System.out.println("request.getWon() = " + request.getWon());
         System.out.println("request.getScore() = " + request.getScore());
+        System.out.println("request.getChallengeCode() = " + request.getChallengeCode());
 
         result.setGameMode(request.getGameMode() != null ? request.getGameMode() : "classic");
         result.setWon(request.getWon());
@@ -271,6 +458,7 @@ public class GameController {
         result.setDurationSeconds(request.getDurationSeconds());
 
         GameResult saved = gameResultRepository.save(result);
+        createChallengeScorePassedNotification(user, request);
         System.out.println("saved gameMode = " + saved.getGameMode());
         System.out.println("saved won = " + saved.getWon());
 
@@ -278,11 +466,15 @@ public class GameController {
     }
 
     @PostMapping("/api/game/duel-result")
-    public ResponseEntity<?> saveDuelResult(@RequestBody GameResultRequest request) {
+    public ResponseEntity<?> saveDuelResult(
+            @RequestBody GameResultRequest request,
+            @RequestHeader(value = "X-User-Email", required = false) String headerEmail
+    ) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication != null ? authentication.getName() : null;
+        String authenticationEmail = authentication != null ? authentication.getName() : null;
+        String email = resolveRequestEmail(headerEmail, authenticationEmail);
 
-        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+        if (email == null || email.isBlank() || "anonymoususer".equalsIgnoreCase(email)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
         }
 
@@ -291,6 +483,11 @@ public class GameController {
         }
 
         Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isEmpty()) {
+            userOptional = userRepository.findAll().stream()
+                    .filter(user -> normalizeEmail(user.getEmail()).equals(email))
+                    .findFirst();
+        }
         if (userOptional.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("Kullanıcı bulunamadı: " + email);
@@ -319,6 +516,7 @@ public class GameController {
         result.setDuelRoomCode(request.getDuelRoomCode());
 
         gameResultRepository.save(result);
+        createDuelResultNotification(user, request);
 
         return ResponseEntity.ok("Düello sonucu kaydedildi");
     }
@@ -329,14 +527,17 @@ public class GameController {
     }
 
     @GetMapping("/api/game/duel-history")
-    public ResponseEntity<?> getDuelHistory() {
+    public ResponseEntity<?> getDuelHistory(
+            @RequestHeader(value = "X-User-Email", required = false) String headerEmail
+    ) {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication != null ? authentication.getName() : null;
+        String authenticationEmail = authentication != null ? authentication.getName() : null;
+        String email = resolveRequestEmail(headerEmail, authenticationEmail);
 
-        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+        if (email == null || email.isBlank() || "anonymoususer".equalsIgnoreCase(email)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
         }
-        List<GameResult> history = gameResultRepository.findByUserEmailAndGameModeOrderByPlayedAtDesc(email, "duel");
+        List<GameResult> history = gameResultRepository.findByUserEmailIgnoreCaseAndGameModeIgnoreCaseOrderByPlayedAtDesc(email, "duel");
         return ResponseEntity.ok(history);
     }
 

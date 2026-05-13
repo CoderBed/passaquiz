@@ -5,23 +5,50 @@ import com.bedirhan.passaparola.entity.GameResult;
 import com.bedirhan.passaparola.repository.GameResultRepository;
 import com.bedirhan.passaparola.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProfileStatsService {
 
     private final GameResultRepository gameResultRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public ProfileStatsService(GameResultRepository gameResultRepository, UserRepository userRepository) {
+    public ProfileStatsService(GameResultRepository gameResultRepository,
+                               UserRepository userRepository,
+                               NotificationService notificationService) {
         this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
+    }
+
+    private void notifyBadgeIfEarned(String email, boolean earned, String badgeName) {
+        if (!earned) {
+            return;
+        }
+
+        notificationService.createBadgeNotificationIfNotExists(email, badgeName);
+    }
+
+    @Transactional
     public ProfileStatsResponse getStatsByEmail(String email) {
-        var user = userRepository.findByEmail(email)
+        String normalizedEmail = normalizeEmail(email);
+
+        var user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
-        var myGames = gameResultRepository.findByUserEmailOrderByIdDesc(email);
+        var myGames = gameResultRepository.findByUserEmailIgnoreCaseOrderByIdDesc(normalizedEmail);
+
+        if (myGames.isEmpty()) {
+            myGames = gameResultRepository.findAll().stream()
+                    .filter(game -> normalizeEmail(game.getUserEmail()).equals(normalizedEmail))
+                    .sorted(java.util.Comparator.comparing(GameResult::getId).reversed())
+                    .toList();
+        }
 
         long totalGames = myGames.size();
 
@@ -39,8 +66,8 @@ public class ProfileStatsService {
                         .orElse(0)
         );
 
-        long dailyWins = gameResultRepository.countByUserEmailAndGameModeAndWonTrue(email, "daily");
-        long duelWins = gameResultRepository.countByUserEmailAndGameModeAndWonTrue(email, "duel");
+        long dailyWins = gameResultRepository.countByUserEmailIgnoreCaseAndGameModeIgnoreCaseAndWonTrue(normalizedEmail, "daily");
+        long duelWins = gameResultRepository.countByUserEmailIgnoreCaseAndGameModeIgnoreCaseAndWonTrue(normalizedEmail, "duel");
         long duelDraws = myGames.stream()
                 .filter(game -> "duel".equalsIgnoreCase(game.getGameMode()))
                 .filter(game -> "-".equals(game.getWinnerName()))
@@ -215,6 +242,17 @@ public class ProfileStatsService {
         }
         int uniqueOpponentWinCount = uniqueOpponents.size();
         response.setUniqueOpponentWinCount(uniqueOpponentWinCount);
+
+        notifyBadgeIfEarned(normalizedEmail, perfectGameCount >= 1, "Kusursuz Oyun");
+        notifyBadgeIfEarned(normalizedEmail, noPassGameCount >= 1, "Pas Vermeden Bitir");
+        notifyBadgeIfEarned(normalizedEmail, dailyStreak >= 7, "7 Günlük Günlük Oyun Serisi");
+        notifyBadgeIfEarned(normalizedEmail, dailyStreak >= 30, "30 Günlük Günlük Oyun Serisi");
+        notifyBadgeIfEarned(normalizedEmail, bestCorrectStreak >= 5, "5 Doğru Seri");
+        notifyBadgeIfEarned(normalizedEmail, bestCorrectStreak >= 10, "10 Doğru Seri");
+        notifyBadgeIfEarned(normalizedEmail, duelMatchCount >= 5, "5 Düello Oyna");
+        notifyBadgeIfEarned(normalizedEmail, duelMatchCount >= 10, "10 Düello Oyna");
+        notifyBadgeIfEarned(normalizedEmail, uniqueOpponentWinCount >= 3, "3 Farklı Rakibi Yen");
+        notifyBadgeIfEarned(normalizedEmail, duelWinStreak >= 3, "3 Düello Galibiyet Serisi");
 
         return response;
     }

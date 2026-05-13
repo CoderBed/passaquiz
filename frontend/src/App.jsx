@@ -1022,14 +1022,76 @@ function App() {
   const [quickDuelCountdownSeconds, setQuickDuelCountdownSeconds] = useState(0);
   const [challengeStartMessage, setChallengeStartMessage] = useState("");
   const [challengeStartTouched, setChallengeStartTouched] = useState(false);
+  const [activeChallengeCode, setActiveChallengeCode] = useState("");
   const [duelLobbyRoomOpen, setDuelLobbyRoomOpen] = useState(false);
   const [duelLobbyResetKey, setDuelLobbyResetKey] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const unreadNotificationCount = notifications.filter((n) => n.unread).length;
+
+  const fetchNotificationsNow = async () => {
+    if (!notificationUserEmail) {
+      setNotifications([]);
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8080/api/notifications", {
+        headers: {
+          "X-User-Email": notificationUserEmail,
+        },
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Bildirimler anlık alınamadı:", error);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+    if (!notificationUserEmail || !notificationId) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/notifications/${notificationId}/read`,
+        {
+          method: "POST",
+          headers: {
+            "X-User-Email": notificationUserEmail,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === notificationId
+            ? { ...item, unread: false }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error("Bildirim okundu yapılamadı:", error);
+    }
+  };
 
   const currentUser = {
     id: authUserId,
     name: authUserName,
     email: authUserEmail,
   };
+
+  const notificationUserEmail =
+    authUserEmail || currentUser?.email || "";
 
   const activeDuelRoomCode =
     duelRoomData?.roomCode ?? duelRoomData?.code ?? duelRoomCode ?? null;
@@ -1373,6 +1435,55 @@ function App() {
     setAuthUserImage("");
     setShowProfileMenu(false);
   }, []);
+
+  useEffect(() => {
+    if (!notificationUserEmail) {
+      setNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchNotifications = async () => {
+      try {
+        setNotificationsLoading(true);
+
+        const response = await fetch(
+          "http://localhost:8080/api/notifications",
+          {
+            headers: {
+              "X-User-Email": notificationUserEmail,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setNotifications(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error("Bildirimler alınamadı:", error);
+      } finally {
+        if (!cancelled) {
+          setNotificationsLoading(false);
+        }
+      }
+    };
+
+    fetchNotifications();
+
+    const intervalId = setInterval(fetchNotifications, 10000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [notificationUserEmail]);
 
   useEffect(() => {
     if (!answered || !gameStarted || gameFinished || isPaused) return;
@@ -1806,6 +1917,9 @@ function App() {
       setGameMode(effectiveMode);
     }
     activeGameModeRef.current = effectiveMode;
+    if (effectiveMode !== "challenge") {
+      setActiveChallengeCode("");
+    }
     if (effectiveMode === "duel") {
       if (duelRoomData?.status === "STARTED") {
         startDuelGame(duelRoomData);
@@ -1857,6 +1971,7 @@ function App() {
     setShowHowToPlay(false);
     setShowLeaderboard(false);
     setShowProfileMenu(false);
+    setShowNotifications(false);
     setGameStarted(true);
   };
 
@@ -1903,10 +2018,12 @@ function App() {
     setQuestionStatuses([]);
     setTimeLeft(selectedDuration);
     setShowProfileMenu(false);
+    setShowNotifications(false);
     setChallengeCode("");
     setChallengeToast("");
     setChallengeStartTouched(false);
     setChallengeStartMessage("");
+    setActiveChallengeCode("");
 
     if (gameMode === "duel") {
       if (duelSharedStartStorageKey) {
@@ -1958,6 +2075,7 @@ function App() {
     setQuestionStatuses(questions.map(() => "pending"));
     setTimeLeft(selectedDuration);
     setShowProfileMenu(false);
+    setShowNotifications(false);
     setChallengeStartTouched(false);
     setChallengeStartMessage("");
     if (gameMode === "duel" && gameStarted && !gameFinished) {
@@ -1966,6 +2084,7 @@ function App() {
     if (duelSharedStartStorageKey) {
       localStorage.removeItem(duelSharedStartStorageKey);
     }
+    setActiveChallengeCode("");
     setQuestions([]);
     setDuelRoomCode("");
     setDuelRoomData(null);
@@ -2046,15 +2165,21 @@ function App() {
         : await response.text();
 
       if (response.ok) {
+        const loggedInEmail = (data.email || authEmail || "")
+          .trim()
+          .toLowerCase();
+
         sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("authUserEmail", loggedInEmail);
+
         setShowLeaderboard(false);
         setShowProfileMenu(false);
         setGameMode("classic");
         setAuthUserId(data.id ?? null);
         setAuthUserName(data.name || "");
-        setAuthUserEmail(data.email || authEmail);
+        setAuthUserEmail(loggedInEmail);
 
-        const storedImage = localStorage.getItem(`profileImage_${data.email || authEmail}`);
+        const storedImage = localStorage.getItem(`profileImage_${loggedInEmail}`);
         setAuthUserImage(storedImage || "");
 
         setIsAuthenticated(true);
@@ -2086,6 +2211,7 @@ function App() {
       }
 
       sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("authUserEmail", data.email || "");
 
       setIsAuthenticated(true);
       setIsGuestUser(true);
@@ -2110,6 +2236,7 @@ function App() {
       }
     }
     sessionStorage.removeItem("token");
+    sessionStorage.removeItem("authUserEmail");
 
     setIsAuthenticated(false);
     setIsGuestUser(false);
@@ -2184,7 +2311,17 @@ function App() {
 
   const saveGameResult = async ({ modeOverride = null, wonOverride = undefined } = {}) => {
     const token = sessionStorage.getItem("token");
-    if (!token || effectiveIsGuestUser) return;
+    const statsUserEmail = (
+      authUserEmail ||
+      currentUser?.email ||
+      sessionStorage.getItem("authUserEmail") ||
+      authEmail ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (!token || effectiveIsGuestUser || !statsUserEmail) return;
 
     const resolvedGameMode = modeOverride || activeGameModeRef.current || (gameMode === "daily" ? "daily" : "classic");
     const resolvedWon = wonOverride !== undefined
@@ -2193,7 +2330,6 @@ function App() {
         ? true
         : null;
 
-    // Robust perfect game logic
     const currentCorrectCount = questionStatuses.filter((status) => status === "correct").length;
     const currentWrongCount = questionStatuses.filter((status) => status === "wrong").length;
     const currentPassedCount = questionStatuses.filter((status) => status === "passed").length;
@@ -2209,8 +2345,11 @@ function App() {
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token,
+          "X-User-Email": statsUserEmail,
         },
         body: JSON.stringify({
+          userEmail: statsUserEmail,
+          userName: authUserName || currentUser?.name || statsUserEmail,
           score: score,
           correctCount: currentCorrectCount,
           wrongCount: currentWrongCount,
@@ -2220,12 +2359,15 @@ function App() {
           gameMode: resolvedGameMode,
           won: resolvedWon,
           perfectGame: isPerfectGame,
+          challengeCode: resolvedGameMode === "challenge" ? activeChallengeCode : null,
         }),
       });
 
       if (!response.ok) {
         throw new Error("Oyun sonucu kaydedilemedi");
       }
+
+      await fetchNotificationsNow();
     } catch (error) {
       console.error("Oyun sonucu kaydedilemedi:", error);
     }
@@ -2233,10 +2375,19 @@ function App() {
 
   const saveDuelGameResult = async (roomDataOverride = null) => {
     const token = sessionStorage.getItem("token");
+    const statsUserEmail = (
+      authUserEmail ||
+      currentUser?.email ||
+      sessionStorage.getItem("authUserEmail") ||
+      authEmail ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
     const roomData = roomDataOverride || duelRoomData;
     const currentRoomCode = roomData?.roomCode || duelRoomCode || "";
 
-    if (!token || !roomData || !authUserId || !currentRoomCode) return;
+    if (!token || !roomData || !authUserId || !currentRoomCode || !statsUserEmail) return;
     if (duelResultSavedRef.current) return;
     if (lastSavedDuelRoomCodeRef.current === currentRoomCode) return;
 
@@ -2294,8 +2445,11 @@ function App() {
         headers: {
           "Content-Type": "application/json",
           Authorization: "Bearer " + token,
+          "X-User-Email": statsUserEmail,
         },
         body: JSON.stringify({
+          userEmail: statsUserEmail,
+          userName: authUserName || currentUser?.name || statsUserEmail,
           score: myScore,
           correctCount: myCorrectCount,
           wrongCount: myWrongCount,
@@ -2334,6 +2488,8 @@ function App() {
         const errorText = await response.text();
         throw new Error(`Düello sonucu kaydedilemedi: ${response.status} - ${errorText}`);
       }
+
+      await fetchNotificationsNow();
     } catch (error) {
       duelResultSavedRef.current = false;
       lastSavedDuelRoomCodeRef.current = "";
@@ -2521,7 +2677,25 @@ function App() {
       );
 
       if (!response.ok) {
-        throw new Error("Rövanş isteği gönderilemedi.");
+        const errorText = await response.text();
+        const normalizedErrorText = String(errorText || "").toLocaleLowerCase("tr-TR");
+
+        if (
+          response.status === 403 ||
+          response.status === 404 ||
+          normalizedErrorText.includes("terk") ||
+          normalizedErrorText.includes("ayrıldı") ||
+          normalizedErrorText.includes("ayrildi") ||
+          normalizedErrorText.includes("bulunamadı") ||
+          normalizedErrorText.includes("bulunamadi") ||
+          normalizedErrorText.includes("sadece oyun bittikten sonra")
+        ) {
+          setDuelRematchMessage("Rakibin oyunu terk etti. Rövanş isteği gönderilemedi.");
+          return;
+        }
+
+        setDuelRematchMessage(errorText || "Rövanş isteği gönderilemedi.");
+        return;
       }
 
       const data = await response.json();
@@ -2539,7 +2713,7 @@ function App() {
       setDuelRematchMessage("Rövanş isteği gönderildi. Rakibin kabul etmesi bekleniyor.");
     } catch (error) {
       console.error("Rövanş isteği gönderilemedi:", error);
-      setDuelRematchMessage("Rövanş isteği gönderilemedi.");
+      setDuelRematchMessage("Rakibin oyunu terk etti veya bağlantısı koptu. Rövanş isteği gönderilemedi.");
     } finally {
       setDuelRematchLoading(false);
     }
@@ -2554,6 +2728,9 @@ function App() {
     });
 
     await leaveDuelRoom();
+
+    setShowNotifications(false);
+    setShowProfileMenu(false);
 
     if (duelSharedStartStorageKey) {
       localStorage.removeItem(duelSharedStartStorageKey);
@@ -2572,9 +2749,12 @@ function App() {
     setChallengeToast("");
     setChallengeStartTouched(false);
     setChallengeStartMessage("");
+    setActiveChallengeCode("");
   };
 
   const handleDuelScreenBack = () => {
+      setShowNotifications(false);
+      setShowProfileMenu(false);
     if (duelLobbyRoomOpen) {
       setDuelLobbyRoomOpen(false);
       setDuelLobbyResetKey((prev) => prev + 1);
@@ -2623,7 +2803,10 @@ function App() {
       return;
     }
 
-    saveGameResult({ modeOverride: "classic", wonOverride: null });
+    saveGameResult({
+      modeOverride: currentSessionMode === "challenge" ? "challenge" : "classic",
+      wonOverride: null,
+    });
   };
 
   const replayClassicGame = async () => {
@@ -2688,6 +2871,7 @@ function App() {
 
       const payload = {
         userName: toSafeText(authUserName || authUserEmail || "Oyuncu") || "Oyuncu",
+        userEmail: toSafeText(authUserEmail || currentUser?.email || ""),
         score: toSafeNumber(score) ?? 0,
         durationSeconds: toSafeNumber(elapsedTime) ?? 0,
         correctCount: toSafeNumber(correctCount) ?? 0,
@@ -2701,6 +2885,9 @@ function App() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(sessionStorage.getItem("token")
+            ? { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
+            : {}),
         },
         body: JSON.stringify(payload),
       });
@@ -2835,6 +3022,7 @@ function App() {
       lastSavedDuelRoomCodeRef.current = "";
       duelRecentActionTimesRef.current = [];
       activeGameModeRef.current = "challenge";
+      setActiveChallengeCode(resolvedChallengeCode);
 
       setGameMode("challenge");
       setQuestions(normalizedQuestions);
@@ -2859,6 +3047,7 @@ function App() {
       setShowHowToPlay(false);
       setShowLeaderboard(false);
       setShowProfileMenu(false);
+      setShowNotifications(false);
       setGameStarted(true);
       setChallengeCode("");
       setChallengeStartMessage("");
@@ -3025,30 +3214,70 @@ function App() {
   };
 
   const fetchProfileStats = async () => {
-    const token = sessionStorage.getItem("token");
-    if (!token || effectiveIsGuestUser) return;
+    if (effectiveIsGuestUser) return;
+
+    const statsUserEmail = (
+      authUserEmail ||
+      currentUser?.email ||
+      sessionStorage.getItem("authUserEmail") ||
+      authEmail ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (!statsUserEmail) {
+      console.warn("Profil istatistikleri alınamadı: kullanıcı e-postası bulunamadı.");
+      return;
+    }
 
     setProfileStatsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8080/api/profile/stats", {
-        headers: {
-          Authorization: "Bearer " + token,
-        },
+      const response = await fetch(
+        `http://localhost:8080/api/auth/profile-stats?email=${encodeURIComponent(statsUserEmail)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Profil istatistikleri alınamadı: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      setProfileStats({
+        totalGames: Number(data?.totalGames ?? 0),
+        highestScore: Number(data?.highestScore ?? 0),
+        averageScore: Number(data?.averageScore ?? 0),
+        dailyWins: Number(data?.dailyWins ?? 0),
+        duelWins: Number(data?.duelWins ?? 0),
+        duelLosses: Number(data?.duelLosses ?? 0),
+        duelDraws: Number(data?.duelDraws ?? 0),
+        dailyGameCount: Number(data?.dailyGameCount ?? 0),
+        duelMatchCount: Number(data?.duelMatchCount ?? 0),
+        bestCorrectStreak: Number(data?.bestCorrectStreak ?? 0),
+        dailyStreak: Number(data?.dailyStreak ?? 0),
+        loginStreak: Number(data?.loginStreak ?? 0),
+        perfectGameCount: Number(data?.perfectGameCount ?? 0),
+        totalCorrectAnswers: Number(data?.totalCorrectAnswers ?? 0),
+        fastGameCount: Number(data?.fastGameCount ?? 0),
+        best200ScoreStreak: Number(data?.best200ScoreStreak ?? 0),
+        noPassGameCount: Number(data?.noPassGameCount ?? 0),
+        duelWinStreak: Number(data?.duelWinStreak ?? 0),
+        sameOpponentWinCount: Number(data?.sameOpponentWinCount ?? 0),
+        uniqueOpponentWinCount: Number(data?.uniqueOpponentWinCount ?? 0),
+        perfectGameBadgeEarned: Boolean(data?.perfectGameBadgeEarned),
+        noPassBadgeEarned: Boolean(data?.noPassBadgeEarned),
+        weeklyDailyBadgeEarned: Boolean(data?.weeklyDailyBadgeEarned),
+        monthlyDailyBadgeEarned: Boolean(data?.monthlyDailyBadgeEarned),
+        streak5BadgeEarned: Boolean(data?.streak5BadgeEarned),
+        streak10BadgeEarned: Boolean(data?.streak10BadgeEarned),
+        duel5BadgeEarned: Boolean(data?.duel5BadgeEarned),
+        duel10BadgeEarned: Boolean(data?.duel10BadgeEarned),
       });
-
-      const data = response.ok
-        ? await response.json()
-        : {
-            totalGames: 0,
-            highestScore: 0,
-            averageScore: 0,
-            dailyWins: 0,
-            duelWins: 0,
-            duelLosses: 0,
-          };
-
-      setProfileStats(data);
     } catch (error) {
       console.error("Profil istatistikleri alınamadı:", error);
       setProfileStats({
@@ -3058,6 +3287,28 @@ function App() {
         dailyWins: 0,
         duelWins: 0,
         duelLosses: 0,
+        duelDraws: 0,
+        dailyGameCount: 0,
+        duelMatchCount: 0,
+        bestCorrectStreak: 0,
+        dailyStreak: 0,
+        loginStreak: 0,
+        perfectGameCount: 0,
+        totalCorrectAnswers: 0,
+        fastGameCount: 0,
+        best200ScoreStreak: 0,
+        noPassGameCount: 0,
+        duelWinStreak: 0,
+        sameOpponentWinCount: 0,
+        uniqueOpponentWinCount: 0,
+        perfectGameBadgeEarned: false,
+        noPassBadgeEarned: false,
+        weeklyDailyBadgeEarned: false,
+        monthlyDailyBadgeEarned: false,
+        streak5BadgeEarned: false,
+        streak10BadgeEarned: false,
+        duel5BadgeEarned: false,
+        duel10BadgeEarned: false,
       });
     } finally {
       setProfileStatsLoading(false);
@@ -3066,13 +3317,24 @@ function App() {
 
   const fetchDuelHistory = async () => {
     const token = sessionStorage.getItem("token");
-    if (!token || effectiveIsGuestUser) return;
+    const statsUserEmail = (
+      authUserEmail ||
+      currentUser?.email ||
+      sessionStorage.getItem("authUserEmail") ||
+      authEmail ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+    if (!token || effectiveIsGuestUser || !statsUserEmail) return;
 
     setDuelHistoryLoading(true);
     try {
       const response = await fetch("http://localhost:8080/api/game/duel-history", {
         headers: {
           Authorization: "Bearer " + token,
+          "X-User-Email": statsUserEmail,
         },
       });
 
@@ -3287,6 +3549,15 @@ function App() {
     isGuestUser ||
     (typeof authUserEmail === "string" && authUserEmail.endsWith("@guest.local")) ||
     (typeof currentUser?.email === "string" && currentUser.email.endsWith("@guest.local"));
+
+  const canUseNotifications = isAuthenticated && !effectiveIsGuestUser;
+
+  useEffect(() => {
+    if (effectiveIsGuestUser) {
+      setShowNotifications(false);
+      setNotifications([]);
+    }
+  }, [effectiveIsGuestUser]);
 
   const guestAvatarPalettes = [
     ["#60a5fa", "#2563eb"],
@@ -4332,17 +4603,17 @@ function App() {
 
           <div style={{ display: "grid", gap: "14px", maxWidth: "380px", margin: "0 auto" }}>
             {authMode === "register" && (
-              <input
-                type="text"
-                placeholder="Kullanıcı Adı"
-                value={authName}
-                onChange={(e) => setAuthName(e.target.value)}
-                style={authInputStyle}
-              />
-            )}
+                          <input
+                            type="text"
+                            placeholder="Kullanıcı Adı"
+                            value={authName}
+                            onChange={(e) => setAuthName(e.target.value)}
+                            style={authInputStyle}
+                          />
+                        )}
 
-            <input
-              type="email"
+                        <input
+                          type="email"
               placeholder="Email"
               value={authEmail}
               onChange={(e) => setAuthEmail(e.target.value)}
@@ -4520,9 +4791,353 @@ function App() {
                 position: "relative",
               }}
             >
-              <div style={{ position: "relative" }}>
+              {canUseNotifications && (
+                <div style={{ position: "relative" }}>
                 <button
-                  onClick={() => setShowProfileMenu((prev) => !prev)}
+                  onClick={() => {
+                    setShowNotifications((prev) => !prev);
+                    setShowProfileMenu(false);
+                  }}
+                style={{
+                  width: "46px",
+                  height: "46px",
+                  borderRadius: "14px",
+                  border: "1px solid rgba(148, 163, 184, 0.18)",
+                  background: "rgba(15, 23, 42, 0.76)",
+                  color: "#e2e8f0",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 10px 24px rgba(2, 6, 23, 0.22)",
+                  position: "relative",
+                }}
+                aria-label="Bildirimler"
+                title="Bildirimler"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                </svg>
+
+                {unreadNotificationCount > 0 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "-5px",
+                      right: "-5px",
+                      minWidth: "20px",
+                      height: "20px",
+                      padding: "0 6px",
+                      borderRadius: "999px",
+                      background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                      color: "white",
+                      fontSize: "11px",
+                      fontWeight: "900",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "2px solid rgba(15, 23, 42, 0.95)",
+                    }}
+                  >
+                    {unreadNotificationCount}
+                  </div>
+                )}
+              </button>
+
+              {canUseNotifications && showNotifications && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 12px)",
+                    right: 0,
+                    width: "360px",
+                    maxHeight: "420px",
+                    overflowY: "auto",
+                    borderRadius: "22px",
+                    background:
+                      "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                    border: "1px solid rgba(148, 163, 184, 0.16)",
+                    boxShadow: "0 24px 60px rgba(2, 6, 23, 0.34)",
+                    padding: "16px",
+                    zIndex: 80,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "12px",
+                        background: "rgba(59, 130, 246, 0.14)",
+                        border: "1px solid rgba(96, 165, 250, 0.22)",
+                        color: "#bfdbfe",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                      }}
+                      title="Bildirimler"
+                      aria-label="Bildirimler"
+                    >
+                      <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                      </svg>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        try {
+                          await fetch(
+                            "http://localhost:8080/api/notifications/read-all",
+                            {
+                              method: "POST",
+                              headers: {
+                                "X-User-Email": notificationUserEmail,
+                              },
+                            }
+                          );
+
+                          setNotifications((prev) =>
+                            prev.map((item) => ({
+                              ...item,
+                              unread: false,
+                            }))
+                          );
+                        } catch (error) {
+                          console.error("Bildirimler okundu yapılamadı:", error);
+                        }
+                      }}
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "12px",
+                        border: "1px solid rgba(96, 165, 250, 0.18)",
+                        background: "rgba(15, 23, 42, 0.64)",
+                        color: "#93c5fd",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                      }}
+                      title="Tümünü okundu olarak işaretle"
+                      aria-label="Tümünü okundu olarak işaretle"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M5 12.5l4 4L19 6.5"
+                          stroke="currentColor"
+                          strokeWidth="2.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M4 18.5h16"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          opacity="0.55"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    {notificationsLoading ? (
+                      <div
+                        style={{
+                          padding: "20px 16px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.72)",
+                          border: "1px solid rgba(148, 163, 184, 0.10)",
+                          color: "#cbd5e1",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          textAlign: "center",
+                        }}
+                      >
+                        Bildirimler yükleniyor...
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div
+                        style={{
+                          padding: "20px 16px",
+                          borderRadius: "18px",
+                          background: "rgba(15, 23, 42, 0.72)",
+                          border: "1px solid rgba(148, 163, 184, 0.10)",
+                          color: "#cbd5e1",
+                          fontSize: "14px",
+                          fontWeight: "700",
+                          textAlign: "center",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Henüz bildirimin yok.
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          style={{
+                            padding: "15px 14px",
+                            borderRadius: "18px",
+                            background: notification.unread
+                              ? "linear-gradient(135deg, rgba(30, 64, 175, 0.30), rgba(15, 23, 42, 0.82))"
+                              : "rgba(15, 23, 42, 0.62)",
+                            border: notification.unread
+                              ? "1px solid rgba(96, 165, 250, 0.34)"
+                              : "1px solid rgba(148, 163, 184, 0.10)",
+                            boxShadow: notification.unread
+                              ? "0 12px 28px rgba(37, 99, 235, 0.14)"
+                              : "none",
+                            position: "relative",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                              gap: "12px",
+                              marginBottom: "7px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                color: notification.unread ? "#f8fafc" : "#cbd5e1",
+                                fontWeight: notification.unread ? "850" : "750",
+                                fontSize: "15px",
+                                lineHeight: 1.35,
+                                textAlign: "left",
+                              }}
+                            >
+                              {notification.title}
+                            </div>
+
+                            {notification.unread ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markNotificationAsRead(notification.id);
+                                }}
+                                style={{
+                                  minWidth: "34px",
+                                  height: "30px",
+                                  padding: "0 9px",
+                                  borderRadius: "999px",
+                                  border: "1px solid rgba(147, 197, 253, 0.42)",
+                                  background: "rgba(37, 99, 235, 0.28)",
+                                  color: "#dbeafe",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "5px",
+                                  flexShrink: 0,
+                                  boxShadow: "0 8px 18px rgba(37, 99, 235, 0.18)",
+                                  transition: "transform 0.16s ease, background 0.16s ease, color 0.16s ease",
+                                }}
+                                title="Bu bildirimi okundu yap"
+                                aria-label="Bu bildirimi okundu yap"
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.transform = "translateY(-1px)";
+                                  e.currentTarget.style.background = "rgba(37, 99, 235, 0.44)";
+                                  e.currentTarget.style.color = "#eff6ff";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = "translateY(0)";
+                                  e.currentTarget.style.background = "rgba(37, 99, 235, 0.28)";
+                                  e.currentTarget.style.color = "#dbeafe";
+                                }}
+                              >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path
+                                    d="M5 12.5l4 4L19 6.5"
+                                    stroke="currentColor"
+                                    strokeWidth="2.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                                <span style={{ fontSize: "11px", fontWeight: "850" }}>Oku</span>
+                              </button>
+                            ) : (
+                              <div
+                                style={{
+                                  height: "28px",
+                                  padding: "0 9px",
+                                  borderRadius: "999px",
+                                  border: "1px solid rgba(148, 163, 184, 0.12)",
+                                  background: "rgba(15, 23, 42, 0.44)",
+                                  color: "#94a3b8",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "5px",
+                                  fontSize: "11px",
+                                  fontWeight: "800",
+                                  flexShrink: 0,
+                                }}
+                                title="Bu bildirim okundu"
+                                aria-label="Bu bildirim okundu"
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                  <path
+                                    d="M5 12.5l4 4L19 6.5"
+                                    stroke="currentColor"
+                                    strokeWidth="2.4"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                                Okundu
+                              </div>
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              color: notification.unread ? "#dbeafe" : "#cbd5e1",
+                              fontSize: "13px",
+                              lineHeight: 1.5,
+                              marginBottom: "8px",
+                              textAlign: "left",
+                            }}
+                          >
+                            {notification.description}
+                          </div>
+
+                          <div
+                            style={{
+                              color: notification.unread ? "#93c5fd" : "#94a3b8",
+                              fontSize: "12px",
+                              fontWeight: "800",
+                              textAlign: "left",
+                            }}
+                          >
+                            {notification.time}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+              <div style={{ position: "relative", width: "46px", height: "46px" }}>
+                <button
+                  onClick={() => {
+                    setShowNotifications(false);
+                    setShowProfileMenu((prev) => !prev);
+                  }}
                   style={{
                     width: "46px",
                     height: "46px",
@@ -4567,6 +5182,39 @@ function App() {
                     </div>
                   )}
                 </button>
+
+                {!effectiveIsGuestUser && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      profileFileInputRef.current?.click();
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "-2px",
+                      bottom: "-2px",
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%",
+                      border: "1px solid rgba(148, 163, 184, 0.35)",
+                      background: "rgba(15, 23, 42, 0.95)",
+                      color: "#e2e8f0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      padding: 0,
+                      boxShadow: "0 6px 14px rgba(2, 6, 23, 0.28)",
+                      zIndex: 2,
+                    }}
+                    title="Fotoğrafı Değiştir"
+                    aria-label="Fotoğrafı Değiştir"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 000-1.42l-2.5-2.5a1.003 1.003 0 00-1.42 0l-1.96 1.96 3.75 3.75 2.13-2.09z" />
+                    </svg>
+                  </button>
+                )}
 
                 {showProfileMenu && (
                   <div
@@ -4614,30 +5262,9 @@ function App() {
                       </div>
                     </div>
 
-                    <input
-                      ref={profileFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileImageChange}
-                      style={{ display: "none" }}
-                    />
 
                     {!effectiveIsGuestUser && (
                       <>
-                        <button
-                          onClick={() => profileFileInputRef.current?.click()}
-                          style={{
-                            ...primaryButtonStyle,
-                            marginTop: 0,
-                            marginRight: 0,
-                            width: "100%",
-                            fontSize: "14px",
-                            padding: "12px 16px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Profil Fotoğrafı Yükle
-                        </button>
                         <button
                           onClick={() => {
                             setShowProfileMenu(false);
@@ -5095,6 +5722,16 @@ function App() {
                   </svg>
                   <span>Sonucu İndir</span>
                 </button>
+
+                {!effectiveIsGuestUser && (
+                  <input
+                    ref={profileFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    style={{ display: "none" }}
+                  />
+                )}
               </div>
 
               <div
@@ -5464,9 +6101,353 @@ function App() {
                 position: "relative",
               }}
             >
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setShowProfileMenu((prev) => !prev)}
+              {canUseNotifications && (
+                <div style={{ position: "relative" }}>
+                            <button
+                              onClick={() => {
+                                setShowNotifications((prev) => !prev);
+                                setShowProfileMenu(false);
+                              }}
+                              style={{
+                                width: "46px",
+                                height: "46px",
+                                borderRadius: "14px",
+                                border: "1px solid rgba(148, 163, 184, 0.18)",
+                                background: "rgba(15, 23, 42, 0.76)",
+                                color: "#e2e8f0",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                boxShadow: "0 10px 24px rgba(2, 6, 23, 0.22)",
+                                position: "relative",
+                              }}
+                              aria-label="Bildirimler"
+                              title="Bildirimler"
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                              </svg>
+
+                              {unreadNotificationCount > 0 && (
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "-5px",
+                                    right: "-5px",
+                                    minWidth: "20px",
+                                    height: "20px",
+                                    padding: "0 6px",
+                                    borderRadius: "999px",
+                                    background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                                    color: "white",
+                                    fontSize: "11px",
+                                    fontWeight: "900",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    border: "2px solid rgba(15, 23, 42, 0.95)",
+                                  }}
+                                >
+                                  {unreadNotificationCount}
+                                </div>
+                              )}
+                            </button>
+
+                            {canUseNotifications && showNotifications && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: "calc(100% + 12px)",
+                                  right: 0,
+                                  width: "360px",
+                                  maxHeight: "420px",
+                                  overflowY: "auto",
+                                  borderRadius: "22px",
+                                  background:
+                                    "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                                  border: "1px solid rgba(148, 163, 184, 0.16)",
+                                  boxShadow: "0 24px 60px rgba(2, 6, 23, 0.34)",
+                                  padding: "16px",
+                                  zIndex: 80,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: "14px",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "36px",
+                                      height: "36px",
+                                      borderRadius: "12px",
+                                      background: "rgba(59, 130, 246, 0.14)",
+                                      border: "1px solid rgba(96, 165, 250, 0.22)",
+                                      color: "#bfdbfe",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                                    }}
+                                    title="Bildirimler"
+                                    aria-label="Bildirimler"
+                                  >
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                      <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                                    </svg>
+                                  </div>
+
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        await fetch(
+                                          "http://localhost:8080/api/notifications/read-all",
+                                          {
+                                            method: "POST",
+                                            headers: {
+                                              "X-User-Email": notificationUserEmail,
+                                            },
+                                          }
+                                        );
+
+                                        setNotifications((prev) =>
+                                          prev.map((item) => ({
+                                            ...item,
+                                            unread: false,
+                                          }))
+                                        );
+                                      } catch (error) {
+                                        console.error("Bildirimler okundu yapılamadı:", error);
+                                      }
+                                    }}
+                                    style={{
+                                      width: "36px",
+                                      height: "36px",
+                                      borderRadius: "12px",
+                                      border: "1px solid rgba(96, 165, 250, 0.18)",
+                                      background: "rgba(15, 23, 42, 0.64)",
+                                      color: "#93c5fd",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      padding: 0,
+                                    }}
+                                    title="Tümünü okundu olarak işaretle"
+                                    aria-label="Tümünü okundu olarak işaretle"
+                                  >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                      <path
+                                        d="M5 12.5l4 4L19 6.5"
+                                        stroke="currentColor"
+                                        strokeWidth="2.4"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                      <path
+                                        d="M4 18.5h16"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        opacity="0.55"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+
+                                <div style={{ display: "grid", gap: "10px" }}>
+                                  {notificationsLoading ? (
+                                    <div
+                                      style={{
+                                        padding: "20px 16px",
+                                        borderRadius: "18px",
+                                        background: "rgba(15, 23, 42, 0.72)",
+                                        border: "1px solid rgba(148, 163, 184, 0.10)",
+                                        color: "#cbd5e1",
+                                        fontSize: "14px",
+                                        fontWeight: "700",
+                                        textAlign: "center",
+                                      }}
+                                    >
+                                      Bildirimler yükleniyor...
+                                    </div>
+                                  ) : notifications.length === 0 ? (
+                                    <div
+                                      style={{
+                                        padding: "20px 16px",
+                                        borderRadius: "18px",
+                                        background: "rgba(15, 23, 42, 0.72)",
+                                        border: "1px solid rgba(148, 163, 184, 0.10)",
+                                        color: "#cbd5e1",
+                                        fontSize: "14px",
+                                        fontWeight: "700",
+                                        textAlign: "center",
+                                        lineHeight: 1.5,
+                                      }}
+                                    >
+                                      Henüz bildirimin yok.
+                                    </div>
+                                  ) : (
+                                    notifications.map((notification) => (
+                                      <div
+                                        key={notification.id}
+                                        style={{
+                                          padding: "15px 14px",
+                                          borderRadius: "18px",
+                                          background: notification.unread
+                                            ? "linear-gradient(135deg, rgba(30, 64, 175, 0.30), rgba(15, 23, 42, 0.82))"
+                                            : "rgba(15, 23, 42, 0.62)",
+                                          border: notification.unread
+                                            ? "1px solid rgba(96, 165, 250, 0.34)"
+                                            : "1px solid rgba(148, 163, 184, 0.10)",
+                                          boxShadow: notification.unread
+                                            ? "0 12px 28px rgba(37, 99, 235, 0.14)"
+                                            : "none",
+                                          position: "relative",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "flex-start",
+                                            gap: "12px",
+                                            marginBottom: "7px",
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              color: notification.unread ? "#f8fafc" : "#cbd5e1",
+                                              fontWeight: notification.unread ? "850" : "750",
+                                              fontSize: "15px",
+                                              lineHeight: 1.35,
+                                              textAlign: "left",
+                                            }}
+                                          >
+                                            {notification.title}
+                                          </div>
+
+                                          {notification.unread ? (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                markNotificationAsRead(notification.id);
+                                              }}
+                                              style={{
+                                                minWidth: "34px",
+                                                height: "30px",
+                                                padding: "0 9px",
+                                                borderRadius: "999px",
+                                                border: "1px solid rgba(147, 197, 253, 0.42)",
+                                                background: "rgba(37, 99, 235, 0.28)",
+                                                color: "#dbeafe",
+                                                cursor: "pointer",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                gap: "5px",
+                                                flexShrink: 0,
+                                                boxShadow: "0 8px 18px rgba(37, 99, 235, 0.18)",
+                                                transition: "transform 0.16s ease, background 0.16s ease, color 0.16s ease",
+                                              }}
+                                              title="Bu bildirimi okundu yap"
+                                              aria-label="Bu bildirimi okundu yap"
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.transform = "translateY(-1px)";
+                                                e.currentTarget.style.background = "rgba(37, 99, 235, 0.44)";
+                                                e.currentTarget.style.color = "#eff6ff";
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.transform = "translateY(0)";
+                                                e.currentTarget.style.background = "rgba(37, 99, 235, 0.28)";
+                                                e.currentTarget.style.color = "#dbeafe";
+                                              }}
+                                            >
+                                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <path
+                                                  d="M5 12.5l4 4L19 6.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2.4"
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                />
+                                              </svg>
+                                              <span style={{ fontSize: "11px", fontWeight: "850" }}>Oku</span>
+                                            </button>
+                                          ) : (
+                                            <div
+                                              style={{
+                                                height: "28px",
+                                                padding: "0 9px",
+                                                borderRadius: "999px",
+                                                border: "1px solid rgba(148, 163, 184, 0.12)",
+                                                background: "rgba(15, 23, 42, 0.44)",
+                                                color: "#94a3b8",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                gap: "5px",
+                                                fontSize: "11px",
+                                                fontWeight: "800",
+                                                flexShrink: 0,
+                                              }}
+                                              title="Bu bildirim okundu"
+                                              aria-label="Bu bildirim okundu"
+                                            >
+                                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <path
+                                                  d="M5 12.5l4 4L19 6.5"
+                                                  stroke="currentColor"
+                                                  strokeWidth="2.4"
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                />
+                                              </svg>
+                                              Okundu
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        <div
+                                          style={{
+                                            color: notification.unread ? "#dbeafe" : "#cbd5e1",
+                                            fontSize: "13px",
+                                            lineHeight: 1.5,
+                                            marginBottom: "8px",
+                                            textAlign: "left",
+                                          }}
+                                        >
+                                          {notification.description}
+                                        </div>
+
+                                        <div
+                                          style={{
+                                            color: notification.unread ? "#93c5fd" : "#94a3b8",
+                                            fontSize: "12px",
+                                            fontWeight: "800",
+                                            textAlign: "left",
+                                          }}
+                                        >
+                                          {notification.time}
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+              )}
+                            <div style={{ position: "relative", width: "46px", height: "46px" }}>
+                              <button
+                                onClick={() => {
+                                  setShowNotifications(false);
+                                  setShowProfileMenu((prev) => !prev);
+                                }}
                   style={{
                     width: "46px",
                     height: "46px",
@@ -5516,6 +6497,49 @@ function App() {
                   )}
                 </button>
 
+                {!effectiveIsGuestUser && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      profileFileInputRef.current?.click();
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "-3px",
+                      bottom: "-3px",
+                      width: "21px",
+                      height: "21px",
+                      borderRadius: "50%",
+                      border: "1px solid rgba(226, 232, 240, 0.75)",
+                      background: "rgba(15, 23, 42, 0.96)",
+                      color: "#e2e8f0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      padding: 0,
+                      boxShadow: "0 6px 14px rgba(2, 6, 23, 0.35)",
+                      zIndex: 5,
+                    }}
+                    title="Fotoğrafı Değiştir"
+                    aria-label="Fotoğrafı Değiştir"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 000-1.42l-2.5-2.5a1.003 1.003 0 00-1.42 0l-1.96 1.96 3.75 3.75 2.13-2.09z" />
+                    </svg>
+                  </button>
+                )}
+
+                {!effectiveIsGuestUser && (
+                  <input
+                    ref={profileFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    style={{ display: "none" }}
+                  />
+                )}
+
                 {showProfileMenu && (
                   <div
                     style={{
@@ -5562,30 +6586,8 @@ function App() {
                       </div>
                     </div>
 
-                    <input
-                      ref={profileFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileImageChange}
-                      style={{ display: "none" }}
-                    />
-
                    {!effectiveIsGuestUser && (
                       <>
-                        <button
-                          onClick={() => profileFileInputRef.current?.click()}
-                          style={{
-                            ...primaryButtonStyle,
-                            marginTop: 0,
-                            marginRight: 0,
-                            width: "100%",
-                            fontSize: "14px",
-                            padding: "12px 16px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Profil Fotoğrafı Yükle
-                        </button>
                         <button
                           onClick={() => {
                             setShowProfileMenu(false);
@@ -6625,16 +7627,360 @@ function App() {
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                justifyContent: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-end",
                 gap: "10px",
                 position: "relative",
               }}
             >
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setShowProfileMenu((prev) => !prev)}
+              {canUseNotifications && (
+                <div style={{ position: "relative" }}>
+                                          <button
+                                            onClick={() => {
+                                              setShowNotifications((prev) => !prev);
+                                              setShowProfileMenu(false);
+                                            }}
+                                            style={{
+                                              width: "46px",
+                                              height: "46px",
+                                              borderRadius: "14px",
+                                              border: "1px solid rgba(148, 163, 184, 0.18)",
+                                              background: "rgba(15, 23, 42, 0.76)",
+                                              color: "#e2e8f0",
+                                              cursor: "pointer",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              boxShadow: "0 10px 24px rgba(2, 6, 23, 0.22)",
+                                              position: "relative",
+                                            }}
+                                            aria-label="Bildirimler"
+                                            title="Bildirimler"
+                                          >
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                              <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                                            </svg>
+
+                                            {unreadNotificationCount > 0 && (
+                                              <div
+                                                style={{
+                                                  position: "absolute",
+                                                  top: "-5px",
+                                                  right: "-5px",
+                                                  minWidth: "20px",
+                                                  height: "20px",
+                                                  padding: "0 6px",
+                                                  borderRadius: "999px",
+                                                  background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                                                  color: "white",
+                                                  fontSize: "11px",
+                                                  fontWeight: "900",
+                                                  display: "flex",
+                                                  alignItems: "center",
+                                                  justifyContent: "center",
+                                                  border: "2px solid rgba(15, 23, 42, 0.95)",
+                                                }}
+                                              >
+                                                {unreadNotificationCount}
+                                              </div>
+                                            )}
+                                          </button>
+
+                                          {canUseNotifications && showNotifications && (
+                                            <div
+                                              style={{
+                                                position: "absolute",
+                                                top: "calc(100% + 12px)",
+                                                right: 0,
+                                                width: "340px",
+                                                maxHeight: "320px",
+                                                overflowY: "auto",
+                                                borderRadius: "22px",
+                                                background:
+                                                  "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                                                border: "1px solid rgba(148, 163, 184, 0.16)",
+                                                boxShadow: "0 24px 60px rgba(2, 6, 23, 0.34)",
+                                                padding: "16px",
+                                                zIndex: 80,
+                                              }}
+                                            >
+                                              <div
+                                                style={{
+                                                  display: "flex",
+                                                  justifyContent: "space-between",
+                                                  alignItems: "center",
+                                                  marginBottom: "14px",
+                                                }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    width: "36px",
+                                                    height: "36px",
+                                                    borderRadius: "12px",
+                                                    background: "rgba(59, 130, 246, 0.14)",
+                                                    border: "1px solid rgba(96, 165, 250, 0.22)",
+                                                    color: "#bfdbfe",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                                                  }}
+                                                  title="Bildirimler"
+                                                  aria-label="Bildirimler"
+                                                >
+                                                  <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                    <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                                                  </svg>
+                                                </div>
+
+                                                <button
+                                                  onClick={async () => {
+                                                    try {
+                                                      await fetch(
+                                                        "http://localhost:8080/api/notifications/read-all",
+                                                        {
+                                                          method: "POST",
+                                                          headers: {
+                                                            "X-User-Email": notificationUserEmail,
+                                                          },
+                                                        }
+                                                      );
+
+                                                      setNotifications((prev) =>
+                                                        prev.map((item) => ({
+                                                          ...item,
+                                                          unread: false,
+                                                        }))
+                                                      );
+                                                    } catch (error) {
+                                                      console.error("Bildirimler okundu yapılamadı:", error);
+                                                    }
+                                                  }}
+                                                  style={{
+                                                    width: "36px",
+                                                    height: "36px",
+                                                    borderRadius: "12px",
+                                                    border: "1px solid rgba(96, 165, 250, 0.18)",
+                                                    background: "rgba(15, 23, 42, 0.64)",
+                                                    color: "#93c5fd",
+                                                    cursor: "pointer",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    padding: 0,
+                                                  }}
+                                                  title="Tümünü okundu olarak işaretle"
+                                                  aria-label="Tümünü okundu olarak işaretle"
+                                                >
+                                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                    <path
+                                                      d="M5 12.5l4 4L19 6.5"
+                                                      stroke="currentColor"
+                                                      strokeWidth="2.4"
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                    />
+                                                    <path
+                                                      d="M4 18.5h16"
+                                                      stroke="currentColor"
+                                                      strokeWidth="2"
+                                                      strokeLinecap="round"
+                                                      opacity="0.55"
+                                                    />
+                                                  </svg>
+                                                </button>
+                                              </div>
+
+                                              <div style={{ display: "grid", gap: "10px" }}>
+                                                {notificationsLoading ? (
+                                                  <div
+                                                    style={{
+                                                      padding: "20px 16px",
+                                                      borderRadius: "18px",
+                                                      background: "rgba(15, 23, 42, 0.72)",
+                                                      border: "1px solid rgba(148, 163, 184, 0.10)",
+                                                      color: "#cbd5e1",
+                                                      fontSize: "14px",
+                                                      fontWeight: "700",
+                                                      textAlign: "center",
+                                                    }}
+                                                  >
+                                                    Bildirimler yükleniyor...
+                                                  </div>
+                                                ) : notifications.length === 0 ? (
+                                                  <div
+                                                    style={{
+                                                      padding: "20px 16px",
+                                                      borderRadius: "18px",
+                                                      background: "rgba(15, 23, 42, 0.72)",
+                                                      border: "1px solid rgba(148, 163, 184, 0.10)",
+                                                      color: "#cbd5e1",
+                                                      fontSize: "14px",
+                                                      fontWeight: "700",
+                                                      textAlign: "center",
+                                                      lineHeight: 1.5,
+                                                    }}
+                                                  >
+                                                    Henüz bildirimin yok.
+                                                  </div>
+                                                ) : (
+                                                  notifications.map((notification) => (
+                                                    <div
+                                                      key={notification.id}
+                                                      style={{
+                                                        padding: "12px 13px",
+                                                        borderRadius: "16px",
+                                                        background: notification.unread
+                                                          ? "linear-gradient(135deg, rgba(30, 64, 175, 0.30), rgba(15, 23, 42, 0.82))"
+                                                          : "rgba(15, 23, 42, 0.62)",
+                                                        border: notification.unread
+                                                          ? "1px solid rgba(96, 165, 250, 0.34)"
+                                                          : "1px solid rgba(148, 163, 184, 0.10)",
+                                                        boxShadow: notification.unread
+                                                          ? "0 12px 28px rgba(37, 99, 235, 0.14)"
+                                                          : "none",
+                                                        position: "relative",
+                                                      }}
+                                                    >
+                                                      <div
+                                                        style={{
+                                                          display: "flex",
+                                                          justifyContent: "space-between",
+                                                          alignItems: "flex-start",
+                                                          gap: "12px",
+                                                          marginBottom: "7px",
+                                                        }}
+                                                      >
+                                                        <div
+                                                          style={{
+                                                            color: notification.unread ? "#f8fafc" : "#cbd5e1",
+                                                            fontWeight: notification.unread ? "850" : "750",
+                                                            fontSize: "14px",
+                                                            lineHeight: 1.35,
+                                                            textAlign: "left",
+                                                          }}
+                                                        >
+                                                          {notification.title}
+                                                        </div>
+
+                                                        {notification.unread ? (
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              markNotificationAsRead(notification.id);
+                                                            }}
+                                                            style={{
+                                                              minWidth: "34px",
+                                                              height: "30px",
+                                                              padding: "0 9px",
+                                                              borderRadius: "999px",
+                                                              border: "1px solid rgba(147, 197, 253, 0.42)",
+                                                              background: "rgba(37, 99, 235, 0.28)",
+                                                              color: "#dbeafe",
+                                                              cursor: "pointer",
+                                                              display: "flex",
+                                                              alignItems: "center",
+                                                              justifyContent: "center",
+                                                              gap: "5px",
+                                                              flexShrink: 0,
+                                                              boxShadow: "0 8px 18px rgba(37, 99, 235, 0.18)",
+                                                              transition: "transform 0.16s ease, background 0.16s ease, color 0.16s ease",
+                                                            }}
+                                                            title="Bu bildirimi okundu yap"
+                                                            aria-label="Bu bildirimi okundu yap"
+                                                            onMouseEnter={(e) => {
+                                                              e.currentTarget.style.transform = "translateY(-1px)";
+                                                              e.currentTarget.style.background = "rgba(37, 99, 235, 0.44)";
+                                                              e.currentTarget.style.color = "#eff6ff";
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                              e.currentTarget.style.transform = "translateY(0)";
+                                                              e.currentTarget.style.background = "rgba(37, 99, 235, 0.28)";
+                                                              e.currentTarget.style.color = "#dbeafe";
+                                                            }}
+                                                          >
+                                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                              <path
+                                                                d="M5 12.5l4 4L19 6.5"
+                                                                stroke="currentColor"
+                                                                strokeWidth="2.4"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                              />
+                                                            </svg>
+                                                            <span style={{ fontSize: "11px", fontWeight: "850" }}>Oku</span>
+                                                          </button>
+                                                        ) : (
+                                                          <div
+                                                            style={{
+                                                              height: "28px",
+                                                              padding: "0 9px",
+                                                              borderRadius: "999px",
+                                                              border: "1px solid rgba(148, 163, 184, 0.12)",
+                                                              background: "rgba(15, 23, 42, 0.44)",
+                                                              color: "#94a3b8",
+                                                              display: "flex",
+                                                              alignItems: "center",
+                                                              justifyContent: "center",
+                                                              gap: "5px",
+                                                              fontSize: "11px",
+                                                              fontWeight: "800",
+                                                              flexShrink: 0,
+                                                            }}
+                                                            title="Bu bildirim okundu"
+                                                            aria-label="Bu bildirim okundu"
+                                                          >
+                                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                              <path
+                                                                d="M5 12.5l4 4L19 6.5"
+                                                                stroke="currentColor"
+                                                                strokeWidth="2.4"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                              />
+                                                            </svg>
+                                                            Okundu
+                                                          </div>
+                                                        )}
+                                                      </div>
+
+                                                      <div
+                                                        style={{
+                                                          color: notification.unread ? "#dbeafe" : "#cbd5e1",
+                                                          fontSize: "12px",
+                                                          lineHeight: 1.4,
+                                                          marginBottom: "6px",
+                                                          textAlign: "left",
+                                                        }}
+                                                      >
+                                                        {notification.description}
+                                                      </div>
+
+                                                      <div
+                                                        style={{
+                                                          color: notification.unread ? "#93c5fd" : "#94a3b8",
+                                                          fontSize: "11px",
+                                                          fontWeight: "800",
+                                                          textAlign: "left",
+                                                        }}
+                                                      >
+                                                        {notification.time}
+                                                      </div>
+                                                    </div>
+                                                  ))
+                                                )}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+              )}
+                                          <div style={{ position: "relative", width: "46px", height: "46px" }}>
+                                            <button
+                                              onClick={() => {
+                                                setShowNotifications(false);
+                                                setShowProfileMenu((prev) => !prev);
+                                              }}
                   style={{
                     width: "46px",
                     height: "46px",
@@ -6672,8 +8018,8 @@ function App() {
                         alignItems: "center",
                         justifyContent: "center",
                         ...(effectiveIsGuestUser ? getGuestAvatarStyle(guestAvatarSeed) : {
-                                                  background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
-                                                }),
+                          background: "radial-gradient(circle at top, rgba(96, 165, 250, 0.85), rgba(37, 99, 235, 0.95))",
+                        }),
                         color: "#f8fafc",
                         fontSize: "32px",
                         fontWeight: "800",
@@ -6683,6 +8029,49 @@ function App() {
                     </div>
                   )}
                 </button>
+
+                {!effectiveIsGuestUser && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      profileFileInputRef.current?.click();
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "-3px",
+                      bottom: "-3px",
+                      width: "21px",
+                      height: "21px",
+                      borderRadius: "50%",
+                      border: "1px solid rgba(226, 232, 240, 0.75)",
+                      background: "rgba(15, 23, 42, 0.96)",
+                      color: "#e2e8f0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      padding: 0,
+                      boxShadow: "0 6px 14px rgba(2, 6, 23, 0.35)",
+                      zIndex: 5,
+                    }}
+                    title="Fotoğrafı Değiştir"
+                    aria-label="Fotoğrafı Değiştir"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 000-1.42l-2.5-2.5a1.003 1.003 0 00-1.42 0l-1.96 1.96 3.75 3.75 2.13-2.09z" />
+                    </svg>
+                  </button>
+                )}
+
+                {!effectiveIsGuestUser && (
+                  <input
+                    ref={profileFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    style={{ display: "none" }}
+                  />
+                )}
 
                 {showProfileMenu && (
                   <div
@@ -6730,30 +8119,9 @@ function App() {
                       </div>
                     </div>
 
-                    <input
-                      ref={profileFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileImageChange}
-                      style={{ display: "none" }}
-                    />
 
                     {!effectiveIsGuestUser && (
                       <>
-                        <button
-                          onClick={() => profileFileInputRef.current?.click()}
-                          style={{
-                            ...primaryButtonStyle,
-                            marginTop: 0,
-                            marginRight: 0,
-                            width: "100%",
-                            fontSize: "14px",
-                            padding: "12px 16px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Profil Fotoğrafı Yükle
-                        </button>
                         <button
                           onClick={() => {
                             setShowProfileMenu(false);
@@ -7589,10 +8957,10 @@ function App() {
                       progress: `${Math.min(profileStats?.perfectGameCount ?? 0, 1)}/1`,
                     },
                     {
-                                          title: "Pas kullanmadan oyunu bitir",
-                                          earned: Boolean((profileStats?.noPassGameCount ?? 0) >= 1),
-                                          progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
-                                        },
+                      title: "Pas kullanmadan oyunu bitir",
+                      earned: Boolean((profileStats?.noPassGameCount ?? 0) >= 1),
+                      progress: `${Math.min(profileStats?.noPassGameCount ?? 0, 1)}/1`,
+                    },
                     {
                       title: "Toplam 500 doğru cevap ver",
                       earned: Boolean((profileStats?.totalCorrectAnswers ?? 0) >= 500),
@@ -7623,22 +8991,21 @@ function App() {
                       earned: Boolean((profileStats?.duelMatchCount ?? 0) >= 25),
                       progress: `${Math.min(profileStats?.duelMatchCount ?? 0, 25)}/25`,
                     },
-                                      {
-                                        title: "Aynı rakibi 3 kez mağlup et",
-                                        earned: Boolean((profileStats?.sameOpponentWinCount ?? 0) >= 3),
-                                        progress: `${Math.min(profileStats?.sameOpponentWinCount ?? 0, 3)}/3`,
-                                      },
                     {
-                                        title: "Üst üste 5 düello kazan",
-                                        earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
-                                        progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
-                                      },
+                      title: "Aynı rakibi 3 kez mağlup et",
+                      earned: Boolean((profileStats?.sameOpponentWinCount ?? 0) >= 3),
+                      progress: `${Math.min(profileStats?.sameOpponentWinCount ?? 0, 3)}/3`,
+                    },
                     {
-                                                            title: "10 farklı rakibi mağlup et",
-                                                            earned: Boolean((profileStats?.uniqueOpponentWinCount ?? 0) >= 10),
-                                                            progress: `${Math.min(profileStats?.uniqueOpponentWinCount ?? 0, 10)}/10`,
-                                                          },
-
+                      title: "Üst üste 5 düello kazan",
+                      earned: Boolean((profileStats?.duelWinStreak ?? 0) >= 5),
+                      progress: `${Math.min(profileStats?.duelWinStreak ?? 0, 5)}/5`,
+                    },
+                    {
+                      title: "10 farklı rakibi mağlup et",
+                      earned: Boolean((profileStats?.uniqueOpponentWinCount ?? 0) >= 10),
+                      progress: `${Math.min(profileStats?.uniqueOpponentWinCount ?? 0, 10)}/10`,
+                    },
                   ].map((badge) => (
                     <div
                       key={badge.title}
@@ -8009,16 +9376,360 @@ function App() {
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                justifyContent: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-end",
                 gap: "10px",
                 position: "relative",
               }}
             >
-              <div style={{ position: "relative" }}>
-                <button
-                  onClick={() => setShowProfileMenu((prev) => !prev)}
+              {canUseNotifications && (
+                <div style={{ position: "relative" }}>
+                                         <button
+                                           onClick={() => {
+                                             setShowNotifications((prev) => !prev);
+                                             setShowProfileMenu(false);
+                                           }}
+                                           style={{
+                                             width: "46px",
+                                             height: "46px",
+                                             borderRadius: "14px",
+                                             border: "1px solid rgba(148, 163, 184, 0.18)",
+                                             background: "rgba(15, 23, 42, 0.76)",
+                                             color: "#e2e8f0",
+                                             cursor: "pointer",
+                                             display: "flex",
+                                             alignItems: "center",
+                                             justifyContent: "center",
+                                             boxShadow: "0 10px 24px rgba(2, 6, 23, 0.22)",
+                                             position: "relative",
+                                           }}
+                                           aria-label="Bildirimler"
+                                           title="Bildirimler"
+                                         >
+                                           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                             <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                                           </svg>
+
+                                           {unreadNotificationCount > 0 && (
+                                             <div
+                                               style={{
+                                                 position: "absolute",
+                                                 top: "-5px",
+                                                 right: "-5px",
+                                                 minWidth: "20px",
+                                                 height: "20px",
+                                                 padding: "0 6px",
+                                                 borderRadius: "999px",
+                                                 background: "linear-gradient(135deg, #ef4444, #dc2626)",
+                                                 color: "white",
+                                                 fontSize: "11px",
+                                                 fontWeight: "900",
+                                                 display: "flex",
+                                                 alignItems: "center",
+                                                 justifyContent: "center",
+                                                 border: "2px solid rgba(15, 23, 42, 0.95)",
+                                               }}
+                                             >
+                                               {unreadNotificationCount}
+                                             </div>
+                                           )}
+                                         </button>
+
+                                         {canUseNotifications && showNotifications && (
+                                           <div
+                                             style={{
+                                               position: "absolute",
+                                               top: "calc(100% + 12px)",
+                                               right: 0,
+                                               width: "360px",
+                                               maxHeight: "420px",
+                                               overflowY: "auto",
+                                               borderRadius: "22px",
+                                               background:
+                                                 "linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.97))",
+                                               border: "1px solid rgba(148, 163, 184, 0.16)",
+                                               boxShadow: "0 24px 60px rgba(2, 6, 23, 0.34)",
+                                               padding: "16px",
+                                               zIndex: 80,
+                                             }}
+                                           >
+                                             <div
+                                               style={{
+                                                 display: "flex",
+                                                 justifyContent: "space-between",
+                                                 alignItems: "center",
+                                                 marginBottom: "14px",
+                                               }}
+                                             >
+                                               <div
+                                                 style={{
+                                                   width: "36px",
+                                                   height: "36px",
+                                                   borderRadius: "12px",
+                                                   background: "rgba(59, 130, 246, 0.14)",
+                                                   border: "1px solid rgba(96, 165, 250, 0.22)",
+                                                   color: "#bfdbfe",
+                                                   display: "flex",
+                                                   alignItems: "center",
+                                                   justifyContent: "center",
+                                                   boxShadow: "0 10px 22px rgba(37, 99, 235, 0.12)",
+                                                 }}
+                                                 title="Bildirimler"
+                                                 aria-label="Bildirimler"
+                                               >
+                                                 <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                   <path d="M12 22a2.5 2.5 0 002.45-2h-4.9A2.5 2.5 0 0012 22zm6-6V11a6 6 0 10-12 0v5L4 18v1h16v-1l-2-2z" />
+                                                 </svg>
+                                               </div>
+
+                                               <button
+                                                 onClick={async () => {
+                                                   try {
+                                                     await fetch(
+                                                       "http://localhost:8080/api/notifications/read-all",
+                                                       {
+                                                         method: "POST",
+                                                         headers: {
+                                                           "X-User-Email": notificationUserEmail,
+                                                         },
+                                                       }
+                                                     );
+
+                                                     setNotifications((prev) =>
+                                                       prev.map((item) => ({
+                                                         ...item,
+                                                         unread: false,
+                                                       }))
+                                                     );
+                                                   } catch (error) {
+                                                     console.error("Bildirimler okundu yapılamadı:", error);
+                                                   }
+                                                 }}
+                                                 style={{
+                                                   width: "36px",
+                                                   height: "36px",
+                                                   borderRadius: "12px",
+                                                   border: "1px solid rgba(96, 165, 250, 0.18)",
+                                                   background: "rgba(15, 23, 42, 0.64)",
+                                                   color: "#93c5fd",
+                                                   cursor: "pointer",
+                                                   display: "flex",
+                                                   alignItems: "center",
+                                                   justifyContent: "center",
+                                                   padding: 0,
+                                                 }}
+                                                 title="Tümünü okundu olarak işaretle"
+                                                 aria-label="Tümünü okundu olarak işaretle"
+                                               >
+                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                   <path
+                                                     d="M5 12.5l4 4L19 6.5"
+                                                     stroke="currentColor"
+                                                     strokeWidth="2.4"
+                                                     strokeLinecap="round"
+                                                     strokeLinejoin="round"
+                                                   />
+                                                   <path
+                                                     d="M4 18.5h16"
+                                                     stroke="currentColor"
+                                                     strokeWidth="2"
+                                                     strokeLinecap="round"
+                                                     opacity="0.55"
+                                                   />
+                                                 </svg>
+                                               </button>
+                                             </div>
+
+                                             <div style={{ display: "grid", gap: "10px" }}>
+                                               {notificationsLoading ? (
+                                                 <div
+                                                   style={{
+                                                     padding: "20px 16px",
+                                                     borderRadius: "18px",
+                                                     background: "rgba(15, 23, 42, 0.72)",
+                                                     border: "1px solid rgba(148, 163, 184, 0.10)",
+                                                     color: "#cbd5e1",
+                                                     fontSize: "14px",
+                                                     fontWeight: "700",
+                                                     textAlign: "center",
+                                                   }}
+                                                 >
+                                                   Bildirimler yükleniyor...
+                                                 </div>
+                                               ) : notifications.length === 0 ? (
+                                                 <div
+                                                   style={{
+                                                     padding: "20px 16px",
+                                                     borderRadius: "18px",
+                                                     background: "rgba(15, 23, 42, 0.72)",
+                                                     border: "1px solid rgba(148, 163, 184, 0.10)",
+                                                     color: "#cbd5e1",
+                                                     fontSize: "14px",
+                                                     fontWeight: "700",
+                                                     textAlign: "center",
+                                                     lineHeight: 1.5,
+                                                   }}
+                                                 >
+                                                   Henüz bildirimin yok.
+                                                 </div>
+                                               ) : (
+                                                 notifications.map((notification) => (
+                                                   <div
+                                                     key={notification.id}
+                                                     style={{
+                                                       padding: "15px 14px",
+                                                       borderRadius: "18px",
+                                                       background: notification.unread
+                                                         ? "linear-gradient(135deg, rgba(30, 64, 175, 0.30), rgba(15, 23, 42, 0.82))"
+                                                         : "rgba(15, 23, 42, 0.62)",
+                                                       border: notification.unread
+                                                         ? "1px solid rgba(96, 165, 250, 0.34)"
+                                                         : "1px solid rgba(148, 163, 184, 0.10)",
+                                                       boxShadow: notification.unread
+                                                         ? "0 12px 28px rgba(37, 99, 235, 0.14)"
+                                                         : "none",
+                                                       position: "relative",
+                                                     }}
+                                                   >
+                                                     <div
+                                                       style={{
+                                                         display: "flex",
+                                                         justifyContent: "space-between",
+                                                         alignItems: "flex-start",
+                                                         gap: "12px",
+                                                         marginBottom: "7px",
+                                                       }}
+                                                     >
+                                                       <div
+                                                         style={{
+                                                           color: notification.unread ? "#f8fafc" : "#cbd5e1",
+                                                           fontWeight: notification.unread ? "850" : "750",
+                                                           fontSize: "15px",
+                                                           lineHeight: 1.35,
+                                                           textAlign: "left",
+                                                         }}
+                                                       >
+                                                         {notification.title}
+                                                       </div>
+
+                                                       {notification.unread ? (
+                                                         <button
+                                                           onClick={(e) => {
+                                                             e.stopPropagation();
+                                                             markNotificationAsRead(notification.id);
+                                                           }}
+                                                           style={{
+                                                             minWidth: "34px",
+                                                             height: "30px",
+                                                             padding: "0 9px",
+                                                             borderRadius: "999px",
+                                                             border: "1px solid rgba(147, 197, 253, 0.42)",
+                                                             background: "rgba(37, 99, 235, 0.28)",
+                                                             color: "#dbeafe",
+                                                             cursor: "pointer",
+                                                             display: "flex",
+                                                             alignItems: "center",
+                                                             justifyContent: "center",
+                                                             gap: "5px",
+                                                             flexShrink: 0,
+                                                             boxShadow: "0 8px 18px rgba(37, 99, 235, 0.18)",
+                                                             transition: "transform 0.16s ease, background 0.16s ease, color 0.16s ease",
+                                                           }}
+                                                           title="Bu bildirimi okundu yap"
+                                                           aria-label="Bu bildirimi okundu yap"
+                                                           onMouseEnter={(e) => {
+                                                             e.currentTarget.style.transform = "translateY(-1px)";
+                                                             e.currentTarget.style.background = "rgba(37, 99, 235, 0.44)";
+                                                             e.currentTarget.style.color = "#eff6ff";
+                                                           }}
+                                                           onMouseLeave={(e) => {
+                                                             e.currentTarget.style.transform = "translateY(0)";
+                                                             e.currentTarget.style.background = "rgba(37, 99, 235, 0.28)";
+                                                             e.currentTarget.style.color = "#dbeafe";
+                                                           }}
+                                                         >
+                                                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                             <path
+                                                               d="M5 12.5l4 4L19 6.5"
+                                                               stroke="currentColor"
+                                                               strokeWidth="2.4"
+                                                               strokeLinecap="round"
+                                                               strokeLinejoin="round"
+                                                             />
+                                                           </svg>
+                                                           <span style={{ fontSize: "11px", fontWeight: "850" }}>Oku</span>
+                                                         </button>
+                                                       ) : (
+                                                         <div
+                                                           style={{
+                                                             height: "28px",
+                                                             padding: "0 9px",
+                                                             borderRadius: "999px",
+                                                             border: "1px solid rgba(148, 163, 184, 0.12)",
+                                                             background: "rgba(15, 23, 42, 0.44)",
+                                                             color: "#94a3b8",
+                                                             display: "flex",
+                                                             alignItems: "center",
+                                                             justifyContent: "center",
+                                                             gap: "5px",
+                                                             fontSize: "11px",
+                                                             fontWeight: "800",
+                                                             flexShrink: 0,
+                                                           }}
+                                                           title="Bu bildirim okundu"
+                                                           aria-label="Bu bildirim okundu"
+                                                         >
+                                                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                             <path
+                                                               d="M5 12.5l4 4L19 6.5"
+                                                               stroke="currentColor"
+                                                               strokeWidth="2.4"
+                                                               strokeLinecap="round"
+                                                               strokeLinejoin="round"
+                                                             />
+                                                           </svg>
+                                                           Okundu
+                                                         </div>
+                                                       )}
+                                                     </div>
+
+                                                     <div
+                                                       style={{
+                                                         color: notification.unread ? "#dbeafe" : "#cbd5e1",
+                                                         fontSize: "13px",
+                                                         lineHeight: 1.5,
+                                                         marginBottom: "8px",
+                                                         textAlign: "left",
+                                                       }}
+                                                     >
+                                                       {notification.description}
+                                                     </div>
+
+                                                     <div
+                                                       style={{
+                                                         color: notification.unread ? "#93c5fd" : "#94a3b8",
+                                                         fontSize: "12px",
+                                                         fontWeight: "800",
+                                                         textAlign: "left",
+                                                       }}
+                                                     >
+                                                       {notification.time}
+                                                     </div>
+                                                   </div>
+                                                 ))
+                                               )}
+                                             </div>
+                                           </div>
+                                         )}
+                                       </div>
+              )}
+                                         <div style={{ position: "relative", width: "46px", height: "46px" }}>
+                                           <button
+                                             onClick={() => {
+                                               setShowNotifications(false);
+                                               setShowProfileMenu((prev) => !prev);
+                                             }}
                   style={{
                     width: "46px",
                     height: "46px",
@@ -8068,6 +9779,49 @@ function App() {
                   )}
                 </button>
 
+                {!effectiveIsGuestUser && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      profileFileInputRef.current?.click();
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "-3px",
+                      bottom: "-3px",
+                      width: "21px",
+                      height: "21px",
+                      borderRadius: "50%",
+                      border: "1px solid rgba(226, 232, 240, 0.75)",
+                      background: "rgba(15, 23, 42, 0.96)",
+                      color: "#e2e8f0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      padding: 0,
+                      boxShadow: "0 6px 14px rgba(2, 6, 23, 0.35)",
+                      zIndex: 5,
+                    }}
+                    title="Fotoğrafı Değiştir"
+                    aria-label="Fotoğrafı Değiştir"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 000-1.42l-2.5-2.5a1.003 1.003 0 00-1.42 0l-1.96 1.96 3.75 3.75 2.13-2.09z" />
+                    </svg>
+                  </button>
+                )}
+
+                {!effectiveIsGuestUser && (
+                  <input
+                    ref={profileFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfileImageChange}
+                    style={{ display: "none" }}
+                  />
+                )}
+
                 {showProfileMenu && (
                   <div
                     style={{
@@ -8114,30 +9868,9 @@ function App() {
                       </div>
                     </div>
 
-                    <input
-                      ref={profileFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProfileImageChange}
-                      style={{ display: "none" }}
-                    />
 
                     {!effectiveIsGuestUser && (
                       <>
-                        <button
-                          onClick={() => profileFileInputRef.current?.click()}
-                          style={{
-                            ...primaryButtonStyle,
-                            marginTop: 0,
-                            marginRight: 0,
-                            width: "100%",
-                            fontSize: "14px",
-                            padding: "12px 16px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Profil Fotoğrafı Yükle
-                        </button>
                         <button
                           onClick={() => {
                             setShowProfileMenu(false);
