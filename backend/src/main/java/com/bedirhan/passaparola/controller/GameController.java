@@ -213,6 +213,11 @@ public class GameController {
             challengerName = currentUser.getEmail();
         }
 
+        String challengeOwnerName = challenge.getUserName();
+        if (challengeOwnerName == null || challengeOwnerName.isBlank()) {
+            challengeOwnerName = ownerEmail;
+        }
+
         if (newScore.equals(targetScore)) {
             notificationService.createNotification(
                     ownerEmail,
@@ -243,7 +248,8 @@ public class GameController {
                     currentUser.getEmail(),
                     "challenge_score_failed",
                     "Meydan okumayı tamamladın",
-                    "Rakibinin skorunu geçemedin. " + scoreDifference + " puan geride kaldın."
+                    challengeOwnerName + " adlı oyuncunun skorunu geçemedin. "
+                            + scoreDifference + " puan geride kaldın."
             );
 
             return;
