@@ -2367,7 +2367,19 @@ function App() {
         throw new Error("Oyun sonucu kaydedilemedi");
       }
 
-      await fetchNotificationsNow();
+      await fetchProfileStats();
+
+      const notificationsResponse = await fetch("http://localhost:8080/api/notifications", {
+        headers: {
+          "X-User-Email": statsUserEmail,
+        },
+        cache: "no-store",
+      });
+
+      if (notificationsResponse.ok) {
+        const notificationData = await notificationsResponse.json();
+        setNotifications(Array.isArray(notificationData) ? notificationData : []);
+      }
     } catch (error) {
       console.error("Oyun sonucu kaydedilemedi:", error);
     }
@@ -2489,6 +2501,7 @@ function App() {
         throw new Error(`Düello sonucu kaydedilemedi: ${response.status} - ${errorText}`);
       }
 
+      await fetchProfileStats();
       await fetchNotificationsNow();
     } catch (error) {
       duelResultSavedRef.current = false;
@@ -3558,6 +3571,53 @@ function App() {
       setNotifications([]);
     }
   }, [effectiveIsGuestUser]);
+
+  useEffect(() => {
+    if (!canUseNotifications || !notificationUserEmail) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkDailyGameNotification = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/game/daily-notification-check", {
+          method: "POST",
+          headers: {
+            "X-User-Email": notificationUserEmail,
+          },
+        });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        const notificationsResponse = await fetch("http://localhost:8080/api/notifications", {
+          headers: {
+            "X-User-Email": notificationUserEmail,
+          },
+        });
+
+        if (!notificationsResponse.ok || cancelled) {
+          return;
+        }
+
+        const data = await notificationsResponse.json();
+        setNotifications(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Günlük oyun bildirimi kontrol edilemedi:", error);
+      }
+    };
+
+    checkDailyGameNotification();
+
+    const intervalId = setInterval(checkDailyGameNotification, 6 * 60 * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [canUseNotifications, notificationUserEmail]);
 
   const guestAvatarPalettes = [
     ["#60a5fa", "#2563eb"],
@@ -4784,9 +4844,9 @@ function App() {
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                justifyContent: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-end",
                 gap: "10px",
                 position: "relative",
               }}

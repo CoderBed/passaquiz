@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,12 +19,35 @@ public class NotificationService {
         this.notificationRepository = notificationRepository;
     }
 
+    private String normalizeEmail(String userEmail) {
+        return userEmail == null ? "" : userEmail.trim().toLowerCase();
+    }
+
+    private boolean hasNotificationToday(String userEmail, String type, String title) {
+        LocalDate today = LocalDate.now();
+
+        return notificationRepository.findByUserEmailOrderByCreatedAtDesc(userEmail).stream()
+                .filter(notification -> type.equalsIgnoreCase(notification.getType()))
+                .filter(notification -> title.equals(notification.getTitle()))
+                .filter(notification -> notification.getCreatedAt() != null)
+                .anyMatch(notification -> notification.getCreatedAt().toLocalDate().equals(today));
+    }
+
+    private boolean hasNotificationInLastHours(String userEmail, String type, String title, long hours) {
+        LocalDateTime limit = LocalDateTime.now().minusHours(hours);
+
+        return notificationRepository.findByUserEmailOrderByCreatedAtDesc(userEmail).stream()
+                .filter(notification -> type.equalsIgnoreCase(notification.getType()))
+                .filter(notification -> title.equals(notification.getTitle()))
+                .filter(notification -> notification.getCreatedAt() != null)
+                .anyMatch(notification -> notification.getCreatedAt().isAfter(limit));
+    }
+
     public List<Notification> getNotificationsForUser(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {
             return List.of();
         }
-
-        return notificationRepository.findByUserEmailOrderByCreatedAtDesc(userEmail);
+        return notificationRepository.findByUserEmailOrderByCreatedAtDesc(normalizeEmail(userEmail));
     }
 
     public Notification createNotification(String userEmail, String type, String title, String description) {
@@ -31,8 +55,10 @@ public class NotificationService {
             return null;
         }
 
+        String normalizedEmail = normalizeEmail(userEmail);
+
         Notification notification = new Notification();
-        notification.setUserEmail(userEmail);
+        notification.setUserEmail(normalizedEmail);
         notification.setType(type);
         notification.setTitle(title);
         notification.setDescription(description);
@@ -74,13 +100,46 @@ public class NotificationService {
         );
     }
 
+    public void createDailyGameReadyNotificationIfNotExistsToday(String userEmail) {
+        String normalizedEmail = normalizeEmail(userEmail);
+        if (normalizedEmail.isBlank()) {
+            return;
+        }
+
+        String type = "daily_game_ready";
+        String title = "Bugünkü günlük oyun hazır";
+        String description = "Bugünkü günlük oyunu oynayabilirsin.";
+
+        if (hasNotificationToday(normalizedEmail, type, title)) {
+            return;
+        }
+
+        createNotification(normalizedEmail, type, title, description);
+    }
+
+    public void createDailyGameReminderIfAllowed(String userEmail) {
+        String normalizedEmail = normalizeEmail(userEmail);
+        if (normalizedEmail.isBlank()) {
+            return;
+        }
+
+        String type = "daily_game_reminder";
+        String title = "Günlük oyununu henüz oynamadın";
+        String description = "Günlük oyununu tamamlamadın. Oynamak için günlük oyun moduna girebilirsin.";
+
+        if (hasNotificationInLastHours(normalizedEmail, type, title, 6)) {
+            return;
+        }
+
+        createNotification(normalizedEmail, type, title, description);
+    }
+
     @Transactional
     public void markAllAsRead(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {
             return;
         }
-
-        List<Notification> notifications = notificationRepository.findByUserEmailOrderByCreatedAtDesc(userEmail);
+        List<Notification> notifications = notificationRepository.findByUserEmailOrderByCreatedAtDesc(normalizeEmail(userEmail));
 
         for (Notification notification : notifications) {
             notification.setUnread(false);
@@ -96,8 +155,7 @@ public class NotificationService {
         if (notificationId == null) {
             return false;
         }
-
-        return notificationRepository.findByIdAndUserEmail(notificationId, userEmail)
+        return notificationRepository.findByIdAndUserEmail(notificationId, normalizeEmail(userEmail))
                 .map(notification -> {
                     notification.setUnread(false);
                     return true;

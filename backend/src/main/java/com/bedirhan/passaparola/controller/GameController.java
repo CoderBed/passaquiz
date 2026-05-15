@@ -9,6 +9,7 @@ import com.bedirhan.passaparola.entity.User;
 import com.bedirhan.passaparola.repository.UserRepository;
 import com.bedirhan.passaparola.service.DailyGameService;
 import com.bedirhan.passaparola.service.NotificationService;
+import com.bedirhan.passaparola.service.ProfileStatsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -39,18 +41,21 @@ public class GameController {
     private final UserRepository userRepository;
     private final DailyGameService dailyGameService;
     private final NotificationService notificationService;
+    private final ProfileStatsService profileStatsService;
     private final Random random = new Random();
 
     public GameController(QuestionRepository questionRepository,
                           GameResultRepository gameResultRepository,
                           UserRepository userRepository,
                           DailyGameService dailyGameService,
-                          NotificationService notificationService) {
+                          NotificationService notificationService,
+                          ProfileStatsService profileStatsService) {
         this.questionRepository = questionRepository;
         this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
         this.dailyGameService = dailyGameService;
         this.notificationService = notificationService;
+        this.profileStatsService = profileStatsService;
     }
 
     // Arkadaşına Meydan Oku - Helper Methods
@@ -122,6 +127,20 @@ public class GameController {
         }
 
         return normalizedHeaderEmail.isBlank() ? normalizedAuthEmail : normalizedHeaderEmail;
+    }
+
+    private boolean hasPlayedDailyToday(String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+
+        return gameResultRepository
+                .findByUserEmailIgnoreCaseAndGameModeIgnoreCaseOrderByPlayedAtDesc(email, "daily")
+                .stream()
+                .filter(result -> result.getPlayedAt() != null)
+                .anyMatch(result -> result.getPlayedAt().toLocalDate().equals(today));
     }
 
     private void createDuelResultNotification(User user, GameResultRequest request) {
@@ -410,6 +429,36 @@ public class GameController {
         return dailyGameService.getTodayQuestions();
     }
 
+    @PostMapping("/api/game/daily-notification-check")
+    public ResponseEntity<?> checkDailyGameNotification(
+            @RequestHeader(value = "X-User-Email", required = false) String headerEmail
+    ) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String authenticationEmail = authentication != null ? authentication.getName() : null;
+        String email = resolveRequestEmail(headerEmail, authenticationEmail);
+
+        if (email == null || email.isBlank() || "anonymoususer".equalsIgnoreCase(email)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Kullanıcı doğrulanamadı.");
+        }
+
+        if (email.endsWith("@guest.local")) {
+            return ResponseEntity.ok("Misafir kullanıcı için günlük oyun bildirimi oluşturulmadı.");
+        }
+
+        boolean playedDailyToday = hasPlayedDailyToday(email);
+
+        if (!playedDailyToday) {
+            notificationService.createDailyGameReadyNotificationIfNotExistsToday(email);
+            notificationService.createDailyGameReminderIfAllowed(email);
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("playedDailyToday", playedDailyToday);
+        response.put("notificationChecked", true);
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/api/game/result")
     public ResponseEntity<?> saveResult(
             @RequestBody GameResultRequest request,
@@ -465,6 +514,8 @@ public class GameController {
 
         GameResult saved = gameResultRepository.save(result);
         createChallengeScorePassedNotification(user, request);
+        profileStatsService.checkAndNotifyPersonalBest(user.getEmail(), saved.getScore());
+        profileStatsService.getStatsByEmail(user.getEmail());
         System.out.println("saved gameMode = " + saved.getGameMode());
         System.out.println("saved won = " + saved.getWon());
 
@@ -505,7 +556,7 @@ public class GameController {
         result.setUserEmail(user.getEmail());
         result.setUserName(user.getName());
         result.setGameMode("duel");
-        result.setWon(request.getWon()); // frontend’den gelecek
+        result.setWon(request.getWon()); // frontendden gelecek
         result.setMaxCorrectStreak(request.getMaxCorrectStreak());
         result.setPerfectGame(request.isPerfectGame());
         result.setNoPassGame(request.getPassedCount() == 0);
@@ -521,8 +572,10 @@ public class GameController {
         result.setWinnerName(request.getWinnerName());
         result.setDuelRoomCode(request.getDuelRoomCode());
 
-        gameResultRepository.save(result);
+        GameResult saved = gameResultRepository.save(result);
         createDuelResultNotification(user, request);
+        profileStatsService.checkAndNotifyPersonalBest(user.getEmail(), saved.getScore());
+        profileStatsService.getStatsByEmail(user.getEmail());
 
         return ResponseEntity.ok("Düello sonucu kaydedildi");
     }

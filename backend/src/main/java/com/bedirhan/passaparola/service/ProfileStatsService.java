@@ -34,6 +34,35 @@ public class ProfileStatsService {
         notificationService.createBadgeNotificationIfNotExists(email, badgeName);
     }
 
+    public void checkAndNotifyPersonalBest(String email, int newScore) {
+        String normalizedEmail = normalizeEmail(email);
+
+        if (normalizedEmail.isBlank() || normalizedEmail.endsWith("@guest.local")) {
+            return;
+        }
+
+        var myGames = gameResultRepository.findByUserEmailIgnoreCaseOrderByIdDesc(normalizedEmail);
+
+        if (myGames.size() <= 1) {
+            return;
+        }
+
+        int previousBestScore = myGames.stream()
+                .skip(1)
+                .mapToInt(GameResult::getScore)
+                .max()
+                .orElse(0);
+
+        if (newScore > previousBestScore) {
+            notificationService.createNotification(
+                    normalizedEmail,
+                    "Yeni kişisel rekor",
+                    "PERSONAL_BEST",
+                    "Yeni kişisel rekorunu kırdın: " + newScore + " puan."
+            );
+        }
+    }
+
     @Transactional
     public ProfileStatsResponse getStatsByEmail(String email) {
         String normalizedEmail = normalizeEmail(email);
