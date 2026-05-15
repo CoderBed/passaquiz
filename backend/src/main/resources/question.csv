@@ -338,7 +338,7 @@ A, 4, 100 m² değerinde yüzey ölçü birimi, Ar
 A, 2, İnsanın ruh dünyasında oluşan çekinme duygusu, Ar/Arlılık
 A, 5, Sıcak iklimlerde yetişen maranta adlı kamıştan ve başka bitkilerin kökünden çıkarılan, çocuk maması yapmaya yarayan un, Ararot
 A, 5, Gözlemsel astronomide gece gökyüzünde görülebilen popüler bir desen veya yıldız grubu, Asterizm
-A, 1, Dini inanışlara göre dünya üzerindeki ilk insan, Adem
+A, 1, Dini inanışlara göre dünya üzerindeki ilk insan, Adem/Adem Baba
 A, 5, Fiziksel veya mekanik özelliklerin ölçüldüğü yöne bağlı olarak değişmesi durumu, Anizotropi
 A, 5, Terbiyeye, inceliğe aykırı, çirkin, kötü olan, Anif
 A, 2, Bilgisayarlarda basit programlarla düzenlenmiş, bir konsol yardımıyla oynanan, kavrama çabukluğu ve pratiklik kazandıran oyunların genel adı, Atari
@@ -1136,6 +1136,7 @@ D, 4, Bir kitabın veya derginin kişi, konu, yer adı vb. bakımından içindek
 D, 5, Belli bir konuda çıkan kitap ve dergideki yazılarla ilişkiyi sağlayan ve ayrı bir kitap veya süreli yayın biçiminde çıkan eser, Dizin
 D, 4, Kütüphane, belge vb. için düzenlenen belli bir bilginin veya belgenin bulunduğu yeri gösteren düzenli liste, Dizin
 D, 5, Bir tohum veya tomurcuğun uygun çevre şartları altında çimlenmemesi veya sürmemesi durumu, Dormansi
+D, 5, Maskeli balolarda giyilen, önü açık, kukuletalı, geniş uzun elbise, Domino
 
 E, 3, Belirti, ipucu, iz, Emare
 E, 1, Anne ve baba, Ebeveyn
@@ -2111,6 +2112,9 @@ I, 3, 18 Şubat 1856'da Sultan Abdülmecid döneminde, Paris Antlaşması önces
 İ, 5, Yağış sularının toprağın üst yüzeyinden derinlere doğru sızması olayı, İnfiltrasyon
 İ, 5, Bitkilere zararlı olan böcekleri öldürmek için kullanılan kimyasal maddeler, İnsektisit
 İ, 3, İşlerine önem vermeyip onları gelişigüzel yapıveren veya daha sonraya bırakan, İhmalci/İhmalkar
+İ, 4, Bir gazetenin, basılmasından hemen sonra alınan önemli bir haberi yaymak için basılan sayısı, İlave
+İ, 3, Bir şeyin yanına başka bir şey daha koyma, ekleme, katma, İlave
+İ, 4, Bir gazete veya derginin asıl sayısıyle birlikte ücretsiz verdiği ek, İlave
 
 J, 1, Tıraşta kullanılan, ince çelikten yapılmış, iki yanı keskin bıçak, Jilet
 J, 3, Tuzlanıp ise tutularak hazırlanmış domuz budu veya kolu, Jambon
@@ -2800,6 +2804,10 @@ K, 5, Embriyonun, endosperme yakın olan ve kalkan biçimini andıran kısmı, K
 K, 5, Bazı canlılar tarafından güneş enerjisi kullanılmaksızın, inorganik bileşiklerin kimyasal oksitlenme ile sentezlenmesi olayına verilen ad, Kemosentez
 K, 5, Canlıların kimyasal uyarıcılara doğru yönelmesi olayı, Kemotaksi
 K, 5, Belirli çevre koşullarına optimum olarak uyum sağlamış olan ve devamlılık, arz eden karışlık, bitki topluluğu, Klimaks
+K, 3, Atgillerden, kısrak ile erkek eşeğin çiftleşmesinden doğan, gennelikle kısır olan melez hayvan, Katır
+K, 3, Üreme imkânı olmayan, döl vermeyen insan veya hayvan, Kısır
+K, 4, Haşlanmış bulgura soğan, maydanoz, yeşil biber, çeşitli baharat, limon ve zeytin yağı ilâvesiyle yapılan, genellikle çay yanında ikram edilen bir çeşit yemek, Kısır
+K, 5, Dantel veya nakış ipliği yumağı, Kuka
 
 L, 4, Feshetmek, hükümsüz kılmak, Lağvetmek/Lağvetme
 L, 5, Barcelona futbol kulübünün altyapısına verilen isim, La Masia
@@ -3164,6 +3172,7 @@ M, 4, Savaş sırasında orduya yardımcı olarak toplanan silahlı halk gücü,
 M, 1, Aritmetik, cebir, geometri gibi sayı ve ölçü temeline dayanarak niceliklerin özelliklerini inceleyen bilimlerin ortak adı, Matematik
 M, 3, Hüznün hakim olduğu ruh hâli, Melankoli
 M, 4, Medreselerde ya da büyük camilerde ders okutan kimse, Müderris
+M, 5, Tanzimattan sonra kurulan yüksek öğretim kurumlarında profesör, Müderris
 M, 3, Bir kimsenin sıkıntı verecek, bıktıracak şekilde üzerine düşen, Musallat
 M, 2, Dini bakımdan yapılmasında sakınca olmayan, yapılması günah veya sevap olmayan, Mübah
 M, 3, Çiftlik, konak, yalı, vb. binaların içinde bulunan veya sonradan ilâve edilip onlarla birlikte bir bütün teşkil eden hizmetçi odası, Müştemilat
@@ -3420,6 +3429,10 @@ M, 1, Altın, yakut, pırlanta vb. değerli taşlardan yapılmış süs eşyası
 M, 4, Bir yarışmada konulan ödüle uygun görülmemekle birlikte, anılmaya değer bulunan kimseye veya esere verilen derece, Mansiyon
 M, 5, Gerçekte olmayıp var sanılan, var diye düşünülen, kuruntuya dayanan, Mevhum
 M, 2, Harç alıp sürmeye yarayan, çoğu üçgen biçiminde, yassı biçimli, tahta saplı, demirden sıvama aracı, Mala
+M, 3, Ölmüş Müslüman erkek, Merhum
+M, 3, Ölmüş Müslüman kadın, Merhume
+M, 5, Bir araya getirilerek divan durumunda toplanmış şiir vb., Müdevven/Müdevvenat
+M, 5, Sarhoş eden şeyler, alkollü içkiler için kullanılan Arapça kökenli bir sözcük, Müskirat
 
 N, 4, Inception, The Prestige ve Oppenheimer gibi dünyaca ünlü filmlerin yönetmeni, Christopher ..., Nolan
 N, 3, Gerçekten, hakikaten anlamına gelen bir zarf, Nitekim
