@@ -57,7 +57,7 @@ public class ProfileStatsService {
             notificationService.createNotification(
                     normalizedEmail,
                     "Yeni kişisel rekor",
-                    "PERSONAL_BEST",
+                    "Yeni KişiseL Rekor",
                     "Yeni kişisel rekorunu kırdın: " + newScore + " puan."
             );
         }

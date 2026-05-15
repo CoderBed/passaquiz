@@ -134,6 +134,29 @@ public class NotificationService {
         createNotification(normalizedEmail, type, title, description);
     }
 
+    public void createLeaderboardTop10NotificationIfNotExists(String userEmail) {
+        String normalizedEmail = normalizeEmail(userEmail);
+        if (normalizedEmail.isBlank() || normalizedEmail.endsWith("@guest.local")) {
+            return;
+        }
+
+        String type = "leaderboard_top_10";
+        String title = "Liderlik tablosunda ilk 10'a girdin";
+        String description = "Liderlik tablosunda ilk 10 oyuncu arasına girdin.";
+
+        boolean alreadyExists = notificationRepository.existsByUserEmailAndTypeAndTitle(
+                normalizedEmail,
+                type,
+                title
+        );
+
+        if (alreadyExists) {
+            return;
+        }
+
+        createNotification(normalizedEmail, type, title, description);
+    }
+
     @Transactional
     public void markAllAsRead(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {

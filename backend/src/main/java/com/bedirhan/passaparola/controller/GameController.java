@@ -143,6 +143,23 @@ public class GameController {
                 .anyMatch(result -> result.getPlayedAt().toLocalDate().equals(today));
     }
 
+    private void checkAndNotifyLeaderboardTop10(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (normalizedEmail.isBlank() || normalizedEmail.endsWith("@guest.local")) {
+            return;
+        }
+
+        List<GameResult> leaderboard = gameResultRepository.findTop10ByOrderByScoreDesc();
+
+        boolean userInTop10 = leaderboard.stream()
+                .anyMatch(result -> result.getUserEmail() != null
+                        && normalizeEmail(result.getUserEmail()).equals(normalizedEmail));
+
+        if (userInTop10) {
+            notificationService.createLeaderboardTop10NotificationIfNotExists(normalizedEmail);
+        }
+    }
+
     private void createDuelResultNotification(User user, GameResultRequest request) {
         if (user == null || user.getEmail() == null || user.getEmail().isBlank()) {
             return;
@@ -515,6 +532,7 @@ public class GameController {
         GameResult saved = gameResultRepository.save(result);
         createChallengeScorePassedNotification(user, request);
         profileStatsService.checkAndNotifyPersonalBest(user.getEmail(), saved.getScore());
+        checkAndNotifyLeaderboardTop10(user.getEmail());
         profileStatsService.getStatsByEmail(user.getEmail());
         System.out.println("saved gameMode = " + saved.getGameMode());
         System.out.println("saved won = " + saved.getWon());
@@ -575,6 +593,7 @@ public class GameController {
         GameResult saved = gameResultRepository.save(result);
         createDuelResultNotification(user, request);
         profileStatsService.checkAndNotifyPersonalBest(user.getEmail(), saved.getScore());
+        checkAndNotifyLeaderboardTop10(user.getEmail());
         profileStatsService.getStatsByEmail(user.getEmail());
 
         return ResponseEntity.ok("Düello sonucu kaydedildi");

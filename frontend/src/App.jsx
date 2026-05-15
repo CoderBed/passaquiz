@@ -2502,7 +2502,18 @@ function App() {
       }
 
       await fetchProfileStats();
-      await fetchNotificationsNow();
+
+      const notificationsResponse = await fetch("http://localhost:8080/api/notifications", {
+        headers: {
+          "X-User-Email": statsUserEmail,
+        },
+        cache: "no-store",
+      });
+
+      if (notificationsResponse.ok) {
+        const notificationData = await notificationsResponse.json();
+        setNotifications(Array.isArray(notificationData) ? notificationData : []);
+      }
     } catch (error) {
       duelResultSavedRef.current = false;
       lastSavedDuelRoomCodeRef.current = "";
