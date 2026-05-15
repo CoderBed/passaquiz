@@ -157,6 +157,25 @@ public class NotificationService {
         createNotification(normalizedEmail, type, title, description);
     }
 
+    public void createWelcomeBackNotificationIfNotExists(String userEmail) {
+        String normalizedEmail = normalizeEmail(userEmail);
+        if (normalizedEmail.isBlank() || normalizedEmail.endsWith("@guest.local")) {
+            return;
+        }
+
+        String type = "welcome_back";
+        String title = "Tekrar hoş geldin";
+        String description = "Liderlik tablosu seni bekliyor.";
+
+        boolean alreadyExistsToday = hasNotificationToday(normalizedEmail, type, title);
+
+        if (alreadyExistsToday) {
+            return;
+        }
+
+        createNotification(normalizedEmail, type, title, description);
+    }
+
     @Transactional
     public void markAllAsRead(String userEmail) {
         if (userEmail == null || userEmail.isBlank()) {

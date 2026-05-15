@@ -2183,6 +2183,24 @@ function App() {
         setAuthUserImage(storedImage || "");
 
         setIsAuthenticated(true);
+        setIsGuestUser(false);
+
+        try {
+          const notificationsResponse = await fetch("http://localhost:8080/api/notifications", {
+            headers: {
+              "X-User-Email": loggedInEmail,
+            },
+            cache: "no-store",
+          });
+
+          if (notificationsResponse.ok) {
+            const notificationData = await notificationsResponse.json();
+            setNotifications(Array.isArray(notificationData) ? notificationData : []);
+          }
+        } catch (notificationError) {
+          console.error("Giriş sonrası bildirimler alınamadı:", notificationError);
+        }
+
         setAuthPassword("");
         setAuthMessage("");
         return;

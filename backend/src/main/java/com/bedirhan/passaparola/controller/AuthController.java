@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.bedirhan.passaparola.service.JwtService;
 import com.bedirhan.passaparola.dto.LoginResponse;
+import com.bedirhan.passaparola.service.NotificationService;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:5173")
@@ -20,11 +22,16 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final NotificationService notificationService;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthController(UserRepository userRepository,
+                          PasswordEncoder passwordEncoder,
+                          JwtService jwtService,
+                          NotificationService notificationService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.notificationService = notificationService;
     }
 
     @PostMapping("/register")
@@ -73,8 +80,20 @@ public class AuthController {
             }
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime previousSeenAt = user.getLastSeenAt();
+
+        if (previousSeenAt == null && user.getLastLoginDate() != null) {
+            previousSeenAt = user.getLastLoginDate().atStartOfDay();
+        }
+
         user.setLastLoginDate(today);
+        user.setLastSeenAt(now);
         userRepository.save(user);
+
+        if (previousSeenAt != null && previousSeenAt.isBefore(now.minusDays(5))) {
+            notificationService.createWelcomeBackNotificationIfNotExists(user.getEmail());
+        }
 
         String token = jwtService.generateToken(user.getEmail());
         return ResponseEntity.ok(new LoginResponse(

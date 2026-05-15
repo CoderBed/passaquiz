@@ -21,6 +21,8 @@ public class User {
 
     private java.time.LocalDate lastLoginDate;
 
+    private java.time.LocalDateTime lastSeenAt;
+
     private Integer loginStreak = 0;
 
     public User() {
@@ -74,5 +76,13 @@ public class User {
 
     public void setLoginStreak(Integer loginStreak) {
         this.loginStreak = loginStreak;
+    }
+
+    public java.time.LocalDateTime getLastSeenAt() {
+        return lastSeenAt;
+    }
+
+    public void setLastSeenAt(java.time.LocalDateTime lastSeenAt) {
+        this.lastSeenAt = lastSeenAt;
     }
 }
